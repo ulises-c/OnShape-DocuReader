@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OnShape DocuReader</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 OnShape DocuReader</h1>
+            <p>Access and browse your OnShape documents using OAuth integration</p>
+        </header>
+
+        <main>
+            <!-- Landing Page -->
+            <div id="landing" class="page active">
+                <div class="welcome-card">
+                    <h2>Welcome to OnShape DocuReader</h2>
+                    <p>This application allows you to securely access your OnShape documents using OAuth 2.0 authentication.</p>
+                    
+                    <div class="features">
+                        <h3>Features:</h3>
+                        <ul>
+                            <li>🔐 Secure OAuth 2.0 authentication with OnShape</li>
+                            <li>📄 Browse your OnShape documents</li>
+                            <li>🔍 View document details and elements</li>
+                            <li>⚙️ Access parts and assemblies information</li>
+                            <li>📊 Get mass properties and metadata</li>
+                        </ul>
+                    </div>
+
+                    <div class="auth-section">
+                        <button id="loginBtn" class="btn btn-primary">
+                            Login with OnShape
+                        </button>
+                        <p class="auth-status" id="authStatus">Not authenticated</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard -->
+            <div id="dashboard" class="page">
+                <div class="dashboard-header">
+                    <h2>Your OnShape Documents</h2>
+                    <div class="user-info">
+                        <span id="userName">Loading...</span>
+                        <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+                    </div>
+                </div>
+
+                <div class="search-section">
+                    <input type="text" id="searchInput" placeholder="Search documents..." />
+                    <button id="searchBtn" class="btn btn-primary">Search</button>
+                    <button id="refreshBtn" class="btn btn-secondary">Refresh</button>
+                </div>
+
+                <div class="documents-section">
+                    <div id="loading" class="loading">Loading documents...</div>
+                    <div id="documentsGrid" class="documents-grid"></div>
+                    <div id="error" class="error-message" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- Document Detail -->
+            <div id="documentDetail" class="page">
+                <div class="detail-header">
+                    <button id="backBtn" class="btn btn-secondary">← Back to Documents</button>
+                    <h2 id="documentTitle">Document Details</h2>
+                </div>
+
+                <div class="document-info">
+                    <div class="info-card">
+                        <h3>Document Information</h3>
+                        <div id="documentInfo"></div>
+                    </div>
+
+                    <div class="info-card">
+                        <h3>Elements</h3>
+                        <div id="documentElements"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 OnShape DocuReader - Built with OnShape API</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
