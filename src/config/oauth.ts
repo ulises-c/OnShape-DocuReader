@@ -14,7 +14,7 @@ export const oauthConfig: OAuthConfig = {
   clientId: process.env.ONSHAPE_CLIENT_ID || '',
   clientSecret: process.env.ONSHAPE_CLIENT_SECRET || '',
   redirectUri: process.env.ONSHAPE_REDIRECT_URI || 'http://localhost:3000/auth/callback',
-  baseApiUrl: process.env.ONSHAPE_API_BASE_URL || 'https://cad.onshape.com/api/v6',
+  baseApiUrl: process.env.ONSHAPE_API_BASE_URL || 'https://cad.onshape.com/api/v12',
   oauthBaseUrl: process.env.ONSHAPE_OAUTH_BASE_URL || 'https://oauth.onshape.com',
   scope: 'OAuth2Read OAuth2ReadPII' // OnShape OAuth scopes
 };
