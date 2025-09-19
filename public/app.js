@@ -21,7 +21,6 @@ class OnShapeApp {
   }
 
   bindEvents() {
-    // BUG: document.getElementById is not a function
     // Auth buttons
     document
       .getElementById("loginBtn")
@@ -264,29 +263,29 @@ class OnShapeApp {
     }
   }
 
-  renderDocumentDetails(document, elements) {
-    document.getElementById("documentTitle").textContent = document.name;
+  renderDocumentDetails(docData, elements) {
+    document.getElementById("documentTitle").textContent = docData.name;
 
     // Render document info
     const infoEl = document.getElementById("documentInfo");
-    const createdDate = new Date(document.createdAt).toLocaleString();
-    const modifiedDate = new Date(document.modifiedAt).toLocaleString();
+    const createdDate = new Date(docData.createdAt).toLocaleString();
+    const modifiedDate = new Date(docData.modifiedAt).toLocaleString();
 
     infoEl.innerHTML = `
             <div class="info-item">
                 <div class="info-label">Name</div>
-                <div class="info-value">${this.escapeHtml(document.name)}</div>
+                <div class="info-value">${this.escapeHtml(docData.name)}</div>
             </div>
             <div class="info-item">
                 <div class="info-label">Description</div>
                 <div class="info-value">${this.escapeHtml(
-                  document.description || "No description"
+                  docData.description || "No description"
                 )}</div>
             </div>
             <div class="info-item">
                 <div class="info-label">Owner</div>
                 <div class="info-value">${this.escapeHtml(
-                  document.owner?.name || "Unknown"
+                  docData.owner?.name || "Unknown"
                 )}</div>
             </div>
             <div class="info-item">
@@ -300,7 +299,7 @@ class OnShapeApp {
             <div class="info-item">
                 <div class="info-label">Visibility</div>
                 <div class="info-value">${
-                  document.isPublic ? "Public" : "Private"
+                  docData.isPublic ? "Public" : "Private"
                 }</div>
             </div>
         `;
