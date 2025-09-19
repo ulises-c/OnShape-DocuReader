@@ -82,6 +82,70 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Element Detail -->
+            <div id="elementDetail" class="page">
+                <div class="detail-header">
+                    <button id="backToDocBtn" class="btn btn-secondary">← Back to Document</button>
+                    <h2 id="elementTitle">Element Details</h2>
+                </div>
+
+                <div class="element-info">
+                    <div class="info-card">
+                        <h3>Element Information</h3>
+                        <div id="elementInfo"></div>
+                    </div>
+
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="parts">Parts</button>
+                        <button class="tab-btn" data-tab="assemblies">Assemblies</button>
+                        <button class="tab-btn" data-tab="metadata">Metadata</button>
+                    </div>
+
+                    <div class="tab-content">
+                        <div id="parts-tab" class="tab-panel active">
+                            <div class="info-card">
+                                <h3>Parts</h3>
+                                <div id="elementParts" class="parts-grid"></div>
+                            </div>
+                        </div>
+
+                        <div id="assemblies-tab" class="tab-panel">
+                            <div class="info-card">
+                                <h3>Assemblies</h3>
+                                <div id="elementAssemblies" class="assemblies-grid"></div>
+                            </div>
+                        </div>
+
+                        <div id="metadata-tab" class="tab-panel">
+                            <div class="info-card">
+                                <h3>Metadata</h3>
+                                <div id="elementMetadata"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Part Detail -->
+            <div id="partDetail" class="page">
+                <div class="detail-header">
+                    <button id="backToElementBtn" class="btn btn-secondary">← Back to Element</button>
+                    <h2 id="partTitle">Part Details</h2>
+                </div>
+
+                <div class="part-info">
+                    <div class="info-card">
+                        <h3>Part Information</h3>
+                        <div id="partInfo"></div>
+                    </div>
+
+                    <div class="info-card">
+                        <h3>Mass Properties</h3>
+                        <div id="partMassProperties"></div>
+                    </div>
+                </div>
+            </div>
         </main>
 
         <footer>

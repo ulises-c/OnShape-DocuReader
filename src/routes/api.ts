@@ -94,4 +94,76 @@ router.get('/documents/:documentId/workspaces/:workspaceId/elements', requireAut
   }
 });
 
+/**
+ * Get parts from a specific element
+ * GET /api/documents/:documentId/workspaces/:workspaceId/elements/:elementId/parts
+ */
+router.get('/documents/:documentId/workspaces/:workspaceId/elements/:elementId/parts', requireAuth, async (req, res) => {
+  try {
+    const { documentId, workspaceId, elementId } = req.params;
+    const tokens = (req as any).tokens;
+    const apiClient = new OnShapeApiClient(tokens.access_token);
+    
+    const parts = await apiClient.getParts(documentId, workspaceId, elementId);
+    res.json(parts);
+  } catch (error: any) {
+    console.error('Get parts error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Get assemblies from a specific element
+ * GET /api/documents/:documentId/workspaces/:workspaceId/elements/:elementId/assemblies
+ */
+router.get('/documents/:documentId/workspaces/:workspaceId/elements/:elementId/assemblies', requireAuth, async (req, res) => {
+  try {
+    const { documentId, workspaceId, elementId } = req.params;
+    const tokens = (req as any).tokens;
+    const apiClient = new OnShapeApiClient(tokens.access_token);
+    
+    const assemblies = await apiClient.getAssemblies(documentId, workspaceId, elementId);
+    res.json(assemblies);
+  } catch (error: any) {
+    console.error('Get assemblies error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Get mass properties for a specific part
+ * GET /api/documents/:documentId/workspaces/:workspaceId/elements/:elementId/parts/:partId/mass-properties
+ */
+router.get('/documents/:documentId/workspaces/:workspaceId/elements/:elementId/parts/:partId/mass-properties', requireAuth, async (req, res) => {
+  try {
+    const { documentId, workspaceId, elementId, partId } = req.params;
+    const tokens = (req as any).tokens;
+    const apiClient = new OnShapeApiClient(tokens.access_token);
+    
+    const massProperties = await apiClient.getPartMassProperties(documentId, workspaceId, elementId, partId);
+    res.json(massProperties);
+  } catch (error: any) {
+    console.error('Get mass properties error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Get metadata for a specific element
+ * GET /api/documents/:documentId/workspaces/:workspaceId/elements/:elementId/metadata
+ */
+router.get('/documents/:documentId/workspaces/:workspaceId/elements/:elementId/metadata', requireAuth, async (req, res) => {
+  try {
+    const { documentId, workspaceId, elementId } = req.params;
+    const tokens = (req as any).tokens;
+    const apiClient = new OnShapeApiClient(tokens.access_token);
+    
+    const metadata = await apiClient.getElementMetadata(documentId, workspaceId, elementId);
+    res.json(metadata);
+  } catch (error: any) {
+    console.error('Get element metadata error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export { router as apiRouter };

@@ -371,3 +371,188 @@ footer {
         font-size: 2rem;
     }
 }
+
+/* Element Detail Styles */
+.element-info {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+}
+
+.tabs {
+    display: flex;
+    border-bottom: 2px solid #e0e0e0;
+    margin-bottom: 2rem;
+}
+
+.tab-btn {
+    padding: 1rem 2rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    color: #666;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.tab-btn:hover {
+    color: #2c5aa0;
+    background-color: #f8f9fa;
+}
+
+.tab-btn.active {
+    color: #2c5aa0;
+    border-bottom-color: #2c5aa0;
+    background-color: #f8f9fa;
+}
+
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+/* Parts and Assemblies Grid */
+.parts-grid, .assemblies-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.part-item, .assembly-item {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.part-item:hover, .assembly-item:hover {
+    background: #e9ecef;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(44, 90, 160, 0.1);
+}
+
+.part-name, .assembly-name {
+    font-weight: bold;
+    color: #2c5aa0;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.part-id, .assembly-id {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    color: #666;
+    background: #fff;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    display: inline-block;
+    margin-top: 0.5rem;
+}
+
+/* Part Detail Styles */
+.part-info {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+}
+
+.mass-property-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #eee;
+}
+
+.mass-property-item:last-child {
+    border-bottom: none;
+}
+
+.mass-property-label {
+    font-weight: bold;
+    color: #333;
+}
+
+.mass-property-value {
+    color: #666;
+    font-family: 'Courier New', monospace;
+}
+
+/* Element item clickable styles */
+.element-item {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.element-item:hover {
+    background: #e9ecef;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(44, 90, 160, 0.1);
+}
+
+.element-name {
+    font-weight: bold;
+    color: #2c5aa0;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.element-type {
+    color: #666;
+    font-size: 0.9rem;
+    margin: 0.25rem 0;
+}
+
+/* Loading states */
+.loading-element {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+    font-style: italic;
+}
+
+/* Empty states */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #666;
+    font-style: italic;
+}
+
+.empty-state h3 {
+    margin-bottom: 1rem;
+    color: #999;
+}
+
+/* Responsive adjustments for new components */
+@media (max-width: 768px) {
+    .tabs {
+        flex-wrap: wrap;
+    }
+    
+    .tab-btn {
+        flex: 1;
+        min-width: 0;
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .parts-grid, .assemblies-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .element-info, .part-info {
+        grid-template-columns: 1fr;
+    }
+}
