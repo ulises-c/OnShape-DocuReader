@@ -1,11 +1,10 @@
 import express from 'express';
 import { OAuthService } from '../services/oauth-service';
+import { SessionStorage } from '../services/session-storage';
 
 const router = express.Router();
 const oauthService = OAuthService.getInstance();
-
-// Store tokens temporarily (in production, use secure sessions/database)
-const tokenStore = new Map<string, any>();
+const sessionStorage = SessionStorage.getInstance();
 
 // Simple state store for OAuth (in production, use Redis or database)
 const stateStore = new Map<string, string>();
@@ -58,15 +57,13 @@ router.get('/callback', async (req, res): Promise<void> => {
     // Exchange code for tokens
     const tokens = await oauthService.exchangeCodeForToken(code as string, state as string);
     
-    // Store tokens (in production, use secure storage)
+    // Store tokens persistently
     const sessionId = Date.now().toString();
-    tokenStore.set(sessionId, tokens);
-    
-    // Set session cookie and redirect to dashboard
+    sessionStorage.set(sessionId, tokens);
+
+    // Set session cookie and redirect to main app (which will show dashboard if authenticated)
     res.cookie('session_id', sessionId, { httpOnly: true, secure: false });
-    res.redirect('/dashboard');
-    
-  } catch (error: any) {
+    res.redirect('/');  } catch (error: any) {
     console.error('OAuth callback error:', error);
     res.status(500).json({ error: error.message });
   }
@@ -79,12 +76,12 @@ router.get('/callback', async (req, res): Promise<void> => {
 router.get('/status', (req, res): void => {
   const sessionId = req.cookies?.session_id;
   
-  if (!sessionId || !tokenStore.has(sessionId)) {
+  if (!sessionId || !sessionStorage.has(sessionId)) {
     res.json({ authenticated: false });
     return;
   }
   
-  const tokens = tokenStore.get(sessionId);
+  const tokens = sessionStorage.get(sessionId);
   res.json({ 
     authenticated: true,
     tokenType: tokens.token_type,
@@ -100,7 +97,7 @@ router.post('/logout', (req, res) => {
   const sessionId = req.cookies?.session_id;
   
   if (sessionId) {
-    tokenStore.delete(sessionId);
+    sessionStorage.delete(sessionId);
   }
   
   res.clearCookie('session_id');
@@ -111,7 +108,7 @@ router.post('/logout', (req, res) => {
  * Get access token for API calls (internal use)
  */
 export function getTokenForSession(sessionId: string) {
-  return tokenStore.get(sessionId);
+  return sessionStorage.get(sessionId);
 }
 
 export { router as authRouter };
