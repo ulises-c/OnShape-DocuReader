@@ -11,6 +11,8 @@ class OnShapeApp {
     this.currentPart = null;
     this.isAuthenticated = false;
     this.user = null;
+    this.exportModalEventsBound = false;
+    this.progressModalEventsBound = false;
 
     this.init();
   }
@@ -47,6 +49,9 @@ class OnShapeApp {
     document
       .getElementById("searchBtn")
       .addEventListener("click", this.handleSearch.bind(this));
+    document
+      .getElementById("getAllBtn")
+      .addEventListener("click", this.handleGetAll.bind(this));
 
     // Search input
     document.getElementById("searchInput").addEventListener("keypress", (e) => {
@@ -227,6 +232,11 @@ class OnShapeApp {
       loadingEl.style.display = "none";
       this.showError("Search failed: " + error.message);
     }
+  }
+
+  async handleGetAll() {
+    console.log("Get All button clicked");
+    this.showExportModal();
   }
 
   async viewDocument(documentId) {
@@ -794,6 +804,629 @@ class OnShapeApp {
     const errorEl = document.getElementById("error");
     errorEl.textContent = message;
     errorEl.style.display = "block";
+  }
+
+  showSuccess(message) {
+    // Create a temporary success message element
+    const successEl = document.createElement("div");
+    successEl.className = "success-message";
+    successEl.textContent = message;
+    successEl.style.cssText = `
+      background-color: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+      padding: 12px 20px;
+      border-radius: 5px;
+      margin: 10px 0;
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      animation: slideIn 0.3s ease-out;
+    `;
+
+    document.body.appendChild(successEl);
+
+    // Remove after 4 seconds
+    setTimeout(() => {
+      if (successEl.parentNode) {
+        successEl.parentNode.removeChild(successEl);
+      }
+    }, 4000);
+  }
+
+  // Export Modal Methods
+  showExportModal() {
+    const modal = document.getElementById("exportModal");
+    if (!modal) {
+      console.error("Export modal not found");
+      return;
+    }
+
+    modal.style.display = "block";
+
+    // Update estimated counts
+    this.updateExportEstimates();
+
+    // Bind modal events only once
+    if (!this.exportModalEventsBound) {
+      this.bindExportModalEvents();
+      this.exportModalEventsBound = true;
+    }
+  }
+
+  hideExportModal() {
+    const modal = document.getElementById("exportModal");
+    modal.style.display = "none";
+  }
+
+  bindExportModalEvents() {
+    try {
+      // Close modal events
+      const closeBtn = document.getElementById("exportModalClose");
+      const cancelBtn = document.getElementById("cancelExport");
+      const modal = document.getElementById("exportModal");
+      const startBtn = document.getElementById("startExport");
+
+      if (closeBtn) {
+        closeBtn.addEventListener("click", () => {
+          this.hideExportModal();
+        });
+      }
+
+      if (cancelBtn) {
+        cancelBtn.addEventListener("click", () => {
+          this.hideExportModal();
+        });
+      }
+
+      // Click outside to close
+      if (modal) {
+        modal.addEventListener("click", (e) => {
+          if (e.target.id === "exportModal") {
+            this.hideExportModal();
+          }
+        });
+      }
+
+      // Start export
+      if (startBtn) {
+        startBtn.addEventListener("click", () => {
+          this.startAdvancedExport();
+        });
+      }
+
+      // Update estimates when options change
+      const inputs = document.querySelectorAll(
+        '#exportModal input[type="checkbox"], #exportModal input[type="radio"], #exportModal select'
+      );
+      inputs.forEach((input) => {
+        input.addEventListener("change", () => {
+          this.updateExportEstimates();
+        });
+      });
+    } catch (error) {
+      console.error("Error binding export modal events:", error);
+    }
+  }
+
+  updateExportEstimates() {
+    try {
+      const documentsCount = this.documents.length;
+      const requestsPerMinInput = document.getElementById("requestsPerMinute");
+
+      if (!requestsPerMinInput) {
+        console.warn("Requests per minute input not found");
+        return;
+      }
+
+      const requestsPerMin = parseInt(requestsPerMinInput.value) || 30;
+
+      // Estimate API calls based on selected options
+      let estimatedCalls = documentsCount; // Basic document info
+
+      const exportElements = document.getElementById("exportElements");
+      const exportParts = document.getElementById("exportParts");
+      const exportAssemblies = document.getElementById("exportAssemblies");
+      const exportMassProperties = document.getElementById(
+        "exportMassProperties"
+      );
+      const exportMetadata = document.getElementById("exportMetadata");
+
+      if (exportElements && exportElements.checked) {
+        estimatedCalls += documentsCount; // Elements per document
+      }
+      if (exportParts && exportParts.checked) {
+        estimatedCalls += documentsCount * 2; // Estimate 2 parts calls per doc
+      }
+      if (exportAssemblies && exportAssemblies.checked) {
+        estimatedCalls += documentsCount * 1; // Estimate 1 assembly call per doc
+      }
+      if (exportMassProperties && exportMassProperties.checked) {
+        estimatedCalls += documentsCount * 2; // Mass properties calls
+      }
+      if (exportMetadata && exportMetadata.checked) {
+        estimatedCalls += documentsCount * 1; // Metadata calls
+      }
+
+      const estimatedMinutes = Math.ceil(estimatedCalls / requestsPerMin);
+
+      const countEl = document.getElementById("estimatedCount");
+      const timeEl = document.getElementById("estimatedTime");
+
+      if (countEl) countEl.textContent = documentsCount;
+      if (timeEl) timeEl.textContent = estimatedMinutes;
+    } catch (error) {
+      console.error("Error updating export estimates:", error);
+    }
+  }
+
+  async startAdvancedExport() {
+    console.log("Starting advanced export...");
+
+    // Hide export modal and show progress modal
+    this.hideExportModal();
+    this.showProgressModal();
+
+    try {
+      const exportOptions = this.getExportOptions();
+      await this.performAdvancedExport(exportOptions);
+    } catch (error) {
+      console.error("Advanced export error:", error);
+      this.hideProgressModal();
+      this.showError("Export failed: " + error.message);
+    }
+  }
+
+  getExportOptions() {
+    try {
+      const options = {
+        includeBasicInfo: true,
+        includeElements: true,
+        includeParts: false,
+        includeAssemblies: false,
+        includeMassProperties: false,
+        includeMetadata: false,
+        versionMode: "new",
+        format: "json",
+        requestsPerMinute: 30,
+      };
+
+      // Safely get checkbox values
+      const basicInfoEl = document.getElementById("exportBasicInfo");
+      const elementsEl = document.getElementById("exportElements");
+      const partsEl = document.getElementById("exportParts");
+      const assembliesEl = document.getElementById("exportAssemblies");
+      const massPropsEl = document.getElementById("exportMassProperties");
+      const metadataEl = document.getElementById("exportMetadata");
+      const requestsEl = document.getElementById("requestsPerMinute");
+
+      if (basicInfoEl) options.includeBasicInfo = basicInfoEl.checked;
+      if (elementsEl) options.includeElements = elementsEl.checked;
+      if (partsEl) options.includeParts = partsEl.checked;
+      if (assembliesEl) options.includeAssemblies = assembliesEl.checked;
+      if (massPropsEl) options.includeMassProperties = massPropsEl.checked;
+      if (metadataEl) options.includeMetadata = metadataEl.checked;
+      if (requestsEl)
+        options.requestsPerMinute = parseInt(requestsEl.value) || 30;
+
+      // Safely get radio button values
+      const versionModeEl = document.querySelector(
+        'input[name="versionMode"]:checked'
+      );
+      const formatEl = document.querySelector(
+        'input[name="exportFormat"]:checked'
+      );
+
+      if (versionModeEl) options.versionMode = versionModeEl.value;
+      if (formatEl) options.format = formatEl.value;
+
+      return options;
+    } catch (error) {
+      console.error("Error getting export options:", error);
+      // Return default options if there's an error
+      return {
+        includeBasicInfo: true,
+        includeElements: true,
+        includeParts: false,
+        includeAssemblies: false,
+        includeMassProperties: false,
+        includeMetadata: false,
+        versionMode: "new",
+        format: "json",
+        requestsPerMinute: 30,
+      };
+    }
+  }
+
+  showProgressModal() {
+    try {
+      const modal = document.getElementById("progressModal");
+      if (!modal) {
+        console.error("Progress modal not found");
+        return;
+      }
+
+      modal.style.display = "block";
+
+      if (!this.progressModalEventsBound) {
+        this.bindProgressModalEvents();
+        this.progressModalEventsBound = true;
+      }
+    } catch (error) {
+      console.error("Error showing progress modal:", error);
+    }
+  }
+
+  hideProgressModal() {
+    try {
+      const modal = document.getElementById("progressModal");
+      if (modal) {
+        modal.style.display = "none";
+      }
+    } catch (error) {
+      console.error("Error hiding progress modal:", error);
+    }
+  }
+
+  bindProgressModalEvents() {
+    try {
+      const cancelBtn = document.getElementById("cancelExportProgress");
+      if (cancelBtn) {
+        cancelBtn.addEventListener("click", () => {
+          this.cancelExport();
+        });
+      }
+    } catch (error) {
+      console.error("Error binding progress modal events:", error);
+    }
+  }
+
+  async performAdvancedExport(options) {
+    console.log("Export options:", options);
+
+    // Initialize progress
+    const totalDocs = this.documents.length;
+
+    try {
+      const totalProgressEl = document.getElementById("totalProgress");
+      const currentProgressEl = document.getElementById("currentProgress");
+
+      if (totalProgressEl) totalProgressEl.textContent = totalDocs;
+      if (currentProgressEl) currentProgressEl.textContent = 0;
+    } catch (error) {
+      console.error("Error initializing progress display:", error);
+    }
+
+    this.addToLog("🚀 Starting advanced export...");
+
+    // Use streaming endpoint for better progress tracking
+    await this.performStreamingExport(options);
+  }
+
+  async performStreamingExport(options) {
+    try {
+      // Build query parameters
+      const params = new URLSearchParams();
+      Object.entries(options).forEach(([key, value]) => {
+        params.append(key, value.toString());
+      });
+
+      // Use the regular export endpoint first (which now actually processes documents)
+      const response = await fetch(`/api/export/all?${params.toString()}`);
+
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.statusText}`);
+      }
+
+      // For now, show progress as one operation since the regular endpoint now processes everything
+      this.updateCurrentTask("Processing all documents...");
+      this.addToLog("📊 Processing documents...");
+
+      // Simulate progress updates while waiting for response
+      let progress = 0;
+      const progressInterval = setInterval(() => {
+        progress = Math.min(progress + 10, 90);
+        this.updateProgress(progress, 100);
+      }, 1000);
+
+      const exportData = await response.json();
+
+      clearInterval(progressInterval);
+
+      // Update final progress
+      this.updateProgress(
+        exportData.exportInfo.processedDocuments,
+        exportData.exportInfo.totalDocuments
+      );
+
+      this.addToLog(`✅ Export completed successfully!`);
+      this.addToLog(
+        `📊 Processed ${exportData.exportInfo.processedDocuments}/${exportData.exportInfo.totalDocuments} documents`
+      );
+
+      // Download the file
+      await this.downloadExportFile(exportData, options.format);
+
+      // Store export metadata for version comparison
+      this.storeExportMetadata(exportData.exportInfo);
+
+      setTimeout(() => {
+        this.hideProgressModal();
+        this.showSuccess(
+          `Export completed! ${exportData.exportInfo.processedDocuments} documents processed.`
+        );
+      }, 2000);
+    } catch (error) {
+      console.error("Streaming export error:", error);
+      this.addToLog(`❌ Export failed: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async performStreamingExportWithSSE(options) {
+    return new Promise((resolve, reject) => {
+      // Build query parameters
+      const params = new URLSearchParams();
+      Object.entries(options).forEach(([key, value]) => {
+        params.append(key, value.toString());
+      });
+
+      const eventSource = new EventSource(
+        `/api/export/stream?${params.toString()}`
+      );
+      let exportData = null;
+
+      eventSource.onmessage = (event) => {
+        console.log("SSE message:", event.data);
+      };
+
+      eventSource.addEventListener("start", (event) => {
+        const data = JSON.parse(event.data);
+        this.addToLog(
+          `🚀 Starting export with options: ${JSON.stringify(data.options)}`
+        );
+      });
+
+      eventSource.addEventListener("documents-found", (event) => {
+        const data = JSON.parse(event.data);
+        this.addToLog(`📊 Found ${data.count} documents to process`);
+
+        try {
+          const totalProgressEl = document.getElementById("totalProgress");
+          if (totalProgressEl) totalProgressEl.textContent = data.count;
+        } catch (error) {
+          console.error("Error updating total progress:", error);
+        }
+      });
+
+      eventSource.addEventListener("progress", (event) => {
+        const data = JSON.parse(event.data);
+        this.updateCurrentTask(`Processing: ${data.documentName}`);
+        this.updateProgress(data.current, data.total);
+        this.addToLog(
+          `📄 Processing ${data.current}/${data.total}: ${data.documentName}`
+        );
+      });
+
+      eventSource.addEventListener("document-status", (event) => {
+        const data = JSON.parse(event.data);
+        this.addToLog(`  └ ${data.status}`);
+      });
+
+      eventSource.addEventListener("document-complete", (event) => {
+        const data = JSON.parse(event.data);
+        this.addToLog(
+          `✅ Completed: ${data.documentName} (${data.processed}/${data.total})`
+        );
+      });
+
+      eventSource.addEventListener("document-error", (event) => {
+        const data = JSON.parse(event.data);
+        this.addToLog(`❌ Error: ${data.documentName} - ${data.error}`);
+      });
+
+      eventSource.addEventListener("complete", (event) => {
+        const data = JSON.parse(event.data);
+        exportData = data.exportData;
+
+        this.updateCurrentTask("Export completed!");
+        this.addToLog("🎉 Export completed successfully!");
+
+        eventSource.close();
+        resolve(exportData);
+      });
+
+      eventSource.addEventListener("error", (event) => {
+        const data = JSON.parse(event.data);
+        this.addToLog(`❌ Export failed: ${data.error}`);
+        eventSource.close();
+        reject(new Error(data.error || "Export failed"));
+      });
+
+      eventSource.onerror = (error) => {
+        console.error("SSE connection error:", error);
+        this.addToLog("❌ Connection error during export");
+        eventSource.close();
+        reject(new Error("Connection error during export"));
+      };
+    });
+  }
+
+  async filterDocumentsByVersion(documents, versionMode) {
+    if (versionMode === "all") {
+      return documents;
+    }
+
+    // Get previous export metadata from localStorage
+    const previousExports = this.getPreviousExportMetadata();
+
+    if (!previousExports || versionMode === "missing") {
+      // If no previous exports, treat all as new
+      return documents;
+    }
+
+    // Compare modification dates for 'new' mode
+    if (versionMode === "new") {
+      return documents.filter((doc) => {
+        const previousDoc = previousExports.find((prev) => prev.id === doc.id);
+        if (!previousDoc) return true; // New document
+        return new Date(doc.modifiedAt) > new Date(previousDoc.modifiedAt);
+      });
+    }
+
+    return documents;
+  }
+
+  async exportSingleDocument(document, options) {
+    const docData = {
+      id: document.id,
+      exportedAt: new Date().toISOString(),
+    };
+
+    if (options.includeBasicInfo) {
+      docData.basicInfo = {
+        name: document.name,
+        owner: document.owner,
+        createdAt: document.createdAt,
+        modifiedAt: document.modifiedAt,
+        isPublic: document.isPublic,
+      };
+    }
+
+    if (
+      options.includeElements ||
+      options.includeParts ||
+      options.includeAssemblies ||
+      options.includeMassProperties ||
+      options.includeMetadata
+    ) {
+      // Get detailed document info first
+      const detailResponse = await fetch(`/api/documents/${document.id}`);
+      if (detailResponse.ok) {
+        const detailData = await detailResponse.json();
+
+        if (options.includeElements) {
+          docData.elements = await this.getDocumentElements(
+            document.id,
+            detailData
+          );
+        }
+
+        // Add other data types based on options...
+      }
+    }
+
+    return docData;
+  }
+
+  async getDocumentElements(documentId, documentDetail) {
+    if (!documentDetail.defaultWorkspace) return [];
+
+    const elementsResponse = await fetch(
+      `/api/documents/${documentId}/workspaces/${documentDetail.defaultWorkspace.id}/elements`
+    );
+
+    if (elementsResponse.ok) {
+      return await elementsResponse.json();
+    }
+    return [];
+  }
+
+  updateCurrentTask(task) {
+    try {
+      const taskEl = document.getElementById("currentTask");
+      if (taskEl) {
+        taskEl.textContent = task;
+      }
+    } catch (error) {
+      console.error("Error updating current task:", error);
+    }
+  }
+
+  updateProgress(current, total) {
+    try {
+      const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
+
+      const fillEl = document.getElementById("progressFill");
+      const currentEl = document.getElementById("currentProgress");
+
+      if (fillEl) fillEl.style.width = percentage + "%";
+      if (currentEl) currentEl.textContent = current;
+    } catch (error) {
+      console.error("Error updating progress:", error);
+    }
+  }
+
+  addToLog(message) {
+    try {
+      const logContainer = document.getElementById("exportLog");
+      if (logContainer) {
+        const logEntry = document.createElement("p");
+        logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        logContainer.appendChild(logEntry);
+        logContainer.scrollTop = logContainer.scrollHeight;
+      }
+    } catch (error) {
+      console.error("Error adding to log:", error);
+    }
+  }
+
+  async downloadExportFile(data, format) {
+    let blob;
+    let filename;
+
+    if (format === "zip") {
+      // TODO: Implement ZIP export
+      this.addToLog("⚠️ ZIP format not yet implemented, using JSON");
+      blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
+      filename = `onshape-export-${new Date().getTime()}.json`;
+    } else {
+      blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
+      filename = `onshape-export-${new Date().getTime()}.json`;
+    }
+
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  }
+
+  storeExportMetadata(exportInfo) {
+    const metadata = {
+      timestamp: exportInfo.timestamp,
+      documents: this.documents.map((doc) => ({
+        id: doc.id,
+        name: doc.name,
+        modifiedAt: doc.modifiedAt,
+      })),
+    };
+
+    localStorage.setItem("onshape-export-metadata", JSON.stringify(metadata));
+  }
+
+  getPreviousExportMetadata() {
+    const stored = localStorage.getItem("onshape-export-metadata");
+    return stored ? JSON.parse(stored).documents : null;
+  }
+
+  sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  cancelExport() {
+    // TODO: Implement export cancellation
+    this.hideProgressModal();
+    this.showError("Export cancelled by user");
   }
 
   escapeHtml(text) {

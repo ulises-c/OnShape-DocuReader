@@ -166,4 +166,535 @@ router.get('/documents/:documentId/workspaces/:workspaceId/elements/:elementId/m
   }
 });
 
+/**
+ * Get all documents with their complete data structure
+ * GET /api/export/all
+ */
+router.get('/export/all', requireAuth, async (req, res) => {
+  try {
+    const { 
+      format = 'json',
+      includeBasicInfo = 'true',
+      includeElements = 'false',
+      includeParts = 'false',
+      includeAssemblies = 'false',
+      includeMassProperties = 'false',
+      includeMetadata = 'false',
+      requestsPerMinute = '30'
+    } = req.query;
+    
+    const tokens = (req as any).tokens;
+    const apiClient = new OnShapeApiClient(tokens.access_token);
+    
+    console.log('Advanced export requested with options:', {
+      format,
+      includeBasicInfo,
+      includeElements,
+      includeParts,
+      includeAssemblies,
+      includeMassProperties,
+      includeMetadata,
+      requestsPerMinute
+    });
+    
+    // Parse options
+    const options = {
+      includeBasicInfo: includeBasicInfo === 'true',
+      includeElements: includeElements === 'true',
+      includeParts: includeParts === 'true',
+      includeAssemblies: includeAssemblies === 'true',
+      includeMassProperties: includeMassProperties === 'true',
+      includeMetadata: includeMetadata === 'true'
+    };
+    
+    // Get all documents first
+    const documents = await apiClient.getDocuments();
+    
+    // Rate limiting setup
+    const rateLimit = parseInt(requestsPerMinute as string);
+    const delayBetweenRequests = Math.max(1000, (60 / rateLimit) * 1000);
+    
+    console.log(`Starting export of ${documents.length} documents with ${delayBetweenRequests}ms delay between requests`);
+    
+    const exportData = {
+      exportInfo: {
+        timestamp: new Date().toISOString(),
+        options: options,
+        totalDocuments: documents.length,
+        processedDocuments: 0
+      },
+      documents: [] as any[]
+    };
+
+    // Function to add delay for rate limiting
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+    // Process each document
+    let processedCount = 0;
+    for (const document of documents) {
+      try {
+        console.log(`Processing document: ${document.name} (${document.id})`);
+        
+        const documentData: any = {
+          id: document.id,
+          name: document.name,
+          owner: document.owner,
+          createdAt: document.createdAt,
+          modifiedAt: document.modifiedAt,
+          isPublic: document.isPublic,
+          href: document.href,
+          status: 'processed'
+        };
+
+        // Get detailed document information if requested
+        if (options.includeBasicInfo) {
+          try {
+            const detailInfo = await apiClient.getDocument(document.id);
+            documentData.detailInfo = detailInfo;
+            await delay(delayBetweenRequests);
+          } catch (error: any) {
+            console.warn(`Failed to get detail info for ${document.name}:`, error.message);
+            documentData.detailInfoError = error.message;
+          }
+        }
+
+        // Get document metadata if requested
+        if (options.includeMetadata) {
+          try {
+            const metadata = await apiClient.getDocumentMetadata(document.id);
+            documentData.metadata = metadata;
+            await delay(delayBetweenRequests);
+          } catch (error: any) {
+            console.warn(`Failed to get metadata for ${document.name}:`, error.message);
+            documentData.metadataError = error.message;
+          }
+        }
+
+        // Get elements and their data if requested
+        if (options.includeElements || options.includeParts || options.includeAssemblies || options.includeMassProperties) {
+          // Use default workspace or first available workspace
+          const workspaceId = documentData.detailInfo?.defaultWorkspace?.id || 
+                            documentData.detailInfo?.workspaces?.[0]?.id ||
+                            document.id; // Fallback to document ID
+
+          if (workspaceId) {
+            try {
+              const elements = await apiClient.getDocumentElements(document.id, workspaceId);
+              documentData.elements = [];
+              await delay(delayBetweenRequests);
+
+              // Process each element
+              for (const element of elements) {
+                const elementData: any = {
+                  id: element.id,
+                  name: element.name,
+                  type: element.type,
+                  elementType: element.elementType
+                };
+
+                // Get parts if requested
+                if (options.includeParts) {
+                  try {
+                    const parts = await apiClient.getParts(document.id, workspaceId, element.id);
+                    elementData.parts = parts;
+                    await delay(delayBetweenRequests);
+
+                    // Get mass properties for parts if requested
+                    if (options.includeMassProperties && parts.length > 0) {
+                      elementData.massProperties = [];
+                      for (const part of parts) {
+                        try {
+                          const massProps = await apiClient.getPartMassProperties(
+                            document.id, workspaceId, element.id, part.partId
+                          );
+                          elementData.massProperties.push({
+                            partId: part.partId,
+                            ...massProps
+                          });
+                          await delay(delayBetweenRequests);
+                        } catch (error: any) {
+                          console.warn(`Failed to get mass properties for part ${part.partId}:`, error.message);
+                        }
+                      }
+                    }
+                  } catch (error: any) {
+                    console.warn(`Failed to get parts for element ${element.id}:`, error.message);
+                    elementData.partsError = error.message;
+                  }
+                }
+
+                // Get assemblies if requested
+                if (options.includeAssemblies) {
+                  try {
+                    const assemblies = await apiClient.getAssemblies(document.id, workspaceId, element.id);
+                    elementData.assemblies = assemblies;
+                    await delay(delayBetweenRequests);
+                  } catch (error: any) {
+                    console.warn(`Failed to get assemblies for element ${element.id}:`, error.message);
+                    elementData.assembliesError = error.message;
+                  }
+                }
+
+                // Get element metadata if requested
+                if (options.includeMetadata) {
+                  try {
+                    const elementMetadata = await apiClient.getElementMetadata(document.id, workspaceId, element.id);
+                    elementData.elementMetadata = elementMetadata;
+                    await delay(delayBetweenRequests);
+                  } catch (error: any) {
+                    console.warn(`Failed to get element metadata for ${element.id}:`, error.message);
+                    elementData.elementMetadataError = error.message;
+                  }
+                }
+
+                documentData.elements.push(elementData);
+              }
+            } catch (error: any) {
+              console.warn(`Failed to get elements for ${document.name}:`, error.message);
+              documentData.elementsError = error.message;
+            }
+          } else {
+            console.warn(`No workspace found for document ${document.name}`);
+            documentData.elementsError = 'No workspace available';
+          }
+        }
+
+        exportData.documents.push(documentData);
+        processedCount++;
+        console.log(`✅ Successfully processed: ${document.name} (${processedCount}/${documents.length})`);
+
+      } catch (error: any) {
+        console.error(`Error processing document ${document.name}:`, error);
+        exportData.documents.push({
+          id: document.id,
+          name: document.name,
+          status: 'error',
+          error: error.message
+        });
+        processedCount++;
+      }
+    }
+
+    // Update final processed count
+    exportData.exportInfo.processedDocuments = processedCount;
+    
+    console.log(`Export completed: ${processedCount}/${documents.length} documents processed`);
+
+    // Set appropriate headers based on format
+    if (format === 'zip') {
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', 'attachment; filename="onshape-export.zip"');
+    } else {
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', 'attachment; filename="onshape-export.json"');
+    }
+    
+    res.json(exportData);
+  } catch (error: any) {
+    console.error('Advanced export error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Stream export progress and data
+ * GET /api/export/stream
+ */
+router.get('/export/stream', requireAuth, async (req, res) => {
+  try {
+    const { 
+      format = 'json',
+      includeBasicInfo = 'true',
+      includeElements = 'false',
+      includeParts = 'false',
+      includeAssemblies = 'false',
+      includeMassProperties = 'false',
+      includeMetadata = 'false',
+      requestsPerMinute = '30'
+    } = req.query;
+    
+    const tokens = (req as any).tokens;
+    const apiClient = new OnShapeApiClient(tokens.access_token);
+    
+    // Set up Server-Sent Events
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Cache-Control'
+    });
+
+    const sendEvent = (type: string, data: any) => {
+      res.write(`event: ${type}\n`);
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
+
+    try {
+      // Parse options
+      const options = {
+        includeBasicInfo: includeBasicInfo === 'true',
+        includeElements: includeElements === 'true',
+        includeParts: includeParts === 'true',
+        includeAssemblies: includeAssemblies === 'true',
+        includeMassProperties: includeMassProperties === 'true',
+        includeMetadata: includeMetadata === 'true'
+      };
+
+      sendEvent('start', { 
+        message: 'Starting export...', 
+        options 
+      });
+
+      // Get all documents first
+      const documents = await apiClient.getDocuments();
+      sendEvent('documents-found', { 
+        count: documents.length, 
+        message: `Found ${documents.length} documents` 
+      });
+
+      // Rate limiting setup
+      const rateLimit = parseInt(requestsPerMinute as string);
+      const delayBetweenRequests = Math.max(1000, (60 / rateLimit) * 1000);
+      
+      const delay = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
+      
+      const exportData = {
+        exportInfo: {
+          timestamp: new Date().toISOString(),
+          options: options,
+          totalDocuments: documents.length,
+          processedDocuments: 0
+        },
+        documents: [] as any[]
+      };
+
+      let processedCount = 0;
+      
+      // Process each document
+      for (let i = 0; i < documents.length; i++) {
+        const document = documents[i];
+        
+        sendEvent('progress', { 
+          current: i + 1, 
+          total: documents.length,
+          documentName: document.name,
+          message: `Processing ${document.name}...`
+        });
+
+        try {
+          const documentData = await processDocumentForExport(
+            apiClient, 
+            document, 
+            options, 
+            delay, 
+            delayBetweenRequests,
+            (status: string) => sendEvent('document-status', { documentId: document.id, status })
+          );
+          
+          exportData.documents.push(documentData);
+          processedCount++;
+          
+          sendEvent('document-complete', { 
+            documentId: document.id,
+            documentName: document.name,
+            processed: processedCount,
+            total: documents.length
+          });
+          
+        } catch (error: any) {
+          sendEvent('document-error', { 
+            documentId: document.id,
+            documentName: document.name,
+            error: error.message
+          });
+          
+          exportData.documents.push({
+            id: document.id,
+            name: document.name,
+            status: 'error',
+            error: error.message
+          });
+          processedCount++;
+        }
+      }
+
+      exportData.exportInfo.processedDocuments = processedCount;
+      
+      sendEvent('complete', { 
+        exportData,
+        message: `Export complete! Processed ${processedCount}/${documents.length} documents` 
+      });
+
+    } catch (error: any) {
+      sendEvent('error', { 
+        message: 'Export failed', 
+        error: error.message 
+      });
+    }
+
+    res.end();
+  } catch (error: any) {
+    console.error('Stream export error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Helper function to process a single document for export
+async function processDocumentForExport(
+  apiClient: OnShapeApiClient, 
+  document: any, 
+  options: any, 
+  delay: (ms: number) => Promise<void>,
+  delayMs: number,
+  statusCallback?: (status: string) => void
+): Promise<any> {
+  const documentData: any = {
+    id: document.id,
+    name: document.name,
+    owner: document.owner,
+    createdAt: document.createdAt,
+    modifiedAt: document.modifiedAt,
+    isPublic: document.isPublic,
+    href: document.href,
+    status: 'processed'
+  };
+
+  // Get detailed document information if requested
+  if (options.includeBasicInfo) {
+    statusCallback?.('Fetching document details...');
+    try {
+      const detailInfo = await apiClient.getDocument(document.id);
+      documentData.detailInfo = detailInfo;
+      await delay(delayMs);
+    } catch (error: any) {
+      console.warn(`Failed to get detail info for ${document.name}:`, error.message);
+      documentData.detailInfoError = error.message;
+    }
+  }
+
+  // Get document metadata if requested
+  if (options.includeMetadata) {
+    statusCallback?.('Fetching document metadata...');
+    try {
+      const metadata = await apiClient.getDocumentMetadata(document.id);
+      documentData.metadata = metadata;
+      await delay(delayMs);
+    } catch (error: any) {
+      console.warn(`Failed to get metadata for ${document.name}:`, error.message);
+      documentData.metadataError = error.message;
+    }
+  }
+
+  // Get elements and their data if requested
+  if (options.includeElements || options.includeParts || options.includeAssemblies || options.includeMassProperties) {
+    statusCallback?.('Fetching elements...');
+    
+    // Use default workspace or first available workspace
+    const workspaceId = documentData.detailInfo?.defaultWorkspace?.id || 
+                      documentData.detailInfo?.workspaces?.[0]?.id ||
+                      document.id; // Fallback to document ID
+
+    if (workspaceId) {
+      try {
+        const elements = await apiClient.getDocumentElements(document.id, workspaceId);
+        documentData.elements = [];
+        await delay(delayMs);
+
+        // Process each element
+        for (let j = 0; j < elements.length; j++) {
+          const element = elements[j];
+          statusCallback?.(`Processing element ${j + 1}/${elements.length}: ${element.name}`);
+          
+          const elementData: any = {
+            id: element.id,
+            name: element.name,
+            type: element.type,
+            elementType: element.elementType
+          };
+
+          // Get parts if requested
+          if (options.includeParts) {
+            try {
+              const parts = await apiClient.getParts(document.id, workspaceId, element.id);
+              elementData.parts = parts;
+              await delay(delayMs);
+
+              // Get mass properties for parts if requested
+              if (options.includeMassProperties && parts.length > 0) {
+                elementData.massProperties = [];
+                for (const part of parts) {
+                  try {
+                    const massProps = await apiClient.getPartMassProperties(
+                      document.id, workspaceId, element.id, part.partId
+                    );
+                    elementData.massProperties.push({
+                      partId: part.partId,
+                      ...massProps
+                    });
+                    await delay(delayMs);
+                  } catch (error: any) {
+                    console.warn(`Failed to get mass properties for part ${part.partId}:`, error.message);
+                  }
+                }
+              }
+            } catch (error: any) {
+              console.warn(`Failed to get parts for element ${element.id}:`, error.message);
+              elementData.partsError = error.message;
+            }
+          }
+
+          // Get assemblies if requested
+          if (options.includeAssemblies) {
+            try {
+              const assemblies = await apiClient.getAssemblies(document.id, workspaceId, element.id);
+              elementData.assemblies = assemblies;
+              await delay(delayMs);
+            } catch (error: any) {
+              console.warn(`Failed to get assemblies for element ${element.id}:`, error.message);
+              elementData.assembliesError = error.message;
+            }
+          }
+
+          // Get element metadata if requested
+          if (options.includeMetadata) {
+            try {
+              const elementMetadata = await apiClient.getElementMetadata(document.id, workspaceId, element.id);
+              elementData.elementMetadata = elementMetadata;
+              await delay(delayMs);
+            } catch (error: any) {
+              console.warn(`Failed to get element metadata for ${element.id}:`, error.message);
+              elementData.elementMetadataError = error.message;
+            }
+          }
+
+          documentData.elements.push(elementData);
+        }
+      } catch (error: any) {
+        console.warn(`Failed to get elements for ${document.name}:`, error.message);
+        documentData.elementsError = error.message;
+      }
+    } else {
+      console.warn(`No workspace found for document ${document.name}`);
+      documentData.elementsError = 'No workspace available';
+    }
+  }
+
+  return documentData;
+}
+
+// Helper function to estimate API calls needed per document
+function estimateApiCalls(document: any, options: any): number {
+  let calls = 0;
+  
+  if (options.includeBasicInfo) calls += 1; // Document details
+  if (options.includeElements) calls += 1; // Elements
+  if (options.includeParts) calls += 2; // Estimated parts calls
+  if (options.includeAssemblies) calls += 1; // Assemblies
+  if (options.includeMassProperties) calls += 2; // Mass properties
+  if (options.includeMetadata) calls += 1; // Metadata
+  
+  return calls;
+}
+
 export { router as apiRouter };

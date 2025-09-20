@@ -54,6 +54,7 @@
                     <input type="text" id="searchInput" placeholder="Search documents..." />
                     <button id="searchBtn" class="btn btn-primary">Search</button>
                     <button id="refreshBtn" class="btn btn-secondary">Refresh</button>
+                    <button id="getAllBtn" class="btn btn-success">📦 Get All</button>
                 </div>
 
                 <div class="documents-section">
@@ -147,6 +148,161 @@
                 </div>
             </div>
         </main>
+
+        <!-- Export Options Modal -->
+        <div id="exportModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>📦 Export All Documents</h3>
+                    <button class="modal-close" id="exportModalClose">&times;</button>
+                </div>
+                
+                <div class="modal-body">
+                    <div class="export-section">
+                        <h4>📋 Data Types to Include</h4>
+                        <div class="checkbox-group">
+                            <label>
+                                <input type="checkbox" id="exportBasicInfo" checked>
+                                <span class="checkmark"></span>
+                                Basic Document Info (name, owner, dates)
+                            </label>
+                            <label>
+                                <input type="checkbox" id="exportElements" checked>
+                                <span class="checkmark"></span>
+                                Elements & Structure
+                            </label>
+                            <label>
+                                <input type="checkbox" id="exportParts">
+                                <span class="checkmark"></span>
+                                Parts Data
+                            </label>
+                            <label>
+                                <input type="checkbox" id="exportAssemblies">
+                                <span class="checkmark"></span>
+                                Assemblies Data
+                            </label>
+                            <label>
+                                <input type="checkbox" id="exportMassProperties">
+                                <span class="checkmark"></span>
+                                Mass Properties
+                            </label>
+                            <label>
+                                <input type="checkbox" id="exportMetadata">
+                                <span class="checkmark"></span>
+                                Metadata & Properties
+                            </label>
+                            <label>
+                                <input type="checkbox" id="exportImages" disabled>
+                                <span class="checkmark"></span>
+                                Images & Thumbnails (Coming Soon)
+                            </label>
+                            <label>
+                                <input type="checkbox" id="exportModels" disabled>
+                                <span class="checkmark"></span>
+                                3D Models (Coming Soon)
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="export-section">
+                        <h4>🔄 Version Control</h4>
+                        <div class="radio-group">
+                            <label>
+                                <input type="radio" name="versionMode" value="new" checked>
+                                Download only new/updated documents
+                            </label>
+                            <label>
+                                <input type="radio" name="versionMode" value="all">
+                                Download all documents (overwrite existing)
+                            </label>
+                            <label>
+                                <input type="radio" name="versionMode" value="missing">
+                                Download only missing documents
+                            </label>
+                        </div>
+                        <p class="help-text">
+                            <small>🗂️ Previous exports are stored in browser cache for comparison</small>
+                        </p>
+                    </div>
+
+                    <div class="export-section">
+                        <h4>⚡ Rate Limiting</h4>
+                        <div class="rate-control">
+                            <label for="requestsPerMinute">API Requests per minute:</label>
+                            <select id="requestsPerMinute">
+                                <option value="10">10 (Conservative)</option>
+                                <option value="30" selected>30 (Recommended)</option>
+                                <option value="60">60 (Aggressive)</option>
+                                <option value="120">120 (Maximum)</option>
+                            </select>
+                            <p class="help-text">
+                                <small>⚠️ OnShape has rate limits. Conservative settings prevent timeouts.</small>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="export-section">
+                        <h4>📁 Export Format</h4>
+                        <div class="radio-group">
+                            <label>
+                                <input type="radio" name="exportFormat" value="json" checked>
+                                Single JSON file
+                            </label>
+                            <label>
+                                <input type="radio" name="exportFormat" value="zip">
+                                ZIP with organized folders
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="export-summary">
+                        <p><strong>Estimated documents:</strong> <span id="estimatedCount">0</span></p>
+                        <p><strong>Estimated time:</strong> <span id="estimatedTime">0 minutes</span></p>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelExport">Cancel</button>
+                    <button class="btn btn-success" id="startExport">Start Export</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Progress Modal -->
+        <div id="progressModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>🚀 Exporting Documents</h3>
+                </div>
+                
+                <div class="modal-body">
+                    <div class="progress-section">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                        </div>
+                        <p class="progress-text">
+                            <span id="currentProgress">0</span> of <span id="totalProgress">0</span> documents
+                        </p>
+                    </div>
+
+                    <div class="current-task">
+                        <p><strong>Current:</strong> <span id="currentTask">Starting export...</span></p>
+                        <p><strong>Rate:</strong> <span id="currentRate">0</span> requests/min</p>
+                    </div>
+
+                    <div class="export-log">
+                        <h4>📝 Export Log</h4>
+                        <div id="exportLog" class="log-container">
+                            <p>Initializing export...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-danger" id="cancelExportProgress">Cancel Export</button>
+                </div>
+            </div>
+        </div>
 
         <footer>
             <p>&copy; 2025 OnShape DocuReader - Built with OnShape API</p>
