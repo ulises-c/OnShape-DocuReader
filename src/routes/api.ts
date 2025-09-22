@@ -779,6 +779,68 @@ async function processDocumentForExport(
   return documentData;
 }
 
+/**
+ * Get comprehensive details for a single document
+ * GET /api/documents/:documentId/comprehensive
+ */
+router.get('/documents/:documentId/comprehensive', requireAuth, async (req, res) => {
+  try {
+    const { documentId } = req.params;
+    const { 
+      includeBasicInfo = 'true',
+      includeElements = 'true',
+      includeParts = 'false',
+      includeAssemblies = 'false',
+      includeMassProperties = 'false',
+      includeMetadata = 'false'
+    } = req.query;
+    
+    const tokens = (req as any).tokens;
+    const apiClient = new OnShapeApiClient(tokens.access_token);
+    
+    console.log(`Comprehensive export requested for document ${documentId} with options:`, {
+      includeBasicInfo,
+      includeElements,
+      includeParts,
+      includeAssemblies,
+      includeMassProperties,
+      includeMetadata
+    });
+    
+    // Parse options
+    const options = {
+      includeBasicInfo: includeBasicInfo === 'true',
+      includeElements: includeElements === 'true',
+      includeParts: includeParts === 'true',
+      includeAssemblies: includeAssemblies === 'true',
+      includeMassProperties: includeMassProperties === 'true',
+      includeMetadata: includeMetadata === 'true'
+    };
+    
+    // Get the specific document
+    const document = await apiClient.getDocument(documentId);
+    
+    // Use the same comprehensive processing as the export functionality
+    const delayMs = 1000; // 1 second delay for rate limiting
+    const delay = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
+    const documentData = await processDocumentForExport(apiClient, document, options, delay, delayMs);
+    
+    const response = {
+      exportInfo: {
+        timestamp: new Date().toISOString(),
+        documentId: documentId,
+        options: options
+      },
+      document: documentData
+    };
+    
+    res.json(response);
+  } catch (error: any) {
+    console.error('Get comprehensive document error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Helper function to estimate API calls needed per document
 function estimateApiCalls(document: any, options: any): number {
   let calls = 0;
