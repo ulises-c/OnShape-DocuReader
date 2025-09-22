@@ -162,43 +162,51 @@ class OnShapeApp {
       return;
     }
 
-    gridEl.innerHTML = documents
-      .map((doc) => {
-        const createdDate = new Date(doc.createdAt).toLocaleDateString();
-        const modifiedDate = new Date(doc.modifiedAt).toLocaleDateString();
+    // Table header
+    let html = `<table class="doc-details-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Owner</th>
+          <th>Date Created</th>
+          <th>Date Modified</th>
+          <th>Last Modified By</th>
+          <th>Parent</th>
+          <th>Type</th>
+        </tr>
+      </thead>
+      <tbody>`;
 
-        console.log(
-          "Rendering document card for:",
-          doc.name,
-          "with ID:",
-          doc.id
-        );
+    documents.forEach((doc) => {
+      const owner = doc.owner?.name || "Unknown Owner";
+      const created = doc.createdAt
+        ? new Date(doc.createdAt).toLocaleString()
+        : "-";
+      const modified = doc.modifiedAt
+        ? new Date(doc.modifiedAt).toLocaleString()
+        : "-";
+      const lastModifiedBy = doc.modifiedBy?.name || doc.modifiedBy || "-";
+      // Try to get parent name from various possible fields
+      const parent =
+        doc.parentName ||
+        doc.parent?.name ||
+        (doc.parentId ? `Parent ID: ${doc.parentId}` : "-");
+      const type = doc.type || "Document";
+      html += `
+        <tr class="document-card" data-id="${doc.id}">
+          <td class="doc-file-title">${this.escapeHtml(doc.name)}</td>
+          <td>${this.escapeHtml(owner)}</td>
+          <td>${created}</td>
+          <td>${modified}</td>
+          <td>${this.escapeHtml(lastModifiedBy)}</td>
+          <td>${this.escapeHtml(parent)}</td>
+          <td>${this.escapeHtml(type)}</td>
+        </tr>
+      `;
+    });
 
-        return `
-                <div class="document-card" data-document-id="${doc.id}">
-                    <h3>${this.escapeHtml(doc.name)}</h3>
-                    <div class="document-meta">
-                        <div class="document-owner">
-                            Owner: ${this.escapeHtml(
-                              doc.owner?.name || "Unknown"
-                            )}
-                        </div>
-                        <div class="document-dates">
-                            <div>Created: ${createdDate}</div>
-                            <div>Modified: ${modifiedDate}</div>
-                        </div>
-                        <div style="margin-top: 0.5rem;">
-                            ${
-                              doc.isPublic
-                                ? '<span style="color: #28a745;">Public</span>'
-                                : '<span style="color: #ffc107;">Private</span>'
-                            }
-                        </div>
-                    </div>
-                </div>
-            `;
-      })
-      .join("");
+    html += "</tbody></table>";
+    gridEl.innerHTML = html;
   }
 
   async handleSearch() {
@@ -281,38 +289,129 @@ class OnShapeApp {
     const createdDate = new Date(docData.createdAt).toLocaleString();
     const modifiedDate = new Date(docData.modifiedAt).toLocaleString();
 
-    infoEl.innerHTML = `
-            <div class="info-item">
-                <div class="info-label">Name</div>
-                <div class="info-value">${this.escapeHtml(docData.name)}</div>
+    // Generate thumbnail HTML
+    let thumbnailHtml = "";
+    console.log("Document thumbnail data:", docData.thumbnail);
+    if (docData.thumbnail && Array.isArray(docData.thumbnail.sizes)) {
+      // Find the best thumbnail size (prefer 300x300 or largest available)
+      const preferredSizes = ["300x300", "600x340", "300x170", "70x40"];
+      let selectedThumbnail = null;
+
+      for (const preferredSize of preferredSizes) {
+        selectedThumbnail = docData.thumbnail.sizes.find(
+          (t) => t.size === preferredSize
+        );
+        if (selectedThumbnail) break;
+      }
+
+      // Fallback to first available thumbnail if none of the preferred sizes exist
+      if (!selectedThumbnail && docData.thumbnail.sizes.length > 0) {
+        selectedThumbnail = docData.thumbnail.sizes[0];
+      }
+
+      if (selectedThumbnail && selectedThumbnail.href) {
+        console.log("Selected thumbnail:", selectedThumbnail);
+        // Create a proxy URL through our backend to handle authentication
+        const proxyUrl = `/api/thumbnail-proxy?url=${encodeURIComponent(
+          selectedThumbnail.href
+        )}`;
+        console.log("Using proxy URL:", proxyUrl);
+
+        thumbnailHtml = `
+          <div class="info-item">
+            <div class="info-label">Thumbnail</div>
+            <div class="info-value thumbnail-container">
+              <div id="thumbnail-placeholder-${docData.id}" style="width: 300px; height: 200px; background: #f8f9fa; border: 2px dashed #ddd; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-direction: column; color: #666; font-style: italic;">
+                <div>📷</div>
+                <div style="margin-top: 0.5rem;">Loading thumbnail...</div>
+              </div>
+              <img id="document-thumbnail-img-${docData.id}" 
+                   src="${proxyUrl}" 
+                   alt="Document thumbnail" 
+                   class="document-thumbnail"
+                   data-original-url="${selectedThumbnail.href}"
+                   data-proxy-url="${proxyUrl}"
+                   data-doc-id="${docData.id}"
+                   style="max-width: 300px; max-height: 200px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; display: none;" />
+              <div class="thumbnail-info" style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;">
+                Size: ${selectedThumbnail.size} | Click to view original
+              </div>
             </div>
-            <div class="info-item">
-                <div class="info-label">Description</div>
-                <div class="info-value">${this.escapeHtml(
-                  docData.description || "No description"
-                )}</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Owner</div>
-                <div class="info-value">${this.escapeHtml(
-                  docData.owner?.name || "Unknown"
-                )}</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Created</div>
-                <div class="info-value">${createdDate}</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Modified</div>
-                <div class="info-value">${modifiedDate}</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Visibility</div>
-                <div class="info-value">${
-                  docData.isPublic ? "Public" : "Private"
-                }</div>
-            </div>
+          </div>
         `;
+
+        // Set up event listeners after the HTML is inserted
+        setTimeout(() => {
+          this.setupThumbnailEventListeners(
+            docData.id,
+            selectedThumbnail.href,
+            proxyUrl
+          );
+        }, 0);
+      } else {
+        console.log(
+          "No valid thumbnail found. Available thumbnails:",
+          docData.thumbnail?.sizes
+        );
+      }
+    }
+
+    infoEl.innerHTML = `
+      ${thumbnailHtml}
+      <div class="info-item">
+        <div class="info-label">Name</div>
+        <div class="info-value">${this.escapeHtml(docData.name)}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Description</div>
+        <div class="info-value">${this.escapeHtml(
+          docData.description || "No description"
+        )}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Owner</div>
+        <div class="info-value">${this.escapeHtml(
+          docData.owner?.name || "Unknown"
+        )}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Created</div>
+        <div class="info-value">${createdDate}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Modified</div>
+        <div class="info-value">${modifiedDate}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Visibility</div>
+        <div class="info-value">${docData.isPublic ? "Public" : "Private"}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Parent/Hierarchy</div>
+        <div class="info-value" id="parent-hierarchy-${docData.id}">
+          ${
+            docData.parentId
+              ? `Parent ID: ${docData.parentId}`
+              : "No parent information"
+          }
+          <div style="margin-top: 0.5rem;">
+            <button id="load-hierarchy-${
+              docData.id
+            }" class="btn load-hierarchy-btn" data-doc-id="${
+      docData.id
+    }" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #f0f0f0; border: 1px solid #ddd;">
+              🔍 Load Hierarchy Details
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Raw JSON</div>
+        <pre class="info-value" style="background:#f8f9fa; border-radius:6px; padding:1em; font-size:0.95em; max-height:400px; overflow:auto;">${this.escapeHtml(
+          JSON.stringify(docData, null, 2)
+        )}</pre>
+      </div>
+    `;
 
     // Render elements
     const elementsEl = document.getElementById("documentElements");
@@ -342,6 +441,18 @@ class OnShapeApp {
       elementsEl.innerHTML =
         '<p style="color: #666; font-style: italic;">No elements found or unable to load elements.</p>';
     }
+
+    // Set up hierarchy button event listener after DOM is updated
+    setTimeout(() => {
+      const hierarchyBtn = document.getElementById(
+        `load-hierarchy-${docData.id}`
+      );
+      if (hierarchyBtn) {
+        hierarchyBtn.addEventListener("click", () => {
+          this.loadParentHierarchy(docData.id);
+        });
+      }
+    }, 0);
   }
 
   showPage(pageId) {
@@ -372,10 +483,13 @@ class OnShapeApp {
   bindDocumentCardEvents() {
     // Use event delegation for dynamically created elements
     document.addEventListener("click", (e) => {
-      // Handle document card clicks
+      // Handle document card clicks (table rows)
       const documentCard = e.target.closest(".document-card");
       if (documentCard) {
-        const documentId = documentCard.getAttribute("data-document-id");
+        // Try both data-document-id and data-id for compatibility
+        const documentId =
+          documentCard.getAttribute("data-document-id") ||
+          documentCard.getAttribute("data-id");
         if (documentId) {
           console.log("Document card clicked:", documentId);
           this.viewDocument(documentId);
@@ -1427,6 +1541,99 @@ class OnShapeApp {
     // TODO: Implement export cancellation
     this.hideProgressModal();
     this.showError("Export cancelled by user");
+  }
+
+  setupThumbnailEventListeners(docId, originalUrl, proxyUrl) {
+    const thumbnailImg = document.getElementById(
+      `document-thumbnail-img-${docId}`
+    );
+    const placeholder = document.getElementById(
+      `thumbnail-placeholder-${docId}`
+    );
+
+    if (!thumbnailImg || !placeholder) {
+      console.error("Thumbnail elements not found for doc:", docId);
+      return;
+    }
+
+    // Handle successful load
+    thumbnailImg.addEventListener("load", () => {
+      thumbnailImg.style.display = "block";
+      placeholder.style.display = "none";
+      console.log("Thumbnail loaded successfully via:", thumbnailImg.src);
+    });
+
+    // Handle click to open full-size
+    thumbnailImg.addEventListener("click", () => {
+      window.open(originalUrl, "_blank");
+    });
+
+    // Handle error - try direct URL as fallback
+    let hasTriedDirect = false;
+    thumbnailImg.addEventListener("error", () => {
+      if (!hasTriedDirect) {
+        console.error("Proxy failed, trying direct URL:", originalUrl);
+        thumbnailImg.src = originalUrl;
+        hasTriedDirect = true;
+      } else {
+        // Both proxy and direct failed
+        thumbnailImg.style.display = "none";
+        placeholder.innerHTML = `
+          <div>❌</div>
+          <div style="margin-top: 0.5rem;">Thumbnail unavailable</div>
+          <div style="font-size: 0.8rem; margin-top: 0.5rem;">Proxy: ${proxyUrl}</div>
+          <div style="font-size: 0.8rem;">Direct: ${originalUrl}</div>
+        `;
+        console.error("Both proxy and direct URL failed");
+      }
+    });
+  }
+
+  async loadParentHierarchy(documentId) {
+    const hierarchyEl = document.getElementById(
+      `parent-hierarchy-${documentId}`
+    );
+    if (!hierarchyEl) return;
+
+    hierarchyEl.innerHTML =
+      '<div style="color: #666; font-style: italic;">Loading parent hierarchy...</div>';
+
+    try {
+      const response = await fetch(`/api/documents/${documentId}/parent`);
+      if (response.ok) {
+        const parentInfo = await response.json();
+        console.log("Parent hierarchy info:", parentInfo);
+
+        let hierarchyHtml = "";
+        if (parentInfo && parentInfo.items && parentInfo.items.length > 0) {
+          hierarchyHtml =
+            '<div style="margin-bottom: 0.5rem;"><strong>Document Hierarchy:</strong></div>';
+          parentInfo.items.forEach((item, index) => {
+            const indent = "&nbsp;".repeat(index * 4);
+            hierarchyHtml += `<div style="font-family: monospace; font-size: 0.9rem; margin: 0.25rem 0;">
+              ${indent}${index > 0 ? "↳ " : ""}${this.escapeHtml(
+              item.name || item.id
+            )} 
+              <span style="color: #666; font-size: 0.8rem;">(${
+                item.resourceType || "unknown"
+              })</span>
+            </div>`;
+          });
+        } else {
+          hierarchyHtml =
+            '<div style="color: #666;">No parent hierarchy available</div>';
+        }
+
+        hierarchyEl.innerHTML = hierarchyHtml;
+      } else {
+        hierarchyEl.innerHTML =
+          '<div style="color: #e74c3c;">Failed to load parent hierarchy</div>';
+      }
+    } catch (error) {
+      console.error("Error loading parent hierarchy:", error);
+      hierarchyEl.innerHTML =
+        '<div style="color: #e74c3c;">Error loading parent hierarchy</div>';
+    }
   }
 
   escapeHtml(text) {

@@ -167,6 +167,92 @@ router.get('/documents/:documentId/workspaces/:workspaceId/elements/:elementId/m
 });
 
 /**
+ * Proxy OnShape thumbnail images with authentication
+ * GET /api/thumbnail-proxy?url=<thumbnail_url>
+ */
+router.get('/thumbnail-proxy', requireAuth, async (req, res) => {
+  try {
+    const { url } = req.query;
+    
+    if (!url || typeof url !== 'string') {
+      res.status(400).json({ error: 'Missing or invalid URL parameter' });
+      return;
+    }
+    
+    // Validate that this is a OnShape thumbnail URL
+    if (!url.startsWith('https://cad.onshape.com/api/thumbnails/')) {
+      res.status(400).json({ error: 'Invalid thumbnail URL' });
+      return;
+    }
+    
+    const tokens = (req as any).tokens;
+    
+    // Make authenticated request to OnShape thumbnail API
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${tokens.access_token}`,
+        'Accept': 'image/*'
+      }
+    });
+    
+    if (!response.ok) {
+      console.error('Failed to fetch thumbnail:', response.status, response.statusText);
+      res.status(response.status).json({ error: 'Failed to fetch thumbnail from OnShape' });
+      return;
+    }
+    
+    // Get the content type from OnShape response
+    const contentType = response.headers.get('content-type') || 'image/png';
+    
+    // Set appropriate headers for image response
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+    
+    // Pipe the image data directly to the response
+    const imageBuffer = await response.arrayBuffer();
+    res.send(Buffer.from(imageBuffer));
+    
+  } catch (error: any) {
+    console.error('Thumbnail proxy error:', error);
+    res.status(500).json({ error: 'Failed to proxy thumbnail' });
+  }
+});
+
+/**
+ * Get parent information for a document
+ * GET /api/documents/:documentId/parent
+ */
+router.get('/documents/:documentId/parent', requireAuth, async (req, res) => {
+  try {
+    const { documentId } = req.params;
+    const tokens = (req as any).tokens;
+    
+    // Use OnShape's global tree nodes API to get parent information
+    const parentInfoUrl = `https://cad.onshape.com/api/globaltreenodes/document/${documentId}/parentInfo`;
+    
+    const response = await fetch(parentInfoUrl, {
+      headers: {
+        'Authorization': `Bearer ${tokens.access_token}`,
+        'Accept': 'application/vnd.onshape.v2+json'
+      }
+    });
+    
+    if (!response.ok) {
+      console.error('Failed to fetch parent info:', response.status, response.statusText);
+      res.status(response.status).json({ error: 'Failed to fetch parent information' });
+      return;
+    }
+    
+    const parentInfo = await response.json();
+    res.json(parentInfo);
+    
+  } catch (error: any) {
+    console.error('Get parent info error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * Get all documents with their complete data structure
  * GET /api/export/all
  */
