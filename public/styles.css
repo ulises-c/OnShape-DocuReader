@@ -49,32 +49,32 @@
 /* Column width distribution for better space utilization */
 .doc-details-table th:nth-child(1),
 .doc-details-table td:nth-child(1) {
-    width: 25%; /* Name column - largest */
+    width: 10%; /* Name column - largest */
 }
 
 .doc-details-table th:nth-child(2),
 .doc-details-table td:nth-child(2) {
-    width: 15%; /* Owner column */
+    width: 10%; /* Creator column */
 }
 
 .doc-details-table th:nth-child(3),
 .doc-details-table td:nth-child(3) {
-    width: 15%; /* Date Created */
+    width: 10%; /* Date Created */
 }
 
 .doc-details-table th:nth-child(4),
 .doc-details-table td:nth-child(4) {
-    width: 15%; /* Date Modified */
+    width: 10%; /* Date Modified */
 }
 
 .doc-details-table th:nth-child(5),
 .doc-details-table td:nth-child(5) {
-    width: 15%; /* Last Modified By */
+    width: 10%; /* Last Modified By */
 }
 
 .doc-details-table th:nth-child(6),
 .doc-details-table td:nth-child(6) {
-    width: 10%; /* Parent */
+    width: 5%; /* Parent */
 }
 
 .doc-details-table th:nth-child(7),
@@ -390,7 +390,7 @@ main {
     margin-top: 1rem;
 }
 
-.document-card .document-owner {
+.document-card .document-creator {
     font-weight: 500;
     color: #333;
 }

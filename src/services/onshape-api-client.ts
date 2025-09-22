@@ -18,6 +18,11 @@ export interface OnShapeDocument {
     name: string;
     type: number;
   };
+  createdBy?: {
+    id: string;
+    name: string;
+    jsonType?: string;
+  };
   createdAt: string;
   modifiedAt: string;
   href: string;

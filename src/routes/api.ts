@@ -51,7 +51,17 @@ router.get('/documents', requireAuth, async (req, res) => {
     const apiClient = new OnShapeApiClient(tokens.access_token);
     
     const documents = await apiClient.getDocuments();
-    res.json(documents);
+    
+    // Debug logging to see what fields are available
+    console.log('First document structure:', JSON.stringify(documents[0], null, 2));
+    
+    // Transform documents to use creator instead of owner
+    const transformedDocuments = documents.map(doc => ({
+      ...doc,
+      creator: doc.createdBy || doc.owner
+    }));
+    
+    res.json(transformedDocuments);
   } catch (error: any) {
     console.error('Get documents error:', error);
     res.status(500).json({ error: error.message });
@@ -324,7 +334,7 @@ router.get('/export/all', requireAuth, async (req, res) => {
         const documentData: any = {
           id: document.id,
           name: document.name,
-          owner: document.owner,
+          creator: document.createdBy || document.owner,
           createdAt: document.createdAt,
           modifiedAt: document.modifiedAt,
           isPublic: document.isPublic,
@@ -638,7 +648,7 @@ async function processDocumentForExport(
   const documentData: any = {
     id: document.id,
     name: document.name,
-    owner: document.owner,
+    creator: document.createdBy || document.owner,
     createdAt: document.createdAt,
     modifiedAt: document.modifiedAt,
     isPublic: document.isPublic,

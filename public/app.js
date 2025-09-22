@@ -167,7 +167,7 @@ class OnShapeApp {
       <thead>
         <tr>
           <th>Name</th>
-          <th>Owner</th>
+          <th>Creator</th>
           <th>Date Created</th>
           <th>Date Modified</th>
           <th>Last Modified By</th>
@@ -178,7 +178,7 @@ class OnShapeApp {
       <tbody>`;
 
     documents.forEach((doc) => {
-      const owner = doc.owner?.name || "Unknown Owner";
+      const creator = doc.creator?.name || "Unknown Creator";
       const created = doc.createdAt
         ? new Date(doc.createdAt).toLocaleString()
         : "-";
@@ -195,7 +195,7 @@ class OnShapeApp {
       html += `
         <tr class="document-card" data-id="${doc.id}">
           <td class="doc-file-title">${this.escapeHtml(doc.name)}</td>
-          <td>${this.escapeHtml(owner)}</td>
+          <td>${this.escapeHtml(creator)}</td>
           <td>${created}</td>
           <td>${modified}</td>
           <td>${this.escapeHtml(lastModifiedBy)}</td>
@@ -230,7 +230,7 @@ class OnShapeApp {
       const filtered = this.documents.filter(
         (doc) =>
           doc.name.toLowerCase().includes(query.toLowerCase()) ||
-          doc.owner.name.toLowerCase().includes(query.toLowerCase())
+          doc.creator.name.toLowerCase().includes(query.toLowerCase())
       );
 
       loadingEl.style.display = "none";
@@ -369,9 +369,9 @@ class OnShapeApp {
         )}</div>
       </div>
       <div class="info-item">
-        <div class="info-label">Owner</div>
+        <div class="info-label">Creator</div>
         <div class="info-value">${this.escapeHtml(
-          docData.owner?.name || "Unknown"
+          docData.creator?.name || "Unknown"
         )}</div>
       </div>
       <div class="info-item">
@@ -1402,7 +1402,7 @@ class OnShapeApp {
     if (options.includeBasicInfo) {
       docData.basicInfo = {
         name: document.name,
-        owner: document.owner,
+        creator: document.creator,
         createdAt: document.createdAt,
         modifiedAt: document.modifiedAt,
         isPublic: document.isPublic,
