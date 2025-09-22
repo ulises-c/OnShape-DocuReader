@@ -413,6 +413,11 @@ main {
 
 .detail-header h2 {
     color: #2c5aa0;
+    flex: 1; /* Allow h2 to take up remaining space */
+}
+
+#getDocumentBtn {
+    margin-left: auto; /* Push to the right side */
 }
 
 .document-info {

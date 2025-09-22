@@ -52,6 +52,9 @@ class OnShapeApp {
     document
       .getElementById("getAllBtn")
       .addEventListener("click", this.handleGetAll.bind(this));
+    document
+      .getElementById("getDocumentBtn")
+      .addEventListener("click", this.handleGetDocument.bind(this));
 
     // Search input
     document.getElementById("searchInput").addEventListener("keypress", (e) => {
@@ -245,6 +248,75 @@ class OnShapeApp {
   async handleGetAll() {
     console.log("Get All button clicked");
     this.showExportModal();
+  }
+
+  async handleGetDocument() {
+    console.log("Get Document button clicked");
+
+    if (!this.currentDocument) {
+      this.showError("No document selected");
+      return;
+    }
+
+    try {
+      // Show loading state
+      const button = document.getElementById("getDocumentBtn");
+      const originalText = button.textContent;
+      button.textContent = "⏳ Processing...";
+      button.disabled = true;
+
+      // Make API call to get comprehensive document data
+      const response = await fetch(
+        `/api/documents/${this.currentDocument.id}/comprehensive?includeElements=true&includeParts=true&includeAssemblies=true&includeMetadata=true`
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to get comprehensive document data: ${response.statusText}`
+        );
+      }
+
+      const comprehensiveData = await response.json();
+
+      // Create and download the data as JSON
+      this.downloadComprehensiveData(
+        comprehensiveData,
+        this.currentDocument.name
+      );
+
+      // Show success message
+      this.showSuccess(
+        `Successfully downloaded comprehensive data for "${this.currentDocument.name}"`
+      );
+    } catch (error) {
+      console.error("Error getting comprehensive document:", error);
+      this.showError(
+        "Failed to get comprehensive document data: " + error.message
+      );
+    } finally {
+      // Reset button state
+      const button = document.getElementById("getDocumentBtn");
+      button.textContent = "📦 Get Document";
+      button.disabled = false;
+    }
+  }
+
+  downloadComprehensiveData(data, documentName) {
+    const filename = `${documentName.replace(
+      /[^a-z0-9]/gi,
+      "_"
+    )}_comprehensive.json`;
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   async viewDocument(documentId) {
