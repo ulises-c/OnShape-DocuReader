@@ -67,9 +67,9 @@ Response:
   {
     "id": "doc_id",
     "name": "My Document",
-    "owner": {
-      "name": "Owner Name",
-      "id": "owner_id"
+    "creator": {
+      "name": "Creator Name",
+      "id": "creator_id"
     },
     "createdAt": "2025-01-01T00:00:00.000Z",
     "modifiedAt": "2025-01-01T00:00:00.000Z",
@@ -128,7 +128,7 @@ function searchDocuments(documents, query) {
   return documents.filter(
     (doc) =>
       doc.name.toLowerCase().includes(query.toLowerCase()) ||
-      doc.owner.name.toLowerCase().includes(query.toLowerCase())
+      doc.creator.name.toLowerCase().includes(query.toLowerCase())
   );
 }
 ```
