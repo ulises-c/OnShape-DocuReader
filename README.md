@@ -39,12 +39,12 @@ npm install
    - **Scopes**: Select `OAuth2Read` and `OAuth2ReadPII`
 4. Note down your **Client ID** and **Client Secret**
 5. [Application Permissions](https://cad.onshape.com/appstore/dev-portal/oauthApps)
-   1.  ✅ Application can read your profile information
-   2.  ✅ Application can read your documents
-   3.  ❌ Application can write to your documents
-   4.  ❌ Application can delete your documents and workspaces
-   5.  ❌ Application can request purchases on your behalf
-   6.  ❌ Application can share and unshare documents on your behalf 
+   1. ✅ Application can read your profile information
+   2. ✅ Application can read your documents
+   3. ❌ Application can write to your documents
+   4. ❌ Application can delete your documents and workspaces
+   5. ❌ Application can request purchases on your behalf
+   6. ❌ Application can share and unshare documents on your behalf
 
 ### 3. Environment Configuration
 
@@ -157,14 +157,14 @@ After authentication, the application automatically loads your OnShape documents
 
 Click on any document to view:
 
-- Document metadata (name, owner, dates)
+- Document metadata (name, creator, dates)
 - Workspace information
 - Document elements (parts, assemblies, etc.)
 - Element properties and details
 
 ### Search and Filter
 
-Use the search functionality to filter documents by name or owner.
+Use the search functionality to filter documents by name or creator.
 
 ## 🤝 Contributing
 
