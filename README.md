@@ -8,8 +8,19 @@ A web application built with TypeScript and Express.js that uses OAuth 2.0 to se
 - 📄 **Document Browser** - View and browse your OnShape documents with a clean, intuitive interface
 - 🔍 **Document Details** - Access detailed information about documents, including metadata and elements
 - ⚙️ **Element Exploration** - Browse parts, assemblies, and other elements within your documents
+- 📦 **Single Document Export** - Get comprehensive data for individual documents with the "Get Document" button
 - 📊 **API Integration** - Full TypeScript client for OnShape API with comprehensive error handling
-- 🎨 **Modern UI** - Responsive web interface built with modern CSS and JavaScript
+- 🖼️ **Thumbnails** - View document thumbnails with secure proxy loading
+- �️ **Parent/Hierarchy** - Load and display parent/hierarchy information for documents
+- 🧩 **Assemblies & Mass Properties** - View assemblies and part mass properties in detail views
+- 🗃️ **Element Metadata** - Access and export element metadata
+- 📝 **Raw JSON View** - Inspect raw document JSON in the UI
+- 📤 **Export All/ZIP** - Export all documents as JSON or ZIP with flexible options
+- ⚙️ **Export Options** - Choose what to include (elements, parts, assemblies, metadata, etc.)
+- 🚦 **Rate Limiting Controls** - Configure API request rate for exports
+- 📈 **Progress Modal & Log** - Visual progress and logs for export operations
+- 🛡️ **Frontend Error Handling** - User-friendly error messages and robust error handling
+- 🔒 **Logout & Session Management** - Secure logout and session handling
 
 ## 🚀 Quick Start
 
@@ -108,6 +119,14 @@ OnShape-DocuReader/
 - `GET /api/documents` - List user documents
 - `GET /api/documents/:id` - Get document details
 - `GET /api/documents/:id/workspaces/:wid/elements` - Get document elements
+- `GET /api/documents/:id/comprehensive` - Get comprehensive single document data (elements, parts, assemblies, metadata)
+- `GET /api/documents/:id/parent` - Get parent/hierarchy information for a document
+- `GET /api/documents/:id/thumbnail-proxy` - Securely proxy document thumbnail images
+- `GET /api/documents/:id/workspaces/:wid/elements/:eid/assemblies` - Get assemblies for an element
+- `GET /api/documents/:id/workspaces/:wid/elements/:eid/parts/:pid/mass-properties` - Get mass properties for a part
+- `GET /api/documents/:id/workspaces/:wid/elements/:eid/metadata` - Get element metadata
+- `GET /api/export/all` - Export all documents (JSON or ZIP)
+- `GET /api/export/stream` - Stream export progress and data
 
 ## 🛠️ Development
 
@@ -161,6 +180,43 @@ Click on any document to view:
 - Workspace information
 - Document elements (parts, assemblies, etc.)
 - Element properties and details
+
+### Thumbnails
+
+Document detail view displays a thumbnail image, loaded securely via a backend proxy endpoint.
+
+### Parent/Hierarchy
+
+Click the "Load Hierarchy Details" button in the document detail view to fetch and display parent/hierarchy information for the document.
+
+### Raw JSON View
+
+The document detail view includes a "Raw JSON" section to inspect the full document data structure.
+
+### Export All/ZIP & Export Options
+
+Use the "Get All" button to export all documents. Choose what to include (elements, parts, assemblies, metadata, etc.), select JSON or ZIP format, and set rate limiting options. Progress and logs are shown in a modal.
+
+### Assemblies, Mass Properties, and Metadata
+
+Element and part detail views allow you to browse assemblies, part mass properties, and element metadata.
+
+### Error Handling
+
+User-friendly error messages are shown for failed API calls or export operations. Session expiration and authentication errors are handled gracefully.
+
+### Logout
+
+Click the "Logout" button in the dashboard to securely end your session.
+
+### Single Document Export
+
+Use the "📦 Get Document" button in the document detail view to:
+
+- Export comprehensive data for the currently selected document
+- Include elements, parts, assemblies, and metadata
+- Download data as a JSON file for offline analysis
+- Process individual documents without bulk export overhead
 
 ### Search and Filter
 
