@@ -232,7 +232,7 @@ Use the search functionality to filter documents by name or creator.
 
 ## 📄 License
 
-This project is licensed under the ISC License - see the [LICENSE](LICENSE) file for details.
+This project is current not under a license. See the [LICENSE](LICENSE) file for details.
 
 ## 🆘 Support
 
