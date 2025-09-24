@@ -40,4 +40,5 @@ yarn-error.log*
 next-env.d.ts
 
 # Files used as examples with actual data
-/examples/*.real.json
+*.real.json
+/examples/real_onshape_docs/
