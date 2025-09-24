@@ -10,6 +10,7 @@ Contains timestamped & commit hash section work history if possible. Time stamp 
    1. Continue adding to the `[not committed]` section if commits have not been made, but changes have been made
 4. Update the tenative section name & update the section summary
 5. Take a look at both the `Example` and `Work History` and make sure to match the formatting
+6. DO NOT PUSH, but create a commit, and update the hash in the `[not committed]` field
 
 ## Example
 
@@ -40,7 +41,7 @@ Contains timestamped & commit hash section work history if possible. Time stamp 
 
 # Work History
 
-## Detailed view changes: copy raw JSON button, modified created/modified fields, new fields added [not committed]
+## Detailed view changes: copy raw JSON button, modified created/modified fields, new fields added [4594335]
 
 **Added a convenient "Copy Raw JSON" button to the document detailed view, allowing users to easily copy the complete document data to their clipboard.**
 
