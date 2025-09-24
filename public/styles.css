@@ -458,6 +458,35 @@ main {
     margin-top: 0.25rem;
 }
 
+/* Badge styles for tags and labels */
+.tag-badge, .label-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    margin: 0.125rem 0.25rem 0.125rem 0;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.2;
+}
+
+.tag-badge {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    border: 1px solid #bbdefb;
+}
+
+.label-badge {
+    background-color: #f3e5f5;
+    color: #7b1fa2;
+    border: 1px solid #ce93d8;
+}
+
+.tag-badge:hover, .label-badge:hover {
+    opacity: 0.8;
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+}
+
 /* Thumbnail styles */
 .thumbnail-container {
     text-align: center;

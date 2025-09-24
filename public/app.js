@@ -358,8 +358,14 @@ class OnShapeApp {
 
     // Render document info
     const infoEl = document.getElementById("documentInfo");
-    const createdDate = new Date(docData.createdAt).toLocaleString();
-    const modifiedDate = new Date(docData.modifiedAt).toLocaleString();
+    const createdDate = this.formatDateWithUser(
+      docData.createdAt,
+      docData.createdBy || docData.creator
+    );
+    const modifiedDate = this.formatDateWithUser(
+      docData.modifiedAt,
+      docData.modifiedBy
+    );
 
     // Generate thumbnail HTML
     let thumbnailHtml = "";
@@ -441,10 +447,42 @@ class OnShapeApp {
         )}</div>
       </div>
       <div class="info-item">
-        <div class="info-label">Creator</div>
+        <div class="info-label">Notes</div>
         <div class="info-value">${this.escapeHtml(
-          docData.creator?.name || "Unknown"
+          docData.notes || "No notes"
         )}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Tags</div>
+        <div class="info-value">${
+          docData.tags && Array.isArray(docData.tags) && docData.tags.length > 0
+            ? docData.tags
+                .map(
+                  (tag) =>
+                    `<span class="tag-badge">${this.escapeHtml(tag)}</span>`
+                )
+                .join(" ")
+            : "No tags"
+        }</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Document Labels</div>
+        <div class="info-value">${
+          docData.documentLabels &&
+          Array.isArray(docData.documentLabels) &&
+          docData.documentLabels.length > 0
+            ? docData.documentLabels
+                .map(
+                  (label) =>
+                    `<span class="label-badge">${this.escapeHtml(
+                      typeof label === "string"
+                        ? label
+                        : label.name || JSON.stringify(label)
+                    )}</span>`
+                )
+                .join(" ")
+            : "No document labels"
+        }</div>
       </div>
       <div class="info-item">
         <div class="info-label">Created</div>
@@ -479,9 +517,20 @@ class OnShapeApp {
       </div>
       <div class="info-item">
         <div class="info-label">Raw JSON</div>
-        <pre class="info-value" style="background:#f8f9fa; border-radius:6px; padding:1em; font-size:0.95em; max-height:400px; overflow:auto;">${this.escapeHtml(
-          JSON.stringify(docData, null, 2)
-        )}</pre>
+        <div style="margin-bottom: 0.5rem;">
+          <button id="copy-json-${
+            docData.id
+          }" class="btn copy-json-btn" data-doc-id="${
+      docData.id
+    }" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #007bff; color: white; border: 1px solid #0056b3; border-radius: 4px; cursor: pointer;">
+            📋 Copy Raw JSON
+          </button>
+        </div>
+        <pre id="raw-json-${
+          docData.id
+        }" class="info-value" style="background:#f8f9fa; border-radius:6px; padding:1em; font-size:0.95em; max-height:400px; overflow:auto;">${this.escapeHtml(
+      JSON.stringify(docData, null, 2)
+    )}</pre>
       </div>
     `;
 
@@ -587,6 +636,16 @@ class OnShapeApp {
         if (partId) {
           console.log("Part clicked:", partId);
           this.viewPart(partId);
+          return;
+        }
+      }
+
+      // Handle copy raw JSON button clicks
+      const copyJsonBtn = e.target.closest(".copy-json-btn");
+      if (copyJsonBtn) {
+        const docId = copyJsonBtn.getAttribute("data-doc-id");
+        if (docId) {
+          this.copyRawJson(docId);
           return;
         }
       }
@@ -1713,6 +1772,90 @@ class OnShapeApp {
     const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  formatDateWithUser(dateStr, userObj) {
+    if (!dateStr) return "Unknown";
+
+    try {
+      const date = new Date(dateStr);
+      const userName = userObj?.name || "Unknown User";
+
+      // Format: 2024-Sep-16, 3:59:08 PM [John Smith]
+      const options = {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+        hour: "numeric",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+      };
+
+      const formattedDate = date.toLocaleString("en-US", options);
+      return `${formattedDate} [${userName}]`;
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return `Invalid Date [${userObj?.name || "Unknown User"}]`;
+    }
+  }
+
+  async copyRawJson(docId) {
+    try {
+      // Get the document data - if we're currently viewing this document, use cached data
+      let docData;
+      if (this.currentDocument && this.currentDocument.id === docId) {
+        docData = this.currentDocument;
+      } else {
+        // If not cached, we'd need to fetch it, but for now we'll show an error
+        this.showError("Document data not available for copying");
+        return;
+      }
+
+      // Convert to JSON string with pretty formatting
+      const jsonString = JSON.stringify(docData, null, 2);
+
+      // Use the Clipboard API if available
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(jsonString);
+        this.showSuccess("Raw JSON copied to clipboard!");
+      } else {
+        // Fallback for older browsers or non-HTTPS contexts
+        const textArea = document.createElement("textarea");
+        textArea.value = jsonString;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        try {
+          document.execCommand("copy");
+          this.showSuccess("Raw JSON copied to clipboard!");
+        } catch (err) {
+          this.showError("Failed to copy to clipboard");
+        } finally {
+          document.body.removeChild(textArea);
+        }
+      }
+
+      // Update button text temporarily to show feedback
+      const button = document.getElementById(`copy-json-${docId}`);
+      if (button) {
+        const originalText = button.textContent;
+        button.textContent = "✅ Copied!";
+        button.style.background = "#28a745";
+
+        setTimeout(() => {
+          button.textContent = originalText;
+          button.style.background = "#007bff";
+        }, 2000);
+      }
+    } catch (error) {
+      console.error("Error copying JSON:", error);
+      this.showError("Failed to copy raw JSON: " + error.message);
+    }
   }
 }
 
