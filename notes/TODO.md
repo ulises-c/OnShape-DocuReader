@@ -5,8 +5,19 @@ Contains an ordered list of bugs and features that should be added or fixed. Not
 ## Instructions for Agent & LLM
 
 1. Read `INSTRUCTIONS.md`
-2. Move items from the `TODO` section to the `DONE` section after completing the task
-3. Read the instructions from `notes/HISTORY.md` and update it after making changes
+2. **When completing TODO items:**
+   1. Complete the actual task/implementation
+   2. Move the completed item from `TODO` section to `✅ DONE` section
+   3. Update `notes/HISTORY.md` following its specific instructions (append to existing `[not committed]` section)
+   4. Preserve the original numbering and sub-item structure when moving items
+3. **When adding new TODO items:**
+   1. Add to the `TODO` section with the next sequential number
+   2. Use clear, actionable language
+   3. Break down complex tasks into numbered sub-items when appropriate
+4. **Completion criteria:** A TODO item is considered complete when:
+   1. All code changes are implemented and functional
+   2. Any related documentation is updated
+   3. The feature/fix works as intended (manual verification recommended)
 
 # TODO
 
@@ -25,3 +36,5 @@ Contains an ordered list of bugs and features that should be added or fixed. Not
          1. 2025-Jun-02, 3:59:08 PM [John Smith]
    4. Add the following fields:
       1. `notes`, `tags`, `documentLabels`
+   5. Add a copy raw json to child documents within detailed view (e.g. the clickable tiles for types like: partstudio, blob, assembly, billofmaterials)
+   6. Update the `copy raw json` button for child documents to copy everything from that child document including metadata.

@@ -540,20 +540,34 @@ class OnShapeApp {
       elementsEl.innerHTML = elements
         .map(
           (element) => `
-                <div class="element-item" data-element-id="${element.id}">
-                    <div class="element-name">${this.escapeHtml(
-                      element.name
-                    )}</div>
-                    <div class="element-type">Type: ${this.escapeHtml(
-                      element.type || "Unknown"
-                    )}</div>
-                    ${
-                      element.elementType
-                        ? `<div class="element-type">Element Type: ${this.escapeHtml(
-                            element.elementType
-                          )}</div>`
-                        : ""
-                    }
+                <div class="element-container" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; padding: 1rem; border: 1px solid #ddd; border-radius: 8px; background: #f8f9fa;">
+                    <div class="element-item" data-element-id="${
+                      element.id
+                    }" style="flex-grow: 1; cursor: pointer;">
+                        <div class="element-name">${this.escapeHtml(
+                          element.name
+                        )}</div>
+                        <div class="element-type">Type: ${this.escapeHtml(
+                          element.type || "Unknown"
+                        )}</div>
+                        ${
+                          element.elementType
+                            ? `<div class="element-type">Element Type: ${this.escapeHtml(
+                                element.elementType
+                              )}</div>`
+                            : ""
+                        }
+                    </div>
+                    <div class="element-actions" style="margin-left: 1rem; flex-shrink: 0;">
+                        <button class="btn copy-element-json-btn" data-element-id="${
+                          element.id
+                        }" data-element-data='${JSON.stringify(element).replace(
+            /'/g,
+            "&apos;"
+          )}' style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #007bff; color: white; border: 1px solid #0056b3; border-radius: 4px; cursor: pointer;">
+                            📋 Copy Raw JSON
+                        </button>
+                    </div>
                 </div>
             `
         )
@@ -646,6 +660,17 @@ class OnShapeApp {
         const docId = copyJsonBtn.getAttribute("data-doc-id");
         if (docId) {
           this.copyRawJson(docId);
+          return;
+        }
+      }
+
+      // Handle copy element JSON button clicks
+      const copyElementJsonBtn = e.target.closest(".copy-element-json-btn");
+      if (copyElementJsonBtn) {
+        const elementData =
+          copyElementJsonBtn.getAttribute("data-element-data");
+        if (elementData) {
+          this.copyElementRawJson(elementData);
           return;
         }
       }
@@ -1855,6 +1880,76 @@ class OnShapeApp {
     } catch (error) {
       console.error("Error copying JSON:", error);
       this.showError("Failed to copy raw JSON: " + error.message);
+    }
+  }
+
+  async copyElementRawJson(elementDataString) {
+    try {
+      // Parse the element data from the data attribute
+      const elementData = JSON.parse(elementDataString.replace(/&apos;/g, "'"));
+
+      // Try to fetch complete metadata for this element
+      let completeElementData = { ...elementData };
+
+      if (this.currentDocument && this.currentDocument.defaultWorkspace) {
+        try {
+          const metadataResponse = await fetch(
+            `/api/documents/${this.currentDocument.id}/workspaces/${this.currentDocument.defaultWorkspace.id}/elements/${elementData.id}/metadata`
+          );
+
+          if (metadataResponse.ok) {
+            const metadata = await metadataResponse.json();
+            completeElementData.metadata = metadata;
+          }
+        } catch (metadataError) {
+          console.warn("Could not fetch metadata for element:", metadataError);
+          // Continue with basic element data if metadata fetch fails
+        }
+      }
+
+      // Convert to JSON string with pretty formatting
+      const jsonString = JSON.stringify(completeElementData, null, 2);
+
+      // Use the Clipboard API if available
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(jsonString);
+        this.showSuccess("Element raw JSON copied to clipboard!");
+      } else {
+        // Fallback for older browsers or non-HTTPS contexts
+        const textArea = document.createElement("textarea");
+        textArea.value = jsonString;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        try {
+          document.execCommand("copy");
+          this.showSuccess("Element raw JSON copied to clipboard!");
+        } catch (err) {
+          this.showError("Failed to copy to clipboard");
+        } finally {
+          document.body.removeChild(textArea);
+        }
+      }
+
+      // Show temporary success feedback on the button that was clicked
+      const clickedButton = event.target.closest(".copy-element-json-btn");
+      if (clickedButton) {
+        const originalText = clickedButton.textContent;
+        clickedButton.textContent = "✅ Copied!";
+        clickedButton.style.background = "#28a745";
+
+        setTimeout(() => {
+          clickedButton.textContent = originalText;
+          clickedButton.style.background = "#007bff";
+        }, 2000);
+      }
+    } catch (error) {
+      console.error("Error copying element JSON:", error);
+      this.showError("Failed to copy element raw JSON: " + error.message);
     }
   }
 }
