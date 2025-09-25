@@ -42,3 +42,6 @@ next-env.d.ts
 # Files used as examples with actual data
 *.real.json
 /examples/real_onshape_docs/
+
+# AI Pack
+.aipack/
