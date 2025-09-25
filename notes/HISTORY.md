@@ -21,6 +21,31 @@ Contains timestamped & commit hash section work history if possible. Time stamp 
    1. Create a commit, and update the hash in the `[not committed]` field
    2. DO NOT PUSH
 
+## Comprehensive Documentation Update [not committed]
+
+**Updated project documentation with comprehensive API reference, architecture overview, and usage examples.**
+
+2025-09-25 22:45:00
+
+1. Created `notes/ONSHAPE_API.md` with detailed API documentation
+   - Documented API structure and capabilities
+   - Added endpoints, data structures, and examples
+   - Included security and rate limiting guidelines
+2. Updated `README.md` with current features and improvements
+   - Added new selection system features
+   - Updated project structure
+   - Enhanced usage examples
+3. Enhanced `notes/ARCHITECTURE.md` with detailed architecture overview
+   - Added component diagrams and descriptions
+   - Documented architectural decisions
+   - Included anti-patterns and best practices
+4. Refreshed `examples/basic-usage.md`
+   - Added new selection system examples
+   - Updated API usage examples
+   - Added copy functionality examples
+5. Moved completed documentation task to DONE section in TODO.md
+6. Updated HISTORY.md with documentation changes
+
 ## Example
 
 ```

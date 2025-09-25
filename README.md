@@ -6,6 +6,8 @@ A web application built with TypeScript and Express.js that uses OAuth 2.0 to se
 
 - 🔐 **Secure OAuth 2.0 Authentication** - Safely authenticate with OnShape using industry-standard OAuth flow
 - 📄 **Document Browser** - View and browse your OnShape documents with a clean, intuitive interface
+- ☑️ **Document Selection** - Select individual documents with checkboxes and "Select All" functionality
+- 📋 **Selective Export** - Export only selected documents with the "Get Selected" button
 - 🔍 **Document Details** - Access detailed information about documents, including metadata and elements
 - ⚙️ **Element Exploration** - Browse parts, assemblies, and other elements within your documents
 - 📦 **Single Document Export** - Get comprehensive data for individual documents with the "Get Document" button
@@ -13,8 +15,11 @@ A web application built with TypeScript and Express.js that uses OAuth 2.0 to se
 - 🖼️ **Thumbnails** - View document thumbnails with secure proxy loading
 - 👨‍👦 **Parent/Hierarchy** - Load and display parent/hierarchy information for documents
 - 🧩 **Assemblies & Mass Properties** - View assemblies and part mass properties in detail views
-- 🗃️ **Element Metadata** - Access and export element metadata
-- 📝 **Raw JSON View** - Inspect raw document JSON in the UI
+- 🗃️ **Element Metadata** - Access and export element metadata including complete element properties
+- 📝 **Raw JSON View** - Inspect raw document JSON in the UI with one-click copy functionality
+- 📋 **Element JSON Copy** - Copy raw JSON data for individual elements (parts, assemblies, etc.)
+- 🏷️ **Enhanced Document Info** - View document notes, tags, and labels in detailed view
+- 📅 **Formatted Timestamps** - Clear date formatting with creator/modifier information
 - 📤 **Export All/ZIP** - Export all documents as JSON or ZIP with flexible options
 - ⚙️ **Export Options** - Choose what to include (elements, parts, assemblies, metadata, etc.)
 - 🚦 **Rate Limiting Controls** - Configure API request rate for exports
@@ -93,14 +98,27 @@ OnShape-DocuReader/
 │   │   └── api.ts                # OnShape API routes
 │   ├── services/
 │   │   ├── oauth-service.ts      # OAuth 2.0 service
-│   │   └── onshape-api-client.ts # OnShape API client
+│   │   ├── onshape-api-client.ts # OnShape API client
+│   │   └── session-storage.ts    # Session management service
 │   └── index.ts                  # Express server
 ├── public/
 │   ├── index.html                # Main web interface
 │   ├── dashboard.html            # OAuth success page
 │   ├── styles.css                # Styling
 │   └── app.js                    # Frontend JavaScript
+├── examples/
+│   ├── basic-usage.md            # Usage examples and API documentation
+│   ├── example_onshape_docs/     # Example OnShape document structures
+│   └── real_onshape_docs/        # Real OnShape document examples
+├── notes/
+│   ├── ARCHITECTURE.md           # Project architecture documentation
+│   ├── HISTORY.md                # Development history and changes
+│   ├── INSTRUCTIONS.md           # General instructions for development
+│   ├── ONSHAPE_API.md            # OnShape API reference and documentation
+│   └── TODO.md                   # Current tasks and completed features
 ├── .env.example                  # Environment template
+├── nodemon.json                  # Development server configuration
+├── tsconfig.json                 # TypeScript configuration
 └── package.json                  # Dependencies and scripts
 ```
 
@@ -172,14 +190,25 @@ npm run clean       # Clean build directory
 
 After authentication, the application automatically loads your OnShape documents and displays them in a responsive grid layout.
 
+### Document Selection and Management
+
+The main document list includes:
+
+- **Document Selection** - Use checkboxes to select individual documents
+- **Select All** - Toggle all documents with the header checkbox
+- **Get Selected** - Export only the documents you've selected
+- **Dynamic Button States** - Selection count displayed in real-time
+
 ### Document Details
 
 Click on any document to view:
 
-- Document metadata (name, creator, dates)
+- Document metadata (name, creator, modified dates with user information)
+- Document notes, tags, and labels
 - Workspace information
 - Document elements (parts, assemblies, etc.)
 - Element properties and details
+- Comprehensive raw JSON data with copy functionality
 
 ### Thumbnails
 

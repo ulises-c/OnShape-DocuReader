@@ -7,6 +7,13 @@
    - Go to https://dev-portal.onshape.com/
    - Create new OAuth application
    - Set redirect URI: `http://localhost:3000/auth/callback`
+   - Set required permissions:
+     - ✅ Application can read your profile information
+     - ✅ Application can read your documents
+     - ❌ Application can write to your documents
+     - ❌ Application can delete your documents and workspaces
+     - ❌ Application can request purchases on your behalf
+     - ❌ Application can share and unshare documents on your behalf
    - Copy Client ID and Client Secret
 
 2. **Configure Environment**
@@ -17,9 +24,45 @@
    ```
 
 3. **Start the Application**
+
    ```bash
+   # Development mode with auto-reload
    npm run dev
+
+   # Or for production
+   npm run build
+   npm start
    ```
+
+## Core Features
+
+### Document Selection
+
+- Use checkboxes to select individual documents
+- Use "Select All" checkbox in header to toggle all documents
+- Selected document count shown in "Get Selected" button
+- Export only selected documents or use "Get All" for everything
+
+### Document Details
+
+- View comprehensive document information
+- See document notes, tags, and labels
+- View formatted timestamps with creator information
+- Access raw JSON data with one-click copy
+- Browse document elements with individual JSON data
+
+### Export Options
+
+- Export single documents with "Get Document"
+- Export selected documents with "Get Selected"
+- Export all documents with "Get All"
+- Configure what to include in exports:
+  - Basic document info
+  - Elements
+  - Parts
+  - Assemblies
+  - Mass properties
+  - Metadata
 
 ## Example API Usage
 
@@ -187,6 +230,57 @@ curl -H "Cookie: session_id=YOUR_SESSION" \
 
 ## Client-Side Usage
 
+### Document Selection System
+
+```javascript
+// Set up document selection handling
+function setupCheckboxEvents() {
+  const selectAllCheckbox = document.querySelector("#select-all-checkbox");
+  const documentCheckboxes = document.querySelectorAll(".document-checkbox");
+
+  // Handle "Select All" checkbox
+  selectAllCheckbox.addEventListener("change", (e) => {
+    const isChecked = e.target.checked;
+    documentCheckboxes.forEach((checkbox) => {
+      checkbox.checked = isChecked;
+    });
+    updateGetSelectedButtonState();
+  });
+
+  // Handle individual document checkboxes
+  documentCheckboxes.forEach((checkbox) => {
+    checkbox.addEventListener("change", () => {
+      updateSelectAllState();
+      updateGetSelectedButtonState();
+    });
+  });
+}
+
+// Update "Get Selected" button state
+function updateGetSelectedButtonState() {
+  const selectedCount = document.querySelectorAll(
+    ".document-checkbox:checked"
+  ).length;
+  const getSelectedButton = document.querySelector("#get-selected-btn");
+
+  getSelectedButton.disabled = selectedCount === 0;
+  getSelectedButton.textContent =
+    selectedCount > 0
+      ? `📋 Get Selected (${selectedCount})`
+      : "📋 Get Selected";
+}
+
+// Get selected documents for export
+function getSelectedDocuments() {
+  const selectedCheckboxes = document.querySelectorAll(
+    ".document-checkbox:checked"
+  );
+  return Array.from(selectedCheckboxes).map((checkbox) => {
+    return documents.find((doc) => doc.id === checkbox.value);
+  });
+}
+```
+
 ### Check Authentication Status
 
 ```javascript
@@ -208,6 +302,7 @@ fetch("/api/documents")
   .then((response) => response.json())
   .then((documents) => {
     console.log("User documents:", documents);
+    renderDocuments(documents);
   })
   .catch((error) => {
     console.error("Error loading documents:", error);
@@ -307,9 +402,51 @@ fetch("/api/export/all?format=zip&includeElements=true&includeParts=true")
 - When exporting, a modal shows progress and logs.
 - You can set API request rate (requests per minute) in the export options.
 
-### Raw JSON View (UI)
+### Raw JSON Handling
 
-- In the document detail view, scroll to the "Raw JSON" section to inspect the full document data.
+```javascript
+// Copy document raw JSON
+function copyRawJson() {
+  const jsonData = document.querySelector("#raw-json-data").textContent;
+  navigator.clipboard.writeText(jsonData).then(() => {
+    const copyBtn = document.querySelector("#copy-json-btn");
+    copyBtn.textContent = "✅ Copied!";
+    copyBtn.classList.add("success");
+    setTimeout(() => {
+      copyBtn.textContent = "📋 Copy Raw JSON";
+      copyBtn.classList.remove("success");
+    }, 2000);
+  });
+}
+
+// Copy element raw JSON
+function copyElementRawJson(button) {
+  const elementData = button.dataset.elementData;
+  navigator.clipboard.writeText(elementData).then(() => {
+    const originalText = button.textContent;
+    button.textContent = "✅ Copied!";
+    button.classList.add("success");
+    setTimeout(() => {
+      button.textContent = originalText;
+      button.classList.remove("success");
+    }, 2000);
+  });
+}
+
+// Format dates with user info
+function formatDateWithUser(date, user) {
+  const formattedDate = new Date(date).toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+  return `${formattedDate} [${user.name}]`;
+}
+```
 
 ### Logout
 
