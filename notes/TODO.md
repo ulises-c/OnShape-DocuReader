@@ -21,12 +21,18 @@ Contains an ordered list of bugs and features that should be added or fixed. Not
 
 # TODO
 
-1. Update detailed view
+1. Update navigation so that going "forward" and "back" recalls where you were
+   1. Potentially means adding new pages such as: `detailed`, `document`, `assembly`, etc., but I am unsure. So think about different ways to navigating and recalling navigation
+2. Update detailed view
    1. The child documents (the other clickable tiles within a document), should also be updated to have a cleaner layout.
+   2. Investigate why "Load Hierarchy Details" returns "No parent hierarchy available" even though there is a parent ID
 
 # ✅ DONE
 
-1. Update detailed view
+1. Update the list view (default view)
+   1. Add selection boxes
+   2. Add a "get selected" button to complement the "get all" button
+2. Update detailed view
    1. Add a "copy raw json" button
    2. Remove the `Creator` field, will be merged with `Created`
    3. Adjust the following fields:

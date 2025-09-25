@@ -53,6 +53,9 @@ class OnShapeApp {
       .getElementById("getAllBtn")
       .addEventListener("click", this.handleGetAll.bind(this));
     document
+      .getElementById("getSelectedBtn")
+      .addEventListener("click", this.handleGetSelected.bind(this));
+    document
       .getElementById("getDocumentBtn")
       .addEventListener("click", this.handleGetDocument.bind(this));
 
@@ -169,6 +172,7 @@ class OnShapeApp {
     let html = `<table class="doc-details-table">
       <thead>
         <tr>
+          <th class="select-column"><input type="checkbox" id="selectAll" title="Select All"></th>
           <th>Name</th>
           <th>Creator</th>
           <th>Date Created</th>
@@ -197,6 +201,9 @@ class OnShapeApp {
       const type = doc.type || "Document";
       html += `
         <tr class="document-card" data-id="${doc.id}">
+          <td class="select-column"><input type="checkbox" class="doc-checkbox" value="${
+            doc.id
+          }"></td>
           <td class="doc-file-title">${this.escapeHtml(doc.name)}</td>
           <td>${this.escapeHtml(creator)}</td>
           <td>${created}</td>
@@ -210,6 +217,46 @@ class OnShapeApp {
 
     html += "</tbody></table>";
     gridEl.innerHTML = html;
+
+    // Set up checkbox event handlers
+    this.setupCheckboxEvents();
+  }
+
+  setupCheckboxEvents() {
+    const selectAllCheckbox = document.getElementById("selectAll");
+    const docCheckboxes = document.querySelectorAll(".doc-checkbox");
+
+    // Handle "Select All" checkbox
+    if (selectAllCheckbox) {
+      selectAllCheckbox.addEventListener("change", (e) => {
+        const isChecked = e.target.checked;
+        docCheckboxes.forEach((checkbox) => {
+          checkbox.checked = isChecked;
+        });
+        this.updateGetSelectedButtonState();
+      });
+    }
+
+    // Handle individual checkboxes
+    docCheckboxes.forEach((checkbox) => {
+      checkbox.addEventListener("change", () => {
+        // Update "Select All" checkbox state based on individual checkboxes
+        if (selectAllCheckbox) {
+          const checkedCount = document.querySelectorAll(
+            ".doc-checkbox:checked"
+          ).length;
+          const totalCount = docCheckboxes.length;
+
+          selectAllCheckbox.checked = checkedCount === totalCount;
+          selectAllCheckbox.indeterminate =
+            checkedCount > 0 && checkedCount < totalCount;
+        }
+        this.updateGetSelectedButtonState();
+      });
+    });
+
+    // Initialize button state
+    this.updateGetSelectedButtonState();
   }
 
   async handleSearch() {
@@ -248,6 +295,54 @@ class OnShapeApp {
   async handleGetAll() {
     console.log("Get All button clicked");
     this.showExportModal();
+  }
+
+  async handleGetSelected() {
+    console.log("Get Selected button clicked");
+
+    const selectedDocuments = this.getSelectedDocuments();
+
+    if (selectedDocuments.length === 0) {
+      this.showError(
+        "No documents selected. Please select at least one document."
+      );
+      return;
+    }
+
+    console.log(`Processing ${selectedDocuments.length} selected document(s)`);
+    this.showExportModal(selectedDocuments);
+  }
+
+  getSelectedDocuments() {
+    const selectedCheckboxes = document.querySelectorAll(
+      ".doc-checkbox:checked"
+    );
+    const selectedDocuments = [];
+
+    selectedCheckboxes.forEach((checkbox) => {
+      const documentId = checkbox.value;
+      const document = this.documents.find((doc) => doc.id === documentId);
+      if (document) {
+        selectedDocuments.push(document);
+      }
+    });
+
+    return selectedDocuments;
+  }
+
+  updateGetSelectedButtonState() {
+    const getSelectedBtn = document.getElementById("getSelectedBtn");
+    const checkedCount = document.querySelectorAll(
+      ".doc-checkbox:checked"
+    ).length;
+
+    if (getSelectedBtn) {
+      getSelectedBtn.disabled = checkedCount === 0;
+      getSelectedBtn.textContent =
+        checkedCount > 0
+          ? `📋 Get Selected (${checkedCount})`
+          : "📋 Get Selected";
+    }
   }
 
   async handleGetDocument() {
@@ -618,6 +713,11 @@ class OnShapeApp {
   bindDocumentCardEvents() {
     // Use event delegation for dynamically created elements
     document.addEventListener("click", (e) => {
+      // Don't handle clicks on checkboxes or their labels
+      if (e.target.type === "checkbox" || e.target.closest(".select-column")) {
+        return;
+      }
+
       // Handle document card clicks (table rows)
       const documentCard = e.target.closest(".document-card");
       if (documentCard) {
@@ -1107,12 +1207,15 @@ class OnShapeApp {
   }
 
   // Export Modal Methods
-  showExportModal() {
+  showExportModal(selectedDocuments = null) {
     const modal = document.getElementById("exportModal");
     if (!modal) {
       console.error("Export modal not found");
       return;
     }
+
+    // Store the selected documents for use in export process
+    this.exportDocuments = selectedDocuments || this.documents;
 
     modal.style.display = "block";
 
@@ -1183,7 +1286,7 @@ class OnShapeApp {
 
   updateExportEstimates() {
     try {
-      const documentsCount = this.documents.length;
+      const documentsCount = (this.exportDocuments || this.documents).length;
       const requestsPerMinInput = document.getElementById("requestsPerMinute");
 
       if (!requestsPerMinInput) {
