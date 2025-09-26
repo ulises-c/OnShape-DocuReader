@@ -13,3 +13,19 @@ Contains general instructions for an Agent or LLM.
 7. **When updating work history:** Read the instructions in `notes/HISTORY.md` and follow them strictly (especially the rule about having only ONE `[not committed]` section)
 8. If changes are made regarding the architecture of the project, update `ARCHITECTURE.md`
 9. If needed, look at `README.md`, `notes/` and `examples/` for context
+
+## File Size Management
+
+When a markdown file `notes/*.md` exceeds 500 lines or 50KB:
+
+1. Move current content to `*-XXX.md` (increment number)
+2. Add archive header to the archived file
+3. Start fresh `*.md` with reference to archives
+4. Update `ARCHIVE-INDEX.md`
+
+**SPECIFIC TO TODO.md**
+
+When TODO.md DONE section exceeds 300 lines:
+
+1. Move DONE section to TODO-DONE-XXX.md
+2. Reset DONE section with link to archive
