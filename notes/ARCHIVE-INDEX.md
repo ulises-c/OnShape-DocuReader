@@ -1,0 +1,29 @@
+# Archive Index
+
+This file provides a quick reference to all archived files in the `notes/archives/` directory.
+
+## Archive Naming Convention
+
+- **HISTORY-XXX.md**: Archived history entries (XXX = 001, 002, etc.)
+- **TODO-DONE-XXX.md**: Archived completed TODO items (XXX = 001, 002, etc.)
+
+## Current Archives
+
+### History Archives
+
+_No history archives yet - files created when HISTORY.md exceeds 500 lines/50KB_
+
+### TODO-DONE Archives
+
+| File         | Lines | Size | Date Range               | First Entry      | Last Entry           |
+| ------------ | ----- | ---- | ------------------------ | ---------------- | -------------------- |
+| TODO-DONE.md | ~50   | ~3KB | 2025-09-24 to 2025-09-25 | Update list view | Update documentation |
+
+_Note: TODO-DONE.md will be renamed to TODO-DONE-001.md when the next archive is needed_
+
+## Archive Guidelines
+
+- Archives are created when files exceed size limits (500 lines/50KB for most files, 300 lines for TODO DONE section)
+- Files are numbered sequentially (001, 002, etc.)
+- Each archive contains a header with metadata about its contents
+- Archives are read-only after creation

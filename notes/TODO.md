@@ -9,7 +9,7 @@ The numbering is just show that it's easier to keep track.
 1. Read `INSTRUCTIONS.md`
 2. **When completing TODO items:**
    1. Complete the actual task/implementation
-   2. Move the completed item from `TODO` section to `✅ DONE` section
+   2. Move the completed item from `TODO` section to `DONE.md` 
    3. Update `notes/HISTORY.md` following its specific instructions (append to existing `[not committed]` section)
    4. Preserve the original numbering and sub-item structure when moving items
 3. **When adding new TODO items:**
@@ -48,4 +48,4 @@ The numbering is just show that it's easier to keep track.
 
 # ✅ DONE
 
-See `TODO-DONE.md`
+See `DONE.md`
