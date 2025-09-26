@@ -7,6 +7,7 @@ Contains timestamped & commit hash section work history if possible. Time stamp 
 1. Read `INSTRUCTIONS.md`
 2. Update `notes/HISTORY.md` and `notes/TODO.md` after making changes
 3. When updating the Work History, the flow should be reverse chronological (e.g. newest updates at the top)
+   1. When completing TODO items, remember to move them to DONE.md
 4. **CRITICAL: There should only be ONE `[not committed]` section at any time**
    - Always append new work to the existing `[not committed]` section if one exists
    - Never create a new `[not committed]` section when one already exists

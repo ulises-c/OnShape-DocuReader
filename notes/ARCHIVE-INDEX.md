@@ -5,7 +5,8 @@ This file provides a quick reference to all archived files in the `notes/archive
 ## Archive Naming Convention
 
 - **HISTORY-XXX.md**: Archived history entries (XXX = 001, 002, etc.)
-- **TODO-DONE-XXX.md**: Archived completed TODO items (XXX = 001, 002, etc.)
+- **TODO-XXX.md**: Archived completed TODO items (XXX = 001, 002, etc.)
+- **DONE-XXX.md**: Archived completed DONE items from DONE.md (XXX = 001, 002, etc.)
 
 ## Current Archives
 
@@ -13,13 +14,15 @@ This file provides a quick reference to all archived files in the `notes/archive
 
 _No history archives yet - files created when HISTORY.md exceeds 500 lines/50KB_
 
-### TODO-DONE Archives
+### TODO & DONE Archives
 
-| File         | Lines | Size | Date Range               | First Entry      | Last Entry           |
-| ------------ | ----- | ---- | ------------------------ | ---------------- | -------------------- |
-| TODO-DONE.md | ~50   | ~3KB | 2025-09-24 to 2025-09-25 | Update list view | Update documentation |
+**EXAMPLE**
 
-_Note: TODO-DONE.md will be renamed to TODO-DONE-001.md when the next archive is needed_
+| File    | Lines | Size | Date Range               | First Entry        | Last Entry           |
+| ------- | ----- | ---- | ------------------------ | ------------------ | -------------------- |
+| TODO.md | ~50   | ~3KB | 2025-09-24 to 2025-09-25 | Update detail view | Update README.d      |
+| DONE.md | ~50   | ~3KB | 2025-09-24 to 2025-09-25 | Update list view   | Update documentation |
+
 
 ## Archive Guidelines
 

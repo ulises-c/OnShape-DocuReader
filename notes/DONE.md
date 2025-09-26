@@ -26,3 +26,7 @@ The numbering is just show that it's easier to keep track.
    2. Update README.md with new features and current project state
    3. Update ARCHITECTURE.md with detailed architecture overview
    4. Refresh basic-usage.md with latest features and examples
+
+---
+
+_For older completed items, see notes/archives/DONE-XXX.md_

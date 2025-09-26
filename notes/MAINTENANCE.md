@@ -59,7 +59,7 @@ cp notes/HISTORY.md notes/archives/HISTORY-001.md
 **EXAMPLE**
 
 ```
-| Date       | Action        | Files Affected       | Performed By |
-| ---------- | ------------- | -------------------- | ------------ |
-| 2025-09-26 | Initial setup | TODO-DONE.md created | Setup        |
+| Date       | Action        | Files Affected  | Performed By |
+| ---------- | ------------- | --------------- | ------------ |
+| 2025-09-26 | Initial setup | DONE.md created | Setup        |
 ```
