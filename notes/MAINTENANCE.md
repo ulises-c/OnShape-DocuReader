@@ -1,4 +1,6 @@
-# Maintenance Guide
+# What is this file?
+
+Contains maintenance procedures and guidelines for managing file sizes and archives.
 
 ## File Size Monitoring
 
@@ -31,7 +33,7 @@ cp notes/HISTORY.md notes/archives/HISTORY-001.md
 # 5. Update ARCHIVE-INDEX.md
 ```
 
-### For TODO.md DONE section
+### For DONE.md section
 
 ```bash
 # 1. Count lines in DONE section

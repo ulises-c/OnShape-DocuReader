@@ -1,8 +1,8 @@
-# OnShape API v12 Reference
-
-## What is this file?
+# What is this file?
 
 This document provides a general overview of the OnShape API v12 that is used in this project for reference and understanding of the document structure and capabilities.
+
+# OnShape API v12 Reference
 
 ## API Base Information
 
