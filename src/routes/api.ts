@@ -53,7 +53,8 @@ router.get('/documents', requireAuth, async (req, res) => {
     const documents = await apiClient.getDocuments();
     
     // Debug logging to see what fields are available
-    console.log('First document structure:', JSON.stringify(documents[0], null, 2));
+    // TODO: Add a debug flag to enable/disable this logging, for now just comment out
+    // console.log('First document structure:', JSON.stringify(documents[0], null, 2));
     
     // Transform documents to use creator instead of owner
     const transformedDocuments = documents.map(doc => ({
