@@ -134,6 +134,14 @@ When a file exceeds limits:
 - Include enough detail for future reference
 - Group related changes logically
 
+### Git Commit Process
+
+1. Complete work and update HISTORY.md with `[not committed]`
+2. Request confirmation from user to commit
+3. After git commit, user provides hash
+4. Update `[not committed]` to `[hash]` in HISTORY.md
+5. Create new `[not committed]` section for next work
+
 ### For Archive Management
 
 - Run maintenance checks periodically (see MAINTENANCE.md)
