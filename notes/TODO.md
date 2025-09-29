@@ -9,7 +9,7 @@ The numbering is just show that it's easier to keep track.
 1. Read `INSTRUCTIONS.md`
 2. **When completing TODO items:**
    1. Complete the actual task/implementation
-   2. Move the completed item from `TODO` section to `DONE.md` 
+   2. Move the completed item from `TODO` section to `DONE.md`
    3. Update `notes/HISTORY.md` following its specific instructions (append to existing `[not committed]` section)
    4. Preserve the original numbering and sub-item structure when moving items
 3. **When adding new TODO items:**
@@ -27,13 +27,12 @@ The numbering is just show that it's easier to keep track.
 2. Update navigation so that going "forward" and "back" recalls where you were
    1. Potentially means adding new pages such as: `detailed`, `document`, `assembly`, etc., but I am unsure. So think about different ways to navigating and recalling navigation
    2. Implement history-aware navigation (e.g., /document/:id routes, preserve filters and scroll position)
-   Current: Navigation doesn't preserve state when using browser back/forward
-   Goal: Implement history-aware navigation (e.g., /document/:id routes)
+      Current: Navigation doesn't preserve state when using browser back/forward
+      Goal: Implement history-aware navigation (e.g., /document/:id routes)
 3. Update detailed view
    1. The child documents (the other clickable tiles within a document), should also be updated to have a cleaner layout.
    2. Investigate why "Load Hierarchy Details" returns "No parent hierarchy available" even though there is a parent ID
    3. Go through documents and OnShape v12 API to understand document structure and other important things from the API
-
 4. Update what `get all`, `get selected` `get document` does
    1. To maintain consistency files should automatically be downloaded to a set folder
       1. `~/OnShape-DocuReader/database/`
@@ -48,6 +47,8 @@ The numbering is just show that it's easier to keep track.
             1. Folder should have JSONs for each item downloaded, and their child element JSONs
             2. Thumbnails should also be downloaded within this folder (if selected)
    4. Implement image/thumbnail downloading
+   5. Fix `get selected`
+      1. Currently it functions as `get all` and downloads all elements
 
 # ✅ DONE
 
