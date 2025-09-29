@@ -9,9 +9,10 @@ Contains timestamped & commit hash section work history if possible. Time stamp 
 3. When updating the Work History, the flow should be reverse chronological (e.g. newest updates at the top)
    1. When completing TODO items, remember to move them to DONE.md
 4. **CRITICAL: There should only be ONE `[not committed]` section at any time**
-   - Always append new work to the existing `[not committed]` section if one exists
-   - Never create a new `[not committed]` section when one already exists
-   - Only create a new `[not committed]` section after the previous one has been committed (gets a commit hash)
+   1. Actual work history beings after the divider `---`
+   2. Always append new work to the existing `[not committed]` section if one exists
+   3. Never create a new `[not committed]` section when one already exists
+   4. Only create a new `[not committed]` section after the previous one has been committed (gets a commit hash)
 5. Update the `[not committed]` section as work is done:
    1. Append to the existing `[not committed]` section if commits have not been made, but changes have been made
    2. If minor changes are made then append to the commit, do not create a whole new commit
@@ -90,7 +91,9 @@ Contains timestamped & commit hash section work history if possible. Time stamp 
 - Section summary encompasses all uncommitted changes
 - New work gets appended to the existing uncommitted section
 
-**_ACTUAL WORK HISTORY STARTS BELOW THIS LINE_**
+_ACTUAL WORK HISTORY STARTS IN THE NEXT SECTION_
+
+---
 
 # Work History
 
