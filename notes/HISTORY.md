@@ -90,9 +90,46 @@ Contains timestamped & commit hash section work history if possible. Time stamp 
 - Section summary encompasses all uncommitted changes
 - New work gets appended to the existing uncommitted section
 
+**_ACTUAL WORK HISTORY STARTS BELOW THIS LINE_**
+
 # Work History
 
-## Get Selected Button added [current commit]
+## `notes/` restructure [not committed]
+
+**Restrucutred notes to be more comprehensive**
+
+2025-09-26 17:40:22
+
+1. Synchronized documentation across notes for clarity and consistency
+
+   - Clarified that example archives are templates and not counted
+   - Fixed numbering mismatch in notes/archives/HISTORY-XXX.md
+
+2. Updated ARCHIVE-INDEX.md
+
+   - Adjusted Archive Statistics to reflect zero real archives
+   - Corrected "Next Archives" to start at 001
+   - Added note that examples are not counted in statistics
+
+3. Updated INSTRUCTIONS.md
+
+   - Clarified that timestamps are recorded in HISTORY.md, not DONE.md
+   - Added note about example archives in Archive Management
+
+4. Updated MAINTENANCE.md
+
+   - Added reminder that example archives are templates only
+
+5. Updated ARCHITECTURE.md
+
+   - Updated session storage to file-backed (.sessions.json)
+   - Mentioned SSE for export progress
+
+6. Updated TODO.md
+   - Removed completed sub-item to create ONSHAPE_API.md
+   - Clarified navigation sub-item wording
+
+## Get Selected Button added [d6a8eb2]
 
 **Implemented "Get Selected" button functionality**
 

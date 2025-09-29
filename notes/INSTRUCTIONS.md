@@ -125,7 +125,7 @@ When a file exceeds limits:
 - TODO items are **never** marked as complete in TODO.md
 - Completed items are **moved** to DONE.md, not marked
 - Preserve all formatting and sub-items when moving
-- Add completion timestamp to DONE.md entries
+- Do not add timestamps to DONE.md; record completion timestamps in HISTORY.md
 
 ### For History Management
 
@@ -148,6 +148,7 @@ When a file exceeds limits:
 - Never delete archives
 - Always increment archive numbers sequentially
 - Verify archive headers are complete and accurate
+- Example files in notes/archives (DONE-XXX.md, HISTORY-XXX.md) are templates; do not count them as actual archives
 
 ## Context References
 

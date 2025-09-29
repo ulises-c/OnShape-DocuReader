@@ -26,14 +26,14 @@ The numbering is just show that it's easier to keep track.
 1. Refactor `public/app.js`
 2. Update navigation so that going "forward" and "back" recalls where you were
    1. Potentially means adding new pages such as: `detailed`, `document`, `assembly`, etc., but I am unsure. So think about different ways to navigating and recalling navigation
-   2. Update navigation so that going "forward" and "back" recalls where you were
+   2. Implement history-aware navigation (e.g., /document/:id routes, preserve filters and scroll position)
    Current: Navigation doesn't preserve state when using browser back/forward
    Goal: Implement history-aware navigation (e.g., /document/:id routes)
 3. Update detailed view
    1. The child documents (the other clickable tiles within a document), should also be updated to have a cleaner layout.
    2. Investigate why "Load Hierarchy Details" returns "No parent hierarchy available" even though there is a parent ID
    3. Go through documents and OnShape v12 API to understand document structure and other important things from the API
-      1. Create `notes/ONSHAPE_API.md` with a general overview to reference
+
 4. Update what `get all`, `get selected` `get document` does
    1. To maintain consistency files should automatically be downloaded to a set folder
       1. `~/OnShape-DocuReader/database/`

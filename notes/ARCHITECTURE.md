@@ -50,7 +50,7 @@ Backend (Node.js/Express)
 2. **Backend Services**
 
    - Express.js server with TypeScript
-   - RESTful API endpoints
+   - RESTful API endpoints; Server-Sent Events for export progress
    - OAuth 2.0 authentication flow
    - Session management
    - Rate limiting and caching
@@ -64,7 +64,7 @@ Backend (Node.js/Express)
    - Progress tracking
 
 4. **Data Management**
-   - In-memory session storage
+   - File-backed session storage (.sessions.json)
    - Document caching
    - Bulk export handling
    - Progress monitoring

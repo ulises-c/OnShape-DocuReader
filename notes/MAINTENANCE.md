@@ -19,6 +19,8 @@ find notes -name "*.md" -type f -exec sh -c 'lines=$(wc -l < "$1"); size=$(stat 
 
 ## Archiving Process
 
+Note: Example files in notes/archives (DONE-XXX.md, HISTORY-XXX.md) are templates and not real archives; do not count them in your statistics.
+
 ### For HISTORY.md
 
 ```bash

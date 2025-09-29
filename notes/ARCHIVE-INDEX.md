@@ -23,6 +23,8 @@ This file provides a quick reference to all archived files in the `notes/archive
 
 ## Current Archives
 
+Note: Example archive files in notes/archives are for reference only and not counted in statistics.
+
 ### History Archives
 
 _No history archives yet - files created when HISTORY.md exceeds 500 lines/50KB_
@@ -45,13 +47,13 @@ _No history archives yet - files created when HISTORY.md exceeds 500 lines/50KB_
 
 ## Archive Statistics
 
-- **Total Archives**: 2
-- **Most Recent Archive**: 2025-09-26
-- **Total Archived Items**: ~30 DONE items, ~12 commit groups
+- **Total Archives**: 0
+- **Most Recent Archive**: N/A
+- **Total Archived Items**: 0
 
 ## Next Archives
 
 Archives will be created when current files exceed limits:
 
-- HISTORY.md → HISTORY-002.md (next archive)
-- DONE.md → DONE-002.md (next archive)
+- HISTORY.md → HISTORY-001.md (next archive)
+- DONE.md → DONE-001.md (next archive)
