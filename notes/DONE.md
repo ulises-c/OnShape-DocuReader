@@ -6,6 +6,24 @@ The numbering is just show that it's easier to keep track.
 
 # ✅ DONE
 
+1. Refactor `public/app.js`
+   1. Remove/archive the old monolithic `public/app.js` in favor of the modular entry `public/js/app.js` (index.html already loads it via `<script type="module" src="js/app.js"></script>`)
+
+   2. Fix method name mismatches between DocumentService and ApiClient
+      1. Update `DocumentService.getElements(documentId, workspaceId)` to call `api.getElements(documentId, workspaceId)` instead of `api.getDocumentElements(...)`
+
+   3. Add missing method to ApiClient
+      1. Implement `getComprehensiveDocument(documentId, params)` to request `/api/documents/:documentId/comprehensive` with query params and return JSON
+
+   4. Add `getPartMassProperties` to DocumentService
+      1. Implement `getPartMassProperties(documentId, workspaceId, elementId, partId)` delegating to `ApiClient.getPartMassProperties(...)`
+
+   5. Fix invalid API access in DocumentController
+      1. Replace direct `this.documentService.api.request(...)` usage with `this.documentService.getPartMassProperties(...)` to keep API access within the services layer
+
+   6. Add missing `replaceState` to AppState
+      1. Implement `replaceState(newState)` that freezes and emits the new state; used by `AppController`
+
 1. Update the list view (default view)
    1. Add selection boxes
    2. Add a "get selected" button to complement the "get all" button

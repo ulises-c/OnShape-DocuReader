@@ -16,7 +16,7 @@ export class DocumentService {
   }
 
   async getElements(documentId, workspaceId) {
-    return this.api.getDocumentElements(documentId, workspaceId);
+    return this.api.getElements(documentId, workspaceId);
   }
 
   async getParts(documentId, workspaceId, elementId) {
@@ -35,7 +35,13 @@ export class DocumentService {
     return this.api.getParentInfo(documentId);
   }
 
-  async getComprehensive(documentId, params) {
-    return this.api.getComprehensiveDocument(documentId, params);
+  async getComprehensiveDocument(documentId, params) {
+    const queryString = new URLSearchParams(params).toString();
+    const res = await fetch(
+      `/api/documents/${documentId}/comprehensive?${queryString}`
+    );
+    if (!res.ok)
+      throw new Error(`Get comprehensive document failed (${res.status})`);
+    return res.json();
   }
 }

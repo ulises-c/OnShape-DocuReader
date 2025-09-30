@@ -23,9 +23,9 @@ Contains timestamped & commit hash section work history if possible. Time stamp 
    1. Create a commit, and update the hash in the `[not committed]` field
    2. DO NOT PUSH
 
-## Comprehensive Documentation Update [not committed]
+## Comprehensive Documentation Update & Frontend Refactor Fixes [not committed]
 
-**Updated project documentation with comprehensive API reference, architecture overview, and usage examples; implemented selected-only exports, default-to-all selection, and basic history-aware navigation.**
+**Updated project documentation with comprehensive API reference, architecture overview, and usage examples; implemented selected-only exports, default-to-all selection, and basic history-aware navigation; finalized modular frontend by fixing remaining critical refactor bugs.**
 
 2025-09-25 22:45:00
 
@@ -67,6 +67,26 @@ Contains timestamped & commit hash section work history if possible. Time stamp 
 4. Minor UX improvements to export flow
    - Progress totals initialized from effective selection (selected subset or all)
    - Export query constructed with ids only when exporting a subset to avoid long URLs
+
+2025-09-29 18:05:53
+
+1. Finalized refactored frontend by addressing six critical issues (per PROMPT.md)
+   - Removed/archived old monolithic public/app.js and confirmed index.html references the modular entry point with type="module" src="js/app.js"
+
+   - Fixed method mismatch in DocumentService
+     - getElements now calls api.getElements(documentId, workspaceId) instead of api.getDocumentElements
+
+   - Added missing ApiClient method
+     - Implemented getComprehensiveDocument(documentId, params) to fetch /api/documents/:id/comprehensive with query params
+
+   - Added missing DocumentService method
+     - Implemented getPartMassProperties(documentId, workspaceId, elementId, partId) delegating to ApiClient
+
+   - Corrected invalid API access in DocumentController
+     - Replaced direct this.documentService.api.request(...) usage with this.documentService.getPartMassProperties(...)
+
+   - Added missing state update API
+     - Implemented replaceState(newState) in AppState to support in-place state replacement (used by AppController)
 
 ## Example
 

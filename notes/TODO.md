@@ -23,7 +23,7 @@ The numbering is just show that it's easier to keep track.
 
 # TODO Section
 
-1. Refactor `public/app.js`
+
 2. Update navigation so that going "forward" and "back" recalls where you were
    1. Potentially means adding new pages such as: `detailed`, `document`, `assembly`, etc., but I am unsure. So think about different ways to navigating and recalling navigation
    2. Implement history-aware navigation (e.g., /document/:id routes, preserve filters and scroll position)
@@ -46,6 +46,7 @@ The numbering is just show that it's easier to keep track.
             1. Folder should have JSONs for each item downloaded, and their child element JSONs
             2. Thumbnails should also be downloaded within this folder (if selected)
    4. Implement image/thumbnail downloading
+   5. Fix todo in `public/js/controllers/document-controller.js`
 
 # ✅ DONE
 
