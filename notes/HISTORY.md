@@ -25,7 +25,7 @@ Contains timestamped & commit hash section work history if possible. Time stamp 
 
 ## Comprehensive Documentation Update [not committed]
 
-**Updated project documentation with comprehensive API reference, architecture overview, and usage examples.**
+**Updated project documentation with comprehensive API reference, architecture overview, and usage examples; implemented selected-only exports, default-to-all selection, and basic history-aware navigation.**
 
 2025-09-25 22:45:00
 
@@ -47,6 +47,26 @@ Contains timestamped & commit hash section work history if possible. Time stamp 
    - Added copy functionality examples
 5. Moved completed documentation task to DONE section in TODO.md
 6. Updated HISTORY.md with documentation changes
+
+2025-09-29 16:47:21
+
+1. Fixed "Get Selected" to export only selected documents
+   - Frontend now scopes export by passing ids of selected documents
+   - Backend /api/export/all and /api/export/stream accept ids query parameter and filter the processed documents
+   - Export progress and totals reflect the selected subset
+
+2. Defaulted list selection to "all selected" on load
+   - After rendering the documents table, "Select All" is programmatically checked and propagated
+   - "📋 Get Selected" button enabled with live count
+
+3. Added basic history-aware navigation
+   - When opening a document, URL updates to /document/:id (pushState)
+   - Handles direct navigation and browser back/forward to /document/:id and root (/)
+   - Keeps dashboard accessible via back button without re-authentication
+
+4. Minor UX improvements to export flow
+   - Progress totals initialized from effective selection (selected subset or all)
+   - Export query constructed with ids only when exporting a subset to avoid long URLs
 
 ## Example
 

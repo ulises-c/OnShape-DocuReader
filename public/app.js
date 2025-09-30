@@ -83,8 +83,9 @@ class OnShapeApp {
       if (this.isAuthenticated) {
         document.getElementById("authStatus").textContent = "Authenticated ✓";
         document.getElementById("authStatus").style.color = "#28a745";
-        this.loadUserInfo();
+        await this.loadUserInfo();
         this.showPage("dashboard");
+        this.setupRouting();
       } else {
         document.getElementById("authStatus").textContent = "Not authenticated";
         document.getElementById("authStatus").style.color = "#dc3545";
@@ -220,6 +221,14 @@ class OnShapeApp {
 
     // Set up checkbox event handlers
     this.setupCheckboxEvents();
+
+    // Default to all selected
+    const selectAllEl = document.getElementById("selectAll");
+    if (selectAllEl) {
+      selectAllEl.checked = true;
+      // Trigger change to propagate to individual checkboxes and update button state
+      selectAllEl.dispatchEvent(new Event("change"));
+    }
   }
 
   setupCheckboxEvents() {
@@ -442,6 +451,12 @@ class OnShapeApp {
 
       this.renderDocumentDetails(this.currentDocument, elements);
       this.showPage("documentDetail");
+
+      // Push history state for deep link
+      const targetPath = `/document/${documentId}`;
+      if (location.pathname !== targetPath) {
+        history.pushState({ page: "document", documentId }, "", targetPath);
+      }
     } catch (error) {
       console.error("Error viewing document:", error);
       this.showError("Failed to load document details: " + error.message);
@@ -696,6 +711,10 @@ class OnShapeApp {
 
     // Load data for specific pages
     if (pageId === "dashboard" && this.isAuthenticated) {
+      // Update URL for dashboard
+      if (location.pathname !== "/") {
+        history.pushState({ page: "dashboard" }, "", "/");
+      }
       this.loadDocuments();
     }
   }
@@ -1460,7 +1479,9 @@ class OnShapeApp {
     console.log("Export options:", options);
 
     // Initialize progress
-    const totalDocs = this.documents.length;
+    const totalDocs = (this.exportDocuments && this.exportDocuments.length)
+      ? this.exportDocuments.length
+      : this.documents.length;
 
     try {
       const totalProgressEl = document.getElementById("totalProgress");
@@ -1485,6 +1506,16 @@ class OnShapeApp {
       Object.entries(options).forEach(([key, value]) => {
         params.append(key, value.toString());
       });
+
+      // Include selected document IDs if exporting a subset
+      const exportDocs = (this.exportDocuments && this.exportDocuments.length)
+        ? this.exportDocuments
+        : this.documents;
+
+      if (exportDocs.length > 0 && exportDocs.length < this.documents.length) {
+        const ids = exportDocs.map(d => d.id).join(",");
+        params.append("ids", ids);
+      }
 
       // Use the regular export endpoint first (which now actually processes documents)
       const response = await fetch(`/api/export/all?${params.toString()}`);
@@ -1900,6 +1931,34 @@ class OnShapeApp {
     const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  // Basic history-aware routing for dashboard and document detail
+  setupRouting() {
+    // Handle direct navigation on initial load
+    this.handleRouting(location.pathname);
+
+    // Handle browser back/forward
+    window.addEventListener("popstate", () => {
+      this.handleRouting(location.pathname);
+    });
+  }
+
+  handleRouting(pathname) {
+    if (!this.isAuthenticated) return;
+
+    // /document/:id
+    const docMatch = pathname.match(/^\/document\/([^\/]+)$/);
+    if (docMatch) {
+      const documentId = docMatch[1];
+      this.viewDocument(documentId);
+      return;
+    }
+
+    // Default to dashboard
+    if (pathname === "/" || pathname === "") {
+      this.showPage("dashboard");
+    }
   }
 
   formatDateWithUser(dateStr, userObj) {

@@ -277,7 +277,8 @@ router.get('/export/all', requireAuth, async (req, res) => {
       includeAssemblies = 'false',
       includeMassProperties = 'false',
       includeMetadata = 'false',
-      requestsPerMinute = '30'
+      requestsPerMinute = '30',
+      ids
     } = req.query;
     
     const tokens = (req as any).tokens;
@@ -304,8 +305,12 @@ router.get('/export/all', requireAuth, async (req, res) => {
       includeMetadata: includeMetadata === 'true'
     };
     
-    // Get all documents first
-    const documents = await apiClient.getDocuments();
+    // Get documents (optionally filter by provided ids)
+    const idList = typeof ids === 'string' && ids.length ? (ids as string).split(',').filter(Boolean) : null;
+    let documents = await apiClient.getDocuments(idList ? 200 : 20, 0);
+    if (idList) {
+      documents = documents.filter(doc => idList.includes(doc.id));
+    }
     
     // Rate limiting setup
     const rateLimit = parseInt(requestsPerMinute as string);
@@ -507,7 +512,8 @@ router.get('/export/stream', requireAuth, async (req, res) => {
       includeAssemblies = 'false',
       includeMassProperties = 'false',
       includeMetadata = 'false',
-      requestsPerMinute = '30'
+      requestsPerMinute = '30',
+      ids
     } = req.query;
     
     const tokens = (req as any).tokens;
@@ -543,8 +549,12 @@ router.get('/export/stream', requireAuth, async (req, res) => {
         options 
       });
 
-      // Get all documents first
-      const documents = await apiClient.getDocuments();
+      // Get all documents first (optionally filter to provided ids)
+      const idList = typeof ids === 'string' && ids.length ? (ids as string).split(',').filter(Boolean) : null;
+      let documents = await apiClient.getDocuments(idList ? 200 : 20, 0);
+      if (idList) {
+        documents = documents.filter(doc => idList.includes(doc.id));
+      }
       sendEvent('documents-found', { 
         count: documents.length, 
         message: `Found ${documents.length} documents` 

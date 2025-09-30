@@ -1,88 +1,90 @@
-/**
- * ApiClient - wraps all HTTP calls
- */
-
+// All HTTP requests to backend endpoints, no DOM manipulation
 export class ApiClient {
-  async request(url, options = {}) {
-    const res = await fetch(url, options);
-    if (!res.ok) {
-      let message = `HTTP ${res.status}: ${res.statusText}`;
-      try {
-        const body = await res.json();
-        if (body?.error) message = body.error;
-      } catch {
-        // ignore
-      }
-      throw new Error(message);
-    }
-    const contentType = res.headers.get('content-type') || '';
-    if (contentType.includes('application/json')) {
-      return res.json();
-    }
-    return res;
-  }
-
-  // Auth
-  getAuthStatus() {
-    return this.request('/auth/status');
+  async getAuthStatus() {
+    const res = await fetch('/auth/status');
+    if (!res.ok) throw new Error(`Auth status failed (${res.status})`);
+    return res.json();
   }
 
   async logout() {
-    return this.request('/auth/logout', { method: 'POST' });
+    const res = await fetch('/auth/logout', { method: 'POST' });
+    if (!res.ok) throw new Error(`Logout failed (${res.status})`);
+    return res.json();
   }
 
-  // User
-  getUser() {
-    return this.request('/api/user');
+  async getUser() {
+    const res = await fetch('/api/user');
+    if (!res.ok) throw new Error(`Get user failed (${res.status})`);
+    return res.json();
   }
 
-  // Documents
-  getDocuments() {
-    return this.request('/api/documents');
+  async getDocuments() {
+    const res = await fetch('/api/documents');
+    if (!res.ok) throw new Error(`Get documents failed (${res.status})`);
+    return res.json();
   }
 
-  getDocument(documentId) {
-    return this.request(`/api/documents/${documentId}`);
+  async getDocument(documentId) {
+    const res = await fetch(`/api/documents/${documentId}`);
+    if (!res.ok) throw new Error(`Get document failed (${res.status})`);
+    return res.json();
   }
 
-  getDocumentElements(documentId, workspaceId) {
-    return this.request(`/api/documents/${documentId}/workspaces/${workspaceId}/elements`);
+  async getElements(documentId, workspaceId) {
+    const res = await fetch(`/api/documents/${documentId}/workspaces/${workspaceId}/elements`);
+    if (!res.ok) throw new Error(`Get elements failed (${res.status})`);
+    return res.json();
   }
 
-  getParts(documentId, workspaceId, elementId) {
-    return this.request(`/api/documents/${documentId}/workspaces/${workspaceId}/elements/${elementId}/parts`);
+  async getParts(documentId, workspaceId, elementId) {
+    const res = await fetch(`/api/documents/${documentId}/workspaces/${workspaceId}/elements/${elementId}/parts`);
+    if (!res.ok) throw new Error(`Get parts failed (${res.status})`);
+    return res.json();
   }
 
-  getAssemblies(documentId, workspaceId, elementId) {
-    return this.request(`/api/documents/${documentId}/workspaces/${workspaceId}/elements/${elementId}/assemblies`);
+  async getAssemblies(documentId, workspaceId, elementId) {
+    const res = await fetch(`/api/documents/${documentId}/workspaces/${workspaceId}/elements/${elementId}/assemblies`);
+    if (!res.ok) throw new Error(`Get assemblies failed (${res.status})`);
+    return res.json();
   }
 
-  getElementMetadata(documentId, workspaceId, elementId) {
-    return this.request(`/api/documents/${documentId}/workspaces/${workspaceId}/elements/${elementId}/metadata`);
+  async getElementMetadata(documentId, workspaceId, elementId) {
+    const res = await fetch(`/api/documents/${documentId}/workspaces/${workspaceId}/elements/${elementId}/metadata`);
+    if (!res.ok) throw new Error(`Get element metadata failed (${res.status})`);
+    return res.json();
   }
 
-  getDocumentMetadata(documentId) {
-    return this.request(`/api/metadata/d/${documentId}`);
+  async getPartMassProperties(documentId, workspaceId, elementId, partId) {
+    const res = await fetch(`/api/documents/${documentId}/workspaces/${workspaceId}/elements/${elementId}/parts/${partId}/mass-properties`);
+    if (!res.ok) throw new Error(`Get mass properties failed (${res.status})`);
+    return res.json();
   }
 
-  getParentInfo(documentId) {
-    return this.request(`/api/documents/${documentId}/parent`);
+  async getParentInfo(documentId) {
+    const res = await fetch(`/api/documents/${documentId}/parent`);
+    if (!res.ok) throw new Error(`Get parent info failed (${res.status})`);
+    return res.json();
   }
 
-  // Export
-  exportAll(params) {
-    const qs = new URLSearchParams(params).toString();
-    return this.request(`/api/export/all?${qs}`);
+  async exportAll(options, ids) {
+    const params = new URLSearchParams();
+    Object.entries(options).forEach(([k, v]) => params.append(k, String(v)));
+    if (Array.isArray(ids) && ids.length > 0) {
+      params.append('ids', ids.join(','));
+    }
+    const res = await fetch(`/api/export/all?${params.toString()}`);
+    if (!res.ok) throw new Error(`Export failed (${res.status})`);
+    return res.json();
   }
 
-  exportStream(params) {
-    const qs = new URLSearchParams(params).toString();
-    return new EventSource(`/api/export/stream?${qs}`);
-  }
-
-  // Comprehensive single document
-  getComprehensiveDocument(documentId, params) {
-    const qs = new URLSearchParams(params).toString();
-    return this.request(`/api/documents/${documentId}/comprehensive?${qs}`);
+  exportStreamSSE(options, ids) {
+    const params = new URLSearchParams();
+    Object.entries(options).forEach(([k, v]) => params.append(k, String(v)));
+    if (Array.isArray(ids) && ids.length > 0) {
+      params.append('ids', ids.join(','));
+    }
+    return new EventSource(`/api/export/stream?${params.toString()}`);
   }
 }
+```
+

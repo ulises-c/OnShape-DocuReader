@@ -36,7 +36,6 @@ The numbering is just show that it's easier to keep track.
 4. Update what `get all`, `get selected` `get document` does
    1. To maintain consistency files should automatically be downloaded to a set folder
       1. `~/OnShape-DocuReader/database/`
-   2. Change default selections to all selected
    3. Change how the download structure
       1. Understand the draw backs of the current structure
          1. Currently the options are a single JSON file, or a ZIP with organized folders
@@ -47,8 +46,6 @@ The numbering is just show that it's easier to keep track.
             1. Folder should have JSONs for each item downloaded, and their child element JSONs
             2. Thumbnails should also be downloaded within this folder (if selected)
    4. Implement image/thumbnail downloading
-   5. Fix `get selected`
-      1. Currently it functions as `get all` and downloads all elements
 
 # ✅ DONE
 

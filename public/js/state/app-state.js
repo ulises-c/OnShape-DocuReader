@@ -1,52 +1,46 @@
-/**
- * AppState - central immutable state with observer pattern
- */
+// Centralized application state with a simple observer pattern
+const defaultState = Object.freeze({
+  user: null,
+  isAuthenticated: false,
+  currentPage: 'landing',
+  documents: [],
+  currentDocument: null,
+  currentElement: null,
+  currentPart: null,
+  selectedDocuments: []
+});
 
 export class AppState {
   constructor() {
-    this.subscribers = new Set();
-    this.state = {
-      user: null,
-      isAuthenticated: false,
-      currentPage: 'landing',
-      documents: [],
-      currentDocument: null,
-      currentElement: null,
-      currentPart: null,
-      selectedDocuments: []
-    };
+    this._state = { ...defaultState };
+    this._listeners = new Set();
   }
 
-  subscribe(fn) {
-    this.subscribers.add(fn);
-    return () => this.subscribers.delete(fn);
+  subscribe(listener) {
+    this._listeners.add(listener);
+    return () => this._listeners.delete(listener);
   }
 
   getState() {
-    return this.state;
+    return { ...this._state };
   }
 
-  setState(partial) {
-    const prev = this.state;
-    const next = { ...prev, ...partial };
-    this.state = next;
-    this.notify(prev, next);
-    return next;
+  setState(patch) {
+    this._state = Object.freeze({ ...this._state, ...patch });
+    this._emit();
   }
 
-  replaceState(next) {
-    const prev = this.state;
-    this.state = { ...next };
-    this.notify(prev, this.state);
-    return this.state;
+  reset() {
+    this._state = { ...defaultState };
+    this._emit();
   }
 
-  notify(prev, next) {
-    for (const fn of this.subscribers) {
+  _emit() {
+    for (const fn of this._listeners) {
       try {
-        fn(prev, next);
+        fn(this.getState());
       } catch (e) {
-        console.error('State subscriber error:', e);
+        console.error('State listener error:', e);
       }
     }
   }

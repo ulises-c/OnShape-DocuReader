@@ -26,6 +26,10 @@ The numbering is just show that it's easier to keep track.
    2. Update README.md with new features and current project state
    3. Update ARCHITECTURE.md with detailed architecture overview
    4. Refresh basic-usage.md with latest features and examples
+4. Update what `get all`, `get selected` `get document` does
+   2. Change default selections to all selected
+   5. Fix `get selected`
+      1. Ensure exporting only processes selected documents (frontend passes ids; backend scopes by ids)
 
 ---
 
