@@ -1,19 +1,61 @@
-// Thin entry point that wires up state, api client, and the main controller
-import { AppState } from './state/app-state.js';
-import { ApiClient } from './services/api-client.js';
-import { AppController } from './controllers/app-controller.js';
+import { AppState } from "./state/app-state.js";
+import { ApiClient } from "./services/api-client.js";
+import { AuthService } from "./services/auth-service.js";
+import { DocumentService } from "./services/document-service.js";
+import { ExportService } from "./services/export-service.js";
+import { ThumbnailService } from "./services/thumbnail-service.js";
+import { Navigation } from "./views/navigation.js";
+import { ModalManager } from "./views/modal-manager.js";
+import { AppController } from "./controllers/app-controller.js";
+import { DocumentController } from "./controllers/document-controller.js";
+import { ExportController } from "./controllers/export-controller.js";
 
-// Handle OAuth redirect landing
-if (window.location.pathname === '/dashboard') {
-  window.history.replaceState({}, '', '/');
+// Handle OAuth redirect
+if (window.location.pathname === "/dashboard") {
+  window.history.replaceState({}, "", "/");
 }
 
-// Initialize core singletons
+// Core instances
 const state = new AppState();
 const apiClient = new ApiClient();
 
-// Boot the application
-const appController = new AppController(state, apiClient);
-appController.init();
+// Services bundle
+const services = {
+  authService: new AuthService(apiClient),
+  documentService: new DocumentService(apiClient),
+  exportService: new ExportService(apiClient),
+  thumbnailService: new ThumbnailService(),
+};
 
-export { appController };
+// Views
+const navigation = new Navigation();
+const modalManager = new ModalManager();
+
+// Controllers
+const documentController = new DocumentController(
+  state,
+  services,
+  navigation,
+  services.thumbnailService
+);
+const exportController = new ExportController(state, services, modalManager);
+
+const controllers = {
+  documentController,
+  exportController,
+};
+
+// Wire up modal manager handlers after export controller exists
+modalManager.setHandlers({
+  onStartExport: (options) => exportController.startExport(options),
+  onCancelExport: () => exportController.cancelExport(),
+});
+
+// Boot application
+const appController = new AppController(
+  state,
+  services,
+  navigation,
+  controllers
+);
+appController.init();
