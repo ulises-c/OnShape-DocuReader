@@ -2,6 +2,8 @@
 
 Contains timestamped & commit hash section work history if possible. Time stamp is in PST, 24-hour to keep things uniform
 
+_ACTUAL WORK HISTORY STARTS IN THE `# WORK HISTORY` SECTION_
+
 ## Instructions for Agents & LLM
 
 1. Read `INSTRUCTIONS.md`
@@ -22,71 +24,6 @@ Contains timestamped & commit hash section work history if possible. Time stamp 
 8. After completing a TODO item and updating the HISTORY, ask for confirmation to do the following:
    1. Create a commit, and update the hash in the `[not committed]` field
    2. DO NOT PUSH
-
-## Comprehensive Documentation Update & Frontend Refactor Fixes [not committed]
-
-**Updated project documentation with comprehensive API reference, architecture overview, and usage examples; implemented selected-only exports, default-to-all selection, and basic history-aware navigation; finalized modular frontend by fixing remaining critical refactor bugs.**
-
-2025-09-25 22:45:00
-
-1. Created `notes/ONSHAPE_API.md` with detailed API documentation
-   - Documented API structure and capabilities
-   - Added endpoints, data structures, and examples
-   - Included security and rate limiting guidelines
-2. Updated `README.md` with current features and improvements
-   - Added new selection system features
-   - Updated project structure
-   - Enhanced usage examples
-3. Enhanced `notes/ARCHITECTURE.md` with detailed architecture overview
-   - Added component diagrams and descriptions
-   - Documented architectural decisions
-   - Included anti-patterns and best practices
-4. Refreshed `examples/basic-usage.md`
-   - Added new selection system examples
-   - Updated API usage examples
-   - Added copy functionality examples
-5. Moved completed documentation task to DONE section in TODO.md
-6. Updated HISTORY.md with documentation changes
-
-2025-09-29 16:47:21
-
-1. Fixed "Get Selected" to export only selected documents
-   - Frontend now scopes export by passing ids of selected documents
-   - Backend /api/export/all and /api/export/stream accept ids query parameter and filter the processed documents
-   - Export progress and totals reflect the selected subset
-
-2. Defaulted list selection to "all selected" on load
-   - After rendering the documents table, "Select All" is programmatically checked and propagated
-   - "📋 Get Selected" button enabled with live count
-
-3. Added basic history-aware navigation
-   - When opening a document, URL updates to /document/:id (pushState)
-   - Handles direct navigation and browser back/forward to /document/:id and root (/)
-   - Keeps dashboard accessible via back button without re-authentication
-
-4. Minor UX improvements to export flow
-   - Progress totals initialized from effective selection (selected subset or all)
-   - Export query constructed with ids only when exporting a subset to avoid long URLs
-
-2025-09-29 18:05:53
-
-1. Finalized refactored frontend by addressing six critical issues (per PROMPT.md)
-   - Removed/archived old monolithic public/app.js and confirmed index.html references the modular entry point with type="module" src="js/app.js"
-
-   - Fixed method mismatch in DocumentService
-     - getElements now calls api.getElements(documentId, workspaceId) instead of api.getDocumentElements
-
-   - Added missing ApiClient method
-     - Implemented getComprehensiveDocument(documentId, params) to fetch /api/documents/:id/comprehensive with query params
-
-   - Added missing DocumentService method
-     - Implemented getPartMassProperties(documentId, workspaceId, elementId, partId) delegating to ApiClient
-
-   - Corrected invalid API access in DocumentController
-     - Replaced direct this.documentService.api.request(...) usage with this.documentService.getPartMassProperties(...)
-
-   - Added missing state update API
-     - Implemented replaceState(newState) in AppState to support in-place state replacement (used by AppController)
 
 ## Example
 
@@ -137,7 +74,80 @@ _ACTUAL WORK HISTORY STARTS IN THE NEXT SECTION_
 
 # Work History
 
-## `notes/` restructure [not committed]
+## Comprehensive Documentation Update & Frontend Refactor Fixes [3d113d6]
+
+**Updated project documentation with comprehensive API reference, architecture overview, and usage examples; implemented selected-only exports, default-to-all selection, and basic history-aware navigation; finalized modular frontend by fixing remaining critical refactor bugs.**
+
+2025-09-25 22:45:00
+
+1. Created `notes/ONSHAPE_API.md` with detailed API documentation
+   - Documented API structure and capabilities
+   - Added endpoints, data structures, and examples
+   - Included security and rate limiting guidelines
+2. Updated `README.md` with current features and improvements
+   - Added new selection system features
+   - Updated project structure
+   - Enhanced usage examples
+3. Enhanced `notes/ARCHITECTURE.md` with detailed architecture overview
+   - Added component diagrams and descriptions
+   - Documented architectural decisions
+   - Included anti-patterns and best practices
+4. Refreshed `examples/basic-usage.md`
+   - Added new selection system examples
+   - Updated API usage examples
+   - Added copy functionality examples
+5. Moved completed documentation task to DONE section in TODO.md
+6. Updated HISTORY.md with documentation changes
+
+2025-09-29 16:47:21
+
+1. Fixed "Get Selected" to export only selected documents
+
+   - Frontend now scopes export by passing ids of selected documents
+   - Backend /api/export/all and /api/export/stream accept ids query parameter and filter the processed documents
+   - Export progress and totals reflect the selected subset
+
+2. Defaulted list selection to "all selected" on load
+
+   - After rendering the documents table, "Select All" is programmatically checked and propagated
+   - "📋 Get Selected" button enabled with live count
+
+3. Added basic history-aware navigation
+
+   - When opening a document, URL updates to /document/:id (pushState)
+   - Handles direct navigation and browser back/forward to /document/:id and root (/)
+   - Keeps dashboard accessible via back button without re-authentication
+
+4. Minor UX improvements to export flow
+   - Progress totals initialized from effective selection (selected subset or all)
+   - Export query constructed with ids only when exporting a subset to avoid long URLs
+
+2025-09-29 18:05:53
+
+1. Finalized refactored frontend by addressing six critical issues (per PROMPT.md)
+
+   - Removed/archived old monolithic public/app.js and confirmed index.html references the modular entry point with type="module" src="js/app.js"
+
+   - Fixed method mismatch in DocumentService
+
+     - getElements now calls api.getElements(documentId, workspaceId) instead of api.getDocumentElements
+
+   - Added missing ApiClient method
+
+     - Implemented getComprehensiveDocument(documentId, params) to fetch /api/documents/:id/comprehensive with query params
+
+   - Added missing DocumentService method
+
+     - Implemented getPartMassProperties(documentId, workspaceId, elementId, partId) delegating to ApiClient
+
+   - Corrected invalid API access in DocumentController
+
+     - Replaced direct this.documentService.api.request(...) usage with this.documentService.getPartMassProperties(...)
+
+   - Added missing state update API
+     - Implemented replaceState(newState) in AppState to support in-place state replacement (used by AppController)
+
+## `notes/` restructure [d670feb]
 
 **Restrucutred notes to be more comprehensive**
 
