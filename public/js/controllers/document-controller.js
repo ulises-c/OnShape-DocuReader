@@ -8,12 +8,16 @@ import { ElementDetailView } from "../views/element-detail-view.js";
 import { PartDetailView } from "../views/part-detail-view.js";
 import { formatDateWithUser } from "../utils/format-helpers.js";
 import { copyToClipboard } from "../utils/clipboard.js";
+import { escapeHtml } from "../utils/dom-helpers.js";
+import { ROUTES, pathTo } from "../../router/routes.js";
 
 export class DocumentController {
-  constructor(state, services, navigation, thumbnailService) {
+  constructor(state, services, navigation, thumbnailService, router, historyState) {
     this.state = state;
     this.documentService = services.documentService;
     this.navigation = navigation;
+    this.router = router || null;
+    this.historyState = historyState || null;
 
     this.listView = new DocumentListView("#documentsGrid", this);
     this.detailView = new DocumentDetailView(
@@ -23,6 +27,62 @@ export class DocumentController {
     );
     this.elementView = new ElementDetailView("#elementInfo", this);
     this.partView = new PartDetailView();
+  }
+
+  /**
+   * Capture list state and navigate to document route
+   */
+  navigateToDocument(documentId) {
+    try {
+      const listSnap =
+        (typeof this.listView?.captureState === "function" && this.listView.captureState()) ||
+        (this.historyState?.captureState?.("documentList") ?? null);
+
+      if (this.router) {
+        const path = pathTo(ROUTES.DOCUMENT_DETAIL, { id: documentId });
+        this.router.navigate(path, listSnap);
+        return;
+      }
+    } catch (e) {
+      console.warn("navigateToDocument: failed to capture state for navigation", e);
+    }
+    // Fallback if router not available
+    this.viewDocument(documentId);
+  }
+
+  /**
+   * Route handler entry: render document detail for the given id.
+   * If a restoredState is provided (coming from history), it will be applied by views/controllers that own that state.
+   */
+  async showDocument(documentId, restoredState /*, _context */) {
+    // Render the document detail (view handles its own scroll restoration)
+    await this.viewDocument(documentId);
+    if (restoredState && typeof this.detailView?.restoreState === "function") {
+      this.detailView.restoreState(restoredState.viewSnapshot || restoredState);
+    }
+  }
+
+  /**
+   * Route handler entry: show the list/dashboard and restore previous state if provided.
+   */
+  async showList(restoredState /*, _context */) {
+    this.navigation.navigateTo("dashboard");
+
+    // Load documents if needed
+    const docs = this.state.getState().documents || [];
+    if (!docs.length) {
+      await this.loadDocuments();
+    }
+
+    // Restore previous list UI state after render
+    if (restoredState && typeof this.listView?.restoreState === "function") {
+      // Defer to next frame to ensure DOM is ready
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(() => this.listView.restoreState(restoredState.viewSnapshot || restoredState));
+      } else {
+        setTimeout(() => this.listView.restoreState(restoredState.viewSnapshot || restoredState), 0);
+      }
+    }
   }
 
   async loadDocuments() {
@@ -112,12 +172,21 @@ export class DocumentController {
       container?.addEventListener(
         "click",
         (e) => {
-          const el = e.target.closest(".element-item");
-          if (!el) return;
-          const elementId = el.getAttribute("data-element-id");
+          const elNode = e.target.closest(".element-item");
+          if (!elNode) return;
+          const elementId = elNode.getAttribute("data-element-id");
           if (elementId) {
             console.log("Element clicked:", elementId);
-            this.viewElement(elementId);
+            // Capture current detail view state and navigate to element route for coherent history
+            if (this.router) {
+              const snap =
+                (typeof this.detailView?.captureState === "function" && this.detailView.captureState()) ||
+                (this.historyState?.captureState?.("documentDetail") ?? null);
+              const path = pathTo(ROUTES.ELEMENT_DETAIL, { docId: doc.id, elementId });
+              this.router.navigate(path, snap);
+            } else {
+              this.viewElement(elementId);
+            }
           }
         },
         { once: true }
@@ -257,6 +326,26 @@ export class DocumentController {
     }
   }
 
+  /**
+   * Route handler: show element detail for given params { docId, elementId }
+   */
+  async showElement(params, restoredState /*, _context */) {
+    const docId = params?.docId;
+    const elementId = params?.elementId;
+    if (!docId || !elementId) return;
+
+    const st = this.state.getState();
+    if (!st.currentDocument || st.currentDocument.id !== docId) {
+      await this.viewDocument(docId);
+    }
+
+    await this.viewElement(elementId);
+
+    if (restoredState && typeof this.elementView?.restoreState === "function") {
+      this.elementView.restoreState(restoredState.viewSnapshot || restoredState);
+    }
+  }
+
   async viewPart(partId) {
     const st = this.state.getState();
     const doc = st.currentDocument;
@@ -284,7 +373,7 @@ export class DocumentController {
       // TODO: Since API isn't exposed, either:
       // 1. Add the method to DocumentService
       // 2. Pass ApiClient to DocumentController separately
-      const massProps = await this.documentService.api.getPartMassProperties(
+      const massProps = await this.documentService.getPartMassProperties(
         doc.id,
         doc.defaultWorkspace.id,
         el.id,
@@ -293,7 +382,16 @@ export class DocumentController {
       part.massProperties = massProps;
 
       this.state.setState({ currentPart: part });
-      this.navigation.navigateTo("partDetail");
+
+      if (this.router) {
+        const snap =
+          (typeof this.elementView?.captureState === "function" && this.elementView.captureState()) ||
+          (this.historyState?.captureState?.("elementDetail") ?? null);
+        const path = pathTo(ROUTES.PART_DETAIL, { docId: doc.id, elementId: el.id, partId });
+        this.router.navigate(path, snap);
+      } else {
+        this.navigation.navigateTo("partDetail");
+      }
 
       // Render part
       this.partView.render(part);
@@ -304,6 +402,32 @@ export class DocumentController {
         err.textContent = "Failed to load part details: " + e.message;
         err.style.display = "block";
       }
+    }
+  }
+
+  /**
+   * Route handler: show part detail for given params { docId, elementId, partId }
+   */
+  async showPart(params, restoredState /*, _context */) {
+    const docId = params?.docId;
+    const elementId = params?.elementId;
+    const partId = params?.partId;
+    if (!docId || !elementId || !partId) return;
+
+    const st = this.state.getState();
+    if (!st.currentDocument || st.currentDocument.id !== docId) {
+      await this.viewDocument(docId);
+    }
+
+    const st2 = this.state.getState();
+    if (!st2.currentElement || st2.currentElement.id !== elementId) {
+      await this.viewElement(elementId);
+    }
+
+    await this.viewPart(partId);
+
+    if (restoredState && typeof this.partView?.restoreState === "function") {
+      this.partView.restoreState(restoredState.viewSnapshot || restoredState);
     }
   }
 
@@ -327,7 +451,7 @@ export class DocumentController {
     }
 
     try {
-      const data = await this.documentService.getComprehensive(doc.id, {
+      const data = await this.documentService.getComprehensiveDocument(doc.id, {
         includeBasicInfo: "true",
         includeElements: "true",
         includeParts: "true",

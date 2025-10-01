@@ -35,6 +35,10 @@ export class DocumentService {
     return this.api.getParentInfo(documentId);
   }
 
+  async getPartMassProperties(documentId, workspaceId, elementId, partId) {
+    return this.api.getPartMassProperties(documentId, workspaceId, elementId, partId);
+  }
+
   async getComprehensiveDocument(documentId, params) {
     const queryString = new URLSearchParams(params).toString();
     const res = await fetch(

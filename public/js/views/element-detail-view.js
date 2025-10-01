@@ -1,10 +1,6 @@
-/**
- * ElementDetailView - renders element details, parts, assemblies, metadata
- */
-
+ // Full file content with added state capture/restore methods
 import { BaseView } from './base-view.js';
 import { escapeHtml } from '../utils/dom-helpers.js';
-
 export class ElementDetailView extends BaseView {
   constructor(containerSelector, controller) {
     super(containerSelector);
@@ -110,6 +106,53 @@ export class ElementDetailView extends BaseView {
         metadataEl.innerHTML =
           '<div class="empty-state"><h3>No Metadata Available</h3><p>No metadata found for this element.</p></div>';
       }
+    }
+  }
+
+  /**
+   * Capture scroll position for element detail containers
+   */
+  captureState() {
+    try {
+      const container = document.querySelector('.element-info');
+      return {
+        scroll: {
+          windowY: typeof window !== 'undefined' ? (window.scrollY || 0) : 0,
+          containerTop: container ? (container.scrollTop || 0) : 0,
+          containerKey: container?.getAttribute?.('data-scroll-key') || null
+        }
+      };
+    } catch (e) {
+      console.error('captureState (ElementDetailView) failed:', e);
+      return { scroll: { windowY: 0, containerTop: 0, containerKey: null } };
+    }
+  }
+
+  /**
+   * Restore scroll position after the view has rendered
+   */
+  restoreState(state) {
+    if (!state || typeof state !== 'object') return;
+
+    const applyScroll = () => {
+      try {
+        const container = document.querySelector('.element-info');
+        const scroll = state.scroll || {};
+        if (container && typeof scroll.containerTop === 'number') {
+          container.scrollTop = scroll.containerTop;
+        }
+        if (typeof scroll.windowY === 'number') {
+          window.scrollTo(0, scroll.windowY);
+        }
+      } catch (e) {
+        console.warn('restoreState (ElementDetailView) scroll failed:', e);
+      }
+    };
+
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => requestAnimationFrame(applyScroll));
+    } else {
+      setTimeout(applyScroll, 0);
     }
   }
 }

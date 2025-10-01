@@ -3,6 +3,7 @@
  */
 
 import { qs } from '../utils/dom-helpers.js';
+import { ROUTES } from '../../router/routes.js';
 
 export class AppController {
   constructor(state, services, navigation, controllers) {
@@ -72,12 +73,36 @@ export class AppController {
         selectedDocuments: []
       });
       this.navigation.navigateTo('landing');
+      if (this.documentController?.router) {
+        try {
+          this.documentController.router.replace(ROUTES.HOME);
+        } catch {}
+      }
       await this.init();
     });
 
-    qs('#backBtn')?.addEventListener('click', () => this.navigation.navigateTo('dashboard'));
-    qs('#backToDocBtn')?.addEventListener('click', () => this.navigation.navigateTo('documentDetail'));
-    qs('#backToElementBtn')?.addEventListener('click', () => this.navigation.navigateTo('elementDetail'));
+    // Use router.back() to keep browser history coherent; fall back to Navigation if router is unavailable
+    qs('#backBtn')?.addEventListener('click', () => {
+      if (this.documentController?.router) {
+        this.documentController.router.back();
+      } else {
+        this.navigation.navigateTo('dashboard');
+      }
+    });
+    qs('#backToDocBtn')?.addEventListener('click', () => {
+      if (this.documentController?.router) {
+        this.documentController.router.back();
+      } else {
+        this.navigation.navigateTo('documentDetail');
+      }
+    });
+    qs('#backToElementBtn')?.addEventListener('click', () => {
+      if (this.documentController?.router) {
+        this.documentController.router.back();
+      } else {
+        this.navigation.navigateTo('elementDetail');
+      }
+    });
 
     qs('#refreshBtn')?.addEventListener('click', () => this.documentController.loadDocuments());
     qs('#searchBtn')?.addEventListener('click', () => {

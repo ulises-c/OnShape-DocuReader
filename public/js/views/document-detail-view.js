@@ -200,4 +200,51 @@ export class DocumentDetailView extends BaseView {
       btn.style.background = prevBg || '#007bff';
     }, 2000);
   }
+
+  /**
+   * Capture scroll position for detail view containers
+   */
+  captureState() {
+    try {
+      const container = document.querySelector('.document-info');
+      return {
+        scroll: {
+          windowY: typeof window !== 'undefined' ? (window.scrollY || 0) : 0,
+          containerTop: container ? (container.scrollTop || 0) : 0,
+          containerKey: container?.getAttribute?.('data-scroll-key') || null
+        }
+      };
+    } catch (e) {
+      console.error('captureState (DocumentDetailView) failed:', e);
+      return { scroll: { windowY: 0, containerTop: 0, containerKey: null } };
+    }
+  }
+
+  /**
+   * Restore scroll position after the view has rendered
+   */
+  restoreState(state) {
+    if (!state || typeof state !== 'object') return;
+
+    const applyScroll = () => {
+      try {
+        const container = document.querySelector('.document-info');
+        const scroll = state.scroll || {};
+        if (container && typeof scroll.containerTop === 'number') {
+          container.scrollTop = scroll.containerTop;
+        }
+        if (typeof scroll.windowY === 'number') {
+          window.scrollTo(0, scroll.windowY);
+        }
+      } catch (e) {
+        console.warn('restoreState (DocumentDetailView) scroll failed:', e);
+      }
+    };
+
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => requestAnimationFrame(applyScroll));
+    } else {
+      setTimeout(applyScroll, 0);
+    }
+  }
 }

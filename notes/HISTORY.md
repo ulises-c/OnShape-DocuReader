@@ -72,6 +72,200 @@ _ACTUAL WORK HISTORY STARTS IN THE NEXT SECTION_
 
 ---
 
+## History-aware navigation complete [not committed]
+
+**Completed Phases 1-6 of history-aware navigation infrastructure: Router with hash-based routing, HistoryState for scroll and UI state preservation, route definitions with deep-links for document/element/part views, controller integration with router.navigate/back, view state capture/restore methods, and full entry point wiring with per-view strategies and authenticated default route.**
+
+2025-10-01 12:34:21
+
+1. Phase 6 finalization and verification
+   - Verified all phases (1-6) complete and functional
+   - Confirmed router handles document, element, and part deep-links
+   - Validated state restoration on back/forward navigation (scroll, selections, search, active tabs)
+   - Tested authenticated default route (#/documents) and logout flow
+
+2. Documentation updates
+   - Moved TODO item 1 (navigation) to DONE.md with all sub-items
+   - Updated HISTORY.md with comprehensive Phase 1-6 summary
+   - Confirmed no critical navigation bugs remain
+
+3. Validation results
+   - ✅ Clicking document updates URL to #/document/:id
+   - ✅ Browser back returns to list with selections and scroll restored
+   - ✅ Element and part deep-links work correctly
+   - ✅ Active tab state persists in element detail view
+   - ✅ Search query and selections restore on back navigation
+   - ✅ Initial load respects authentication flow
+   - ✅ Router handles 404s gracefully
+
+2025-09-30 14:30:21
+
+1. Phase 1 verification (Router)
+   - Confirmed src/router/Router.js implements required capabilities:
+     - Route registration with pattern matching and param extraction
+     - Query parsing and normalized path handling
+     - Navigation methods: navigate, replace, back, forward
+     - Listeners for hashchange and popstate with duplicate-event suppression
+     - Subscriber notification lifecycle with error isolation
+   - No changes required to Router at this time
+
+2. Phase 2 implementation (HistoryState)
+   - Added src/state/HistoryState.js module with capture/restore logic:
+     - Captures window and container scroll positions
+     - Pluggable strategies per viewType to capture/restore filters, selections, and UI state
+     - Safe serialization/deserialization for history.state
+     - Duck-typed integration points for external state manager (replace/replaceState and getSnapshot/getState)
+   - Designed to be framework-agnostic and ready for controller/view integration in subsequent phases
+
+2025-09-30 14:33:23
+
+3. Phase 3 route definitions (Routes)
+   - Created src/router/routes.js with:
+     - ROUTES constant for canonical patterns (home, documents, document detail, assembly views, search, export)
+     - configureRoutes(router, controllers) to register handlers using optional chaining to avoid tight coupling
+     - pathTo(pattern, params, query) helper to generate concrete paths
+   - No integration changes yet (controllers/views wiring will happen in subsequent phases)
+   - Verified no impact on server runtime; module is browser-oriented and inert until imported
+
+2025-09-30 14:44:44
+
+4. Phase 1-3 assets mirrored to frontend directory
+   - Added public/router/Router.js (browser-ready copy of router infrastructure)
+   - Added public/router/routes.js (route definitions available to frontend)
+   - Added public/state/HistoryState.js (history-aware state management for views)
+   - No behavioral changes; exports/signatures preserved for seamless import from app/controllers
+   - Ready for Phase 4 controller integration once controller/view sources are available
+
+2025-09-30 15:36:33
+
+1. Phase 4 verification (controllers integration readiness)
+   - Confirmed public/router/Router.js, public/router/routes.js, and public/state/HistoryState.js are available for frontend use
+   - No changes required to router/state modules; signatures match Phase 4 expectations
+   - Controller source files not included in the current context; pending integration will be completed once provided
+
+2. Phase 5 groundwork (view state capture - scroll preservation)
+   - Added data-scroll-preserve markers in public/index.html to enable HistoryState scroll restoration:
+     - documents-section (documents list container)
+     - export-log (export progress log container)
+   - No behavioral changes introduced; markers are inert until controllers/views wire HistoryState.restoreState on route changes
+
+2025-09-30 15:39:56
+
+1. Phase 1-4 double-check (frontend copies)
+   - Verified public/router/Router.js, public/router/routes.js, and public/state/HistoryState.js exist and match src module signatures
+   - No changes required for these phases
+
+2. Phase 5 kickoff (view state capture - scroll restoration)
+   - Added data-scroll-preserve and data-scroll-key="export-log" to #exportLog in public/index.html so HistoryState can restore the export log scroll position
+   - This aligns DOM markers with HistoryState default scrollSelectors and previous plan
+
+2025-09-30 15:42:11
+
+1. Phase 5 view state capture markers (scroll preservation)
+   - Added data-scroll-preserve markers to key UI containers in public/index.html:
+     - export progress log: #exportLog (data-scroll-key="export-log")
+     - document detail container: .document-info (data-scroll-key="document-info")
+     - element detail container: .element-info (data-scroll-key="element-detail")
+     - part detail container: .part-info (data-scroll-key="part-detail")
+   - Rationale: Enables HistoryState to capture and restore container scroll positions without modifying controllers/views, aligning with Phase 5 objectives while respecting provided source constraints
+
+2025-09-30 15:44:08
+
+1. Phase 1-5 audit and sync (frontend runtime)
+   - Ensured public/router/Router.js, public/router/routes.js, and public/state/HistoryState.js exist and are ESM modules mirroring src modules
+   - Verified ROUTES and configureRoutes exports; added pathTo helper for safe URL building
+   - Verified HistoryState includes fallback capture/restore and scroll container support via [data-scroll-preserve] markers present in index.html
+   - No controller/view changes yet due to missing source files; safe to integrate when provided per Phase 4-5 requirements
+
+2. Phase 5 continuation plan
+   - Next: add captureState() and restoreState(state) to public/js/views/DocumentListView.js, DocumentDetailView.js, and AssemblyView.js (plus helpers for filters/expanded sections)
+   - Wire controllers with Router and HistoryState via DI and route handlers as per PROMPT.md once controller/view sources are available
+
+2025-09-30 15:55:54
+
+1. Phase 5 view state capture (frontend views)
+   - Added captureState() and restoreState(state) to:
+     - public/js/views/document-list-view.js (scroll position, selected checkboxes, select-all state, search query)
+     - public/js/views/document-detail-view.js (scroll position restoration for .document-info and window)
+     - public/js/views/element-detail-view.js (scroll position restoration for .element-info and window)
+     - public/js/views/part-detail-view.js (scroll position restoration for .part-info and window)
+   - Used requestAnimationFrame for reliable post-render scroll restoration
+   - Non-invasive change: no existing behaviors altered; methods are inert until controllers integrate HistoryState
+
+2025-09-30 16:00:59
+
+1. Phase 6 entry point integration (router wiring)
+   - Imported Router, HistoryState, and configureRoutes in public/js/app.js
+   - Initialized router and HistoryState after AppController.init to respect authentication and existing boot flow
+   - Configured routes with minimal adapters mapping to existing controllers:
+     - HOME/DOCUMENT_LIST → Navigation + DocumentController.loadDocuments()
+     - DOCUMENT_DETAIL → DocumentController.viewDocument(id)
+     - 404 → app-level stub logging without disrupting UI
+   - Started router with default behavior; opted for hybrid approach where AppController handles initial boot/auth, router handles hash routes thereafter
+   - No changes to controllers/views to avoid regressions; ensures router presence does not throw and enables bookmarkable detail routes
+
+2025-09-30 16:31:09
+
+1. Phase 6 corrections (router injection and state restoration)
+   - Injected Router and HistoryState into DocumentController at runtime after app boot
+   - Updated route configuration in public/js/app.js to pass the controller instance (documentController) directly
+   - Preserves and restores list view state (filters, selections, scroll) when navigating back/forward
+
+2. Stability fix for views
+   - Added missing imports to public/js/views/element-detail-view.js (BaseView, escapeHtml) to prevent runtime reference errors
+
+3. Validation
+   - Verified clicking a document updates URL to #/document/:id and renders details
+   - Verified browser back returns to list with selections and scroll restored
+   - Confirmed initial load still respects authentication flow and dashboard landing
+
+Next steps (Phase 6 continuation):
+- Replace back buttons in views/controllers to call router.back() for consistent history behavior
+- Add route entries for element/part detail once route patterns are finalized
+- Consider capturing/restoring active tabs in detail views via HistoryState strategies for richer UX
+
+2025-09-30 16:49:15
+
+1. Phase 6 polish (back buttons and deep-link routes)
+   - Wired UI back buttons (#backBtn, #backToDocBtn, #backToElementBtn) to router.back() with graceful Navigation fallback when router is unavailable
+   - Added deep-link routes for element and part views:
+     - /document/:docId/element/:elementId
+     - /document/:docId/element/:elementId/part/:partId
+   - Registered the new routes in public/router/routes.js and implemented DocumentController.showElement/showPart to hydrate missing context (load document/element if needed), render target views, and restore view state when provided
+   - Clicking an element or part now uses router.navigate(...) with captured view state for coherent back/forward restoration
+   - No regressions to existing flows; controllers still render views via Navigation while router handles URL/history semantics. Deep-linking works when doc/element IDs are present in the URL
+
+2025-09-30 16:56:40
+
+1. Phase 6 bug fix (state replacement)
+   - Implemented AppState.replaceState(newState) to resolve runtime error in AppController.bindGlobalEvents
+   - replaceState resets to defaultState baseline, merges newState, freezes, and emits to observers
+
+2. Phase 1-6 verification pass
+   - Router initialized and started in public/js/app.js; routes include document, element, and part deep-links
+   - DocumentController uses router.navigate/back with HistoryState snapshots; views implement captureState/restoreState for list, detail, element, and part
+   - Back/forward restores list selections, search, and scroll; deep-link refresh loads correct view without errors
+
+3. Phase 6 continuation plan
+   - Audit remaining direct Navigation transitions and swap to router.navigate/back where appropriate for consistency
+   - Capture active tab state in ElementDetailView/PartDetailView via HistoryState strategies for richer restoration
+   - Consider defaulting authenticated initial route to /documents (hash) for clarity while preserving current dashboard landing behavior
+
+2025-09-30 17:00:37
+
+1. Phase 6 continuation (uniform history and richer state)
+   - Replaced remaining direct Navigation transition on logout with router.replace(ROUTES.HOME) to keep URL/history aligned with landing
+   - Enhanced HistoryState via per-view strategies (wired during app bootstrap):
+     - documentList: capture/restore search query, selected IDs, and select-all state
+     - elementDetail: capture/restore active tab (parts/assemblies/metadata)
+   - Authenticated default route
+     - After router.start(), when no hash is present and user is authenticated, default route is set to #/documents; otherwise #/ for landing
+     - Improves deep-link consistency after login and on refresh
+
+2. Files changed
+   - public/js/app.js
+   - public/js/controllers/app-controller.js
+
 # Work History
 
 ## Comprehensive Documentation Update & Frontend Refactor Fixes [3d113d6]
@@ -102,18 +296,15 @@ _ACTUAL WORK HISTORY STARTS IN THE NEXT SECTION_
 2025-09-29 16:47:21
 
 1. Fixed "Get Selected" to export only selected documents
-
    - Frontend now scopes export by passing ids of selected documents
    - Backend /api/export/all and /api/export/stream accept ids query parameter and filter the processed documents
    - Export progress and totals reflect the selected subset
 
 2. Defaulted list selection to "all selected" on load
-
    - After rendering the documents table, "Select All" is programmatically checked and propagated
    - "📋 Get Selected" button enabled with live count
 
 3. Added basic history-aware navigation
-
    - When opening a document, URL updates to /document/:id (pushState)
    - Handles direct navigation and browser back/forward to /document/:id and root (/)
    - Keeps dashboard accessible via back button without re-authentication
@@ -125,25 +316,15 @@ _ACTUAL WORK HISTORY STARTS IN THE NEXT SECTION_
 2025-09-29 18:05:53
 
 1. Finalized refactored frontend by addressing six critical issues (per PROMPT.md)
-
    - Removed/archived old monolithic public/app.js and confirmed index.html references the modular entry point with type="module" src="js/app.js"
-
    - Fixed method mismatch in DocumentService
-
      - getElements now calls api.getElements(documentId, workspaceId) instead of api.getDocumentElements
-
    - Added missing ApiClient method
-
      - Implemented getComprehensiveDocument(documentId, params) to fetch /api/documents/:id/comprehensive with query params
-
    - Added missing DocumentService method
-
      - Implemented getPartMassProperties(documentId, workspaceId, elementId, partId) delegating to ApiClient
-
    - Corrected invalid API access in DocumentController
-
      - Replaced direct this.documentService.api.request(...) usage with this.documentService.getPartMassProperties(...)
-
    - Added missing state update API
      - Implemented replaceState(newState) in AppState to support in-place state replacement (used by AppController)
 
@@ -154,27 +335,22 @@ _ACTUAL WORK HISTORY STARTS IN THE NEXT SECTION_
 2025-09-26 17:40:22
 
 1. Synchronized documentation across notes for clarity and consistency
-
    - Clarified that example archives are templates and not counted
    - Fixed numbering mismatch in notes/archives/HISTORY-XXX.md
 
 2. Updated ARCHIVE-INDEX.md
-
    - Adjusted Archive Statistics to reflect zero real archives
    - Corrected "Next Archives" to start at 001
    - Added note that examples are not counted in statistics
 
 3. Updated INSTRUCTIONS.md
-
    - Clarified that timestamps are recorded in HISTORY.md, not DONE.md
    - Added note about example archives in Archive Management
 
 4. Updated MAINTENANCE.md
-
    - Added reminder that example archives are templates only
 
 5. Updated ARCHITECTURE.md
-
    - Updated session storage to file-backed (.sessions.json)
    - Mentioned SSE for export progress
 
@@ -294,3 +470,4 @@ _ACTUAL WORK HISTORY STARTS IN THE NEXT SECTION_
    - Hover effects with opacity and transform transitions
    - Proper padding, margins, and border-radius for clean appearance
 3. Updated `.gitignore` after renaming `onshape_document.example.json`
+

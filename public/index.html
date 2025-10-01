@@ -58,7 +58,7 @@
                     <button id="getSelectedBtn" class="btn btn-info" disabled>📋 Get Selected</button>
                 </div>
 
-                <div class="documents-section">
+                <div class="documents-section" data-scroll-preserve data-scroll-key="documents-section">
                     <div id="loading" class="loading">Loading documents...</div>
                     <div id="documentsGrid" class="documents-grid"></div>
                     <div id="error" class="error-message" style="display: none;"></div>
@@ -73,7 +73,7 @@
                     <button id="getDocumentBtn" class="btn btn-primary">📦 Get Document</button>
                 </div>
 
-                <div class="document-info">
+                <div class="document-info" data-scroll-preserve data-scroll-key="document-info">
                     <div class="info-card">
                         <h3>Document Information</h3>
                         <div id="documentInfo"></div>
@@ -93,7 +93,7 @@
                     <h2 id="elementTitle">Element Details</h2>
                 </div>
 
-                <div class="element-info">
+                <div class="element-info" data-scroll-preserve data-scroll-key="element-detail">
                     <div class="info-card">
                         <h3>Element Information</h3>
                         <div id="elementInfo"></div>
@@ -137,7 +137,7 @@
                     <h2 id="partTitle">Part Details</h2>
                 </div>
 
-                <div class="part-info">
+                <div class="part-info" data-scroll-preserve data-scroll-key="part-detail">
                     <div class="info-card">
                         <h3>Part Information</h3>
                         <div id="partInfo"></div>
@@ -294,7 +294,7 @@
 
                     <div class="export-log">
                         <h4>📝 Export Log</h4>
-                        <div id="exportLog" class="log-container">
+                        <div id="exportLog" class="log-container" data-scroll-preserve data-scroll-key="export-log">
                             <p>Initializing export...</p>
                         </div>
                     </div>

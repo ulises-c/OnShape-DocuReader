@@ -48,7 +48,12 @@ The numbering is just show that it's easier to keep track.
    2. Change default selections to all selected
    5. Fix `get selected`
       1. Ensure exporting only processes selected documents (frontend passes ids; backend scopes by ids)
+5. Update navigation so that going "forward" and "back" recalls where you were
+   1. Avoid monolithic code files (e.g. avoid create a massive file and split code up)
+   2. Potentially means adding new pages such as: `detailed`, `document`, `assembly`, etc., but I am unsure. So think about different ways to navigating and recalling navigation
+   3. Implement history-aware navigation (e.g., /document/:id routes, preserve filters and scroll position)
 
 ---
 
 _For older completed items, see notes/archives/DONE-XXX.md_
+

@@ -70,7 +70,11 @@ export class DocumentListView extends BaseView {
         const id = row.getAttribute('data-id');
         if (id) {
           console.log('Document card clicked:', id);
-          this.controller.viewDocument(id);
+          if (typeof this.controller?.navigateToDocument === 'function') {
+            this.controller.navigateToDocument(id);
+          } else {
+            this.controller.viewDocument(id);
+          }
         }
       })
     );
@@ -120,5 +124,100 @@ export class DocumentListView extends BaseView {
   unbind() {
     this._unsub.forEach((off) => off());
     this._unsub = [];
+  }
+
+  /**
+   * Capture current view state for restoration (scroll, selections, select-all, search query)
+   */
+  captureState() {
+    try {
+      const scrollContainer = this.container?.closest('[data-scroll-preserve]') || null;
+      const selectedIds = qsa('.doc-checkbox:checked', this.container).map((cb) => cb.value);
+      const selectAllEl = qs('#selectAll', this.container);
+      const searchInput = document.querySelector('#searchInput');
+
+      return {
+        scroll: {
+          windowY: typeof window !== 'undefined' ? (window.scrollY || 0) : 0,
+          containerTop: scrollContainer ? (scrollContainer.scrollTop || 0) : 0,
+          containerKey: scrollContainer?.getAttribute?.('data-scroll-key') || null
+        },
+        selectedIds,
+        selectAll: !!(selectAllEl && selectAllEl.checked),
+        searchQuery: searchInput?.value || ''
+      };
+    } catch (e) {
+      console.error('captureState (DocumentListView) failed:', e);
+      return {
+        scroll: { windowY: 0, containerTop: 0, containerKey: null },
+        selectedIds: [],
+        selectAll: false,
+        searchQuery: ''
+      };
+    }
+  }
+
+  /**
+   * Restore previously captured state (order: inputs/selection, then scroll)
+   */
+  restoreState(state) {
+    if (!state || typeof state !== 'object') return;
+
+    try {
+      // Restore search query first (affects filtering if any external logic later uses it)
+      const searchInput = document.querySelector('#searchInput');
+      if (searchInput && typeof state.searchQuery === 'string') {
+        searchInput.value = state.searchQuery;
+      }
+
+      // Restore checkbox selections
+      const boxes = qsa('.doc-checkbox', this.container);
+      if (boxes.length) {
+        const selectedSet = new Set(Array.isArray(state.selectedIds) ? state.selectedIds : []);
+        boxes.forEach((cb) => {
+          cb.checked = selectedSet.has(cb.value);
+        });
+
+        // Restore select-all visual state
+        const selectAllEl = qs('#selectAll', this.container);
+        if (selectAllEl) {
+          const checkedCount = boxes.filter((b) => b.checked).length;
+          selectAllEl.checked = checkedCount === boxes.length && boxes.length > 0;
+          selectAllEl.indeterminate = checkedCount > 0 && checkedCount < boxes.length;
+        }
+
+        // Notify controller to sync button state, wrapped in rAF to ensure DOM reflects changes
+        if (typeof requestAnimationFrame === 'function') {
+          requestAnimationFrame(() => this._notifySelectionChanged());
+        } else {
+          setTimeout(() => this._notifySelectionChanged(), 0);
+        }
+      }
+
+      // Restore scroll after paint to ensure layout is ready
+      const applyScroll = () => {
+        try {
+          const scroll = state.scroll || {};
+          const scrollContainer = this.container?.closest('[data-scroll-preserve]') || null;
+
+          if (scrollContainer && typeof scroll.containerTop === 'number') {
+            scrollContainer.scrollTop = scroll.containerTop;
+          }
+          if (typeof scroll.windowY === 'number') {
+            window.scrollTo(0, scroll.windowY);
+          }
+        } catch (e) {
+          console.warn('restoreState (DocumentListView) scroll failed:', e);
+        }
+      };
+
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => requestAnimationFrame(applyScroll));
+      } else {
+        setTimeout(applyScroll, 0);
+      }
+    } catch (e) {
+      console.error('restoreState (DocumentListView) failed:', e);
+    }
   }
 }

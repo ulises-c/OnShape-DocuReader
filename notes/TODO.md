@@ -23,20 +23,14 @@ The numbering is just show that it's easier to keep track.
 
 # TODO Section
 
-
-2. Update navigation so that going "forward" and "back" recalls where you were
-   1. Potentially means adding new pages such as: `detailed`, `document`, `assembly`, etc., but I am unsure. So think about different ways to navigating and recalling navigation
-   2. Implement history-aware navigation (e.g., /document/:id routes, preserve filters and scroll position)
-      Current: Navigation doesn't preserve state when using browser back/forward
-      Goal: Implement history-aware navigation (e.g., /document/:id routes)
-3. Update detailed view
+1. Update detailed view
    1. The child documents (the other clickable tiles within a document), should also be updated to have a cleaner layout.
    2. Investigate why "Load Hierarchy Details" returns "No parent hierarchy available" even though there is a parent ID
    3. Go through documents and OnShape v12 API to understand document structure and other important things from the API
-4. Update what `get all`, `get selected` `get document` does
+2. Update what `get all`, `get selected` `get document` does
    1. To maintain consistency files should automatically be downloaded to a set folder
       1. `~/OnShape-DocuReader/database/`
-   3. Change how the download structure
+   2. Change how the download structure
       1. Understand the draw backs of the current structure
          1. Currently the options are a single JSON file, or a ZIP with organized folders
       2. I want a clean and organized folder structure, with the option to zip it, something like the following:
@@ -45,9 +39,12 @@ The numbering is just show that it's easier to keep track.
          2. Folders for each document downloaded
             1. Folder should have JSONs for each item downloaded, and their child element JSONs
             2. Thumbnails should also be downloaded within this folder (if selected)
-   4. Implement image/thumbnail downloading
-   5. Fix todo in `public/js/controllers/document-controller.js`
+   3. Implement image/thumbnail downloading
+3. Fix TODO in `public/js/controllers/document-controller.js`
+4. Fix file structure in `public/`
+   1. I think I see an issue with my directory as well. I have `public/js/`​ which has all my `js` files, but within `public/` I have `router/` and `state/`​ which contain `js` files.
 
 # ✅ DONE
 
 See `DONE.md`
+

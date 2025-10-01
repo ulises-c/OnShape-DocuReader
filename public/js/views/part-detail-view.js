@@ -1,3 +1,4 @@
+// Full file content with added state capture/restore methods
 /**
  * PartDetailView - renders part details and mass properties
  */
@@ -91,6 +92,53 @@ export class PartDetailView {
         massPropsEl.innerHTML =
           '<div class="empty-state"><h3>Loading Mass Properties...</h3><p>Mass properties could not be loaded for this part.</p></div>';
       }
+    }
+  }
+
+  /**
+   * Capture scroll position for part detail containers
+   */
+  captureState() {
+    try {
+      const container = document.querySelector('.part-info');
+      return {
+        scroll: {
+          windowY: typeof window !== 'undefined' ? (window.scrollY || 0) : 0,
+          containerTop: container ? (container.scrollTop || 0) : 0,
+          containerKey: container?.getAttribute?.('data-scroll-key') || null
+        }
+      };
+    } catch (e) {
+      console.error('captureState (PartDetailView) failed:', e);
+      return { scroll: { windowY: 0, containerTop: 0, containerKey: null } };
+    }
+  }
+
+  /**
+   * Restore scroll position after the view has rendered
+   */
+  restoreState(state) {
+    if (!state || typeof state !== 'object') return;
+
+    const applyScroll = () => {
+      try {
+        const container = document.querySelector('.part-info');
+        const scroll = state.scroll || {};
+        if (container && typeof scroll.containerTop === 'number') {
+          container.scrollTop = scroll.containerTop;
+        }
+        if (typeof scroll.windowY === 'number') {
+          window.scrollTo(0, scroll.windowY);
+        }
+      } catch (e) {
+        console.warn('restoreState (PartDetailView) scroll failed:', e);
+      }
+    };
+
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => requestAnimationFrame(applyScroll));
+    } else {
+      setTimeout(applyScroll, 0);
     }
   }
 }

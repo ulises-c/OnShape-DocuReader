@@ -30,6 +30,12 @@ export class AppState {
     this._emit();
   }
 
+  // Replace the entire state baseline (used by AppController during logout, etc.)
+  replaceState(newState) {
+    this._state = Object.freeze({ ...defaultState, ...newState });
+    this._emit();
+  }
+
   reset() {
     this._state = { ...defaultState };
     this._emit();
