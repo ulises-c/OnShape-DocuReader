@@ -72,19 +72,28 @@ _ACTUAL WORK HISTORY STARTS IN THE NEXT SECTION_
 
 ---
 
-## History-aware navigation complete [not committed]
+## SPEC file creation
+
+**Created SPEC files for cheap context. Essentially summary files for directories. Still a WIP**
+2025-10-01 14:02:21
+
+1. Created 5 SPEC files to start.
+
+## History-aware navigation complete [99e5fab]
 
 **Completed Phases 1-6 of history-aware navigation infrastructure: Router with hash-based routing, HistoryState for scroll and UI state preservation, route definitions with deep-links for document/element/part views, controller integration with router.navigate/back, view state capture/restore methods, and full entry point wiring with per-view strategies and authenticated default route.**
 
 2025-10-01 12:34:21
 
 1. Phase 6 finalization and verification
+
    - Verified all phases (1-6) complete and functional
    - Confirmed router handles document, element, and part deep-links
    - Validated state restoration on back/forward navigation (scroll, selections, search, active tabs)
    - Tested authenticated default route (#/documents) and logout flow
 
 2. Documentation updates
+
    - Moved TODO item 1 (navigation) to DONE.md with all sub-items
    - Updated HISTORY.md with comprehensive Phase 1-6 summary
    - Confirmed no critical navigation bugs remain
@@ -101,6 +110,7 @@ _ACTUAL WORK HISTORY STARTS IN THE NEXT SECTION_
 2025-09-30 14:30:21
 
 1. Phase 1 verification (Router)
+
    - Confirmed src/router/Router.js implements required capabilities:
      - Route registration with pattern matching and param extraction
      - Query parsing and normalized path handling
@@ -139,6 +149,7 @@ _ACTUAL WORK HISTORY STARTS IN THE NEXT SECTION_
 2025-09-30 15:36:33
 
 1. Phase 4 verification (controllers integration readiness)
+
    - Confirmed public/router/Router.js, public/router/routes.js, and public/state/HistoryState.js are available for frontend use
    - No changes required to router/state modules; signatures match Phase 4 expectations
    - Controller source files not included in the current context; pending integration will be completed once provided
@@ -152,6 +163,7 @@ _ACTUAL WORK HISTORY STARTS IN THE NEXT SECTION_
 2025-09-30 15:39:56
 
 1. Phase 1-4 double-check (frontend copies)
+
    - Verified public/router/Router.js, public/router/routes.js, and public/state/HistoryState.js exist and match src module signatures
    - No changes required for these phases
 
@@ -172,6 +184,7 @@ _ACTUAL WORK HISTORY STARTS IN THE NEXT SECTION_
 2025-09-30 15:44:08
 
 1. Phase 1-5 audit and sync (frontend runtime)
+
    - Ensured public/router/Router.js, public/router/routes.js, and public/state/HistoryState.js exist and are ESM modules mirroring src modules
    - Verified ROUTES and configureRoutes exports; added pathTo helper for safe URL building
    - Verified HistoryState includes fallback capture/restore and scroll container support via [data-scroll-preserve] markers present in index.html
@@ -207,11 +220,13 @@ _ACTUAL WORK HISTORY STARTS IN THE NEXT SECTION_
 2025-09-30 16:31:09
 
 1. Phase 6 corrections (router injection and state restoration)
+
    - Injected Router and HistoryState into DocumentController at runtime after app boot
    - Updated route configuration in public/js/app.js to pass the controller instance (documentController) directly
    - Preserves and restores list view state (filters, selections, scroll) when navigating back/forward
 
 2. Stability fix for views
+
    - Added missing imports to public/js/views/element-detail-view.js (BaseView, escapeHtml) to prevent runtime reference errors
 
 3. Validation
@@ -220,6 +235,7 @@ _ACTUAL WORK HISTORY STARTS IN THE NEXT SECTION_
    - Confirmed initial load still respects authentication flow and dashboard landing
 
 Next steps (Phase 6 continuation):
+
 - Replace back buttons in views/controllers to call router.back() for consistent history behavior
 - Add route entries for element/part detail once route patterns are finalized
 - Consider capturing/restoring active tabs in detail views via HistoryState strategies for richer UX
@@ -238,10 +254,12 @@ Next steps (Phase 6 continuation):
 2025-09-30 16:56:40
 
 1. Phase 6 bug fix (state replacement)
+
    - Implemented AppState.replaceState(newState) to resolve runtime error in AppController.bindGlobalEvents
    - replaceState resets to defaultState baseline, merges newState, freezes, and emits to observers
 
 2. Phase 1-6 verification pass
+
    - Router initialized and started in public/js/app.js; routes include document, element, and part deep-links
    - DocumentController uses router.navigate/back with HistoryState snapshots; views implement captureState/restoreState for list, detail, element, and part
    - Back/forward restores list selections, search, and scroll; deep-link refresh loads correct view without errors
@@ -254,6 +272,7 @@ Next steps (Phase 6 continuation):
 2025-09-30 17:00:37
 
 1. Phase 6 continuation (uniform history and richer state)
+
    - Replaced remaining direct Navigation transition on logout with router.replace(ROUTES.HOME) to keep URL/history aligned with landing
    - Enhanced HistoryState via per-view strategies (wired during app bootstrap):
      - documentList: capture/restore search query, selected IDs, and select-all state
@@ -296,15 +315,18 @@ Next steps (Phase 6 continuation):
 2025-09-29 16:47:21
 
 1. Fixed "Get Selected" to export only selected documents
+
    - Frontend now scopes export by passing ids of selected documents
    - Backend /api/export/all and /api/export/stream accept ids query parameter and filter the processed documents
    - Export progress and totals reflect the selected subset
 
 2. Defaulted list selection to "all selected" on load
+
    - After rendering the documents table, "Select All" is programmatically checked and propagated
    - "📋 Get Selected" button enabled with live count
 
 3. Added basic history-aware navigation
+
    - When opening a document, URL updates to /document/:id (pushState)
    - Handles direct navigation and browser back/forward to /document/:id and root (/)
    - Keeps dashboard accessible via back button without re-authentication
@@ -335,22 +357,27 @@ Next steps (Phase 6 continuation):
 2025-09-26 17:40:22
 
 1. Synchronized documentation across notes for clarity and consistency
+
    - Clarified that example archives are templates and not counted
    - Fixed numbering mismatch in notes/archives/HISTORY-XXX.md
 
 2. Updated ARCHIVE-INDEX.md
+
    - Adjusted Archive Statistics to reflect zero real archives
    - Corrected "Next Archives" to start at 001
    - Added note that examples are not counted in statistics
 
 3. Updated INSTRUCTIONS.md
+
    - Clarified that timestamps are recorded in HISTORY.md, not DONE.md
    - Added note about example archives in Archive Management
 
 4. Updated MAINTENANCE.md
+
    - Added reminder that example archives are templates only
 
 5. Updated ARCHITECTURE.md
+
    - Updated session storage to file-backed (.sessions.json)
    - Mentioned SSE for export progress
 
@@ -470,4 +497,3 @@ Next steps (Phase 6 continuation):
    - Hover effects with opacity and transform transitions
    - Proper padding, margins, and border-radius for clean appearance
 3. Updated `.gitignore` after renaming `onshape_document.example.json`
-
