@@ -8,7 +8,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.js';
 import apiRoutes from './routes/api.js';
-import { config } from './config/oauth.js';
+import { oauthConfig } from './config/oauth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -94,5 +94,5 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📦 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔐 OAuth configured: ${config.clientId ? 'Yes' : 'No'}`);
+  console.log(`🔐 OAuth configured: ${oauthConfig.clientId ? 'Yes' : 'No'}`);
 });

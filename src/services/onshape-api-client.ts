@@ -1,5 +1,6 @@
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
-import { oauthConfig } from '../config/oauth';
+import axios, { AxiosInstance } from 'axios';
+import { oauthConfig } from '../config/oauth.js';
+import { EventEmitter } from 'events';
 
 export interface OnShapeUser {
   id: string;
@@ -77,7 +78,6 @@ export class OnShapeApiClient {
       }
     });
 
-    // Add response interceptor for error handling
     this.axiosInstance.interceptors.response.use(
       response => response,
       error => {
@@ -91,17 +91,11 @@ export class OnShapeApiClient {
     );
   }
 
-  /**
-   * Get current user information
-   */
   async getCurrentUser(): Promise<OnShapeUser> {
     const response = await this.axiosInstance.get('/users/sessioninfo');
     return response.data;
   }
 
-  /**
-   * Get user's documents
-   */
   async getDocuments(limit: number = 20, offset: number = 0): Promise<OnShapeDocument[]> {
     const response = await this.axiosInstance.get('/documents', {
       params: {
@@ -114,17 +108,42 @@ export class OnShapeApiClient {
     return response.data.items || [];
   }
 
-  /**
-   * Get detailed information about a specific document
-   */
   async getDocument(documentId: string): Promise<OnShapeDocumentInfo> {
     const response = await this.axiosInstance.get(`/documents/${documentId}`);
     return response.data;
   }
 
-  /**
-   * Get elements (parts, assemblies, etc.) from a document workspace
-   */
+  async getComprehensiveDocument(documentId: string, params: any): Promise<any> {
+    const doc = await this.getDocument(documentId);
+    const result: any = { ...doc };
+    
+    if (doc.defaultWorkspace?.id && params.includeElements === 'true') {
+      result.elements = await this.getElements(documentId, doc.defaultWorkspace.id);
+      
+      if (params.includeParts === 'true' || params.includeAssemblies === 'true') {
+        for (const element of result.elements) {
+          if (params.includeParts === 'true') {
+            element.parts = await this.getParts(documentId, doc.defaultWorkspace.id, element.id);
+          }
+          if (params.includeAssemblies === 'true') {
+            element.assemblies = await this.getAssemblies(documentId, doc.defaultWorkspace.id, element.id);
+          }
+        }
+      }
+    }
+    
+    return result;
+  }
+
+  async getParentInfo(documentId: string): Promise<any> {
+    const response = await this.axiosInstance.get(`/documents/${documentId}/parent`);
+    return response.data;
+  }
+
+  async getElements(documentId: string, workspaceId: string): Promise<OnShapeDocumentElement[]> {
+    return this.getDocumentElements(documentId, workspaceId);
+  }
+
   async getDocumentElements(documentId: string, workspaceId: string): Promise<OnShapeDocumentElement[]> {
     const response = await this.axiosInstance.get(
       `/documents/d/${documentId}/w/${workspaceId}/elements`
@@ -132,9 +151,6 @@ export class OnShapeApiClient {
     return response.data || [];
   }
 
-  /**
-   * Get parts from a specific element
-   */
   async getParts(documentId: string, workspaceId: string, elementId: string): Promise<any[]> {
     const response = await this.axiosInstance.get(
       `/documents/d/${documentId}/w/${workspaceId}/e/${elementId}/parts`
@@ -142,9 +158,6 @@ export class OnShapeApiClient {
     return response.data || [];
   }
 
-  /**
-   * Get assemblies from a specific element
-   */
   async getAssemblies(documentId: string, workspaceId: string, elementId: string): Promise<any[]> {
     const response = await this.axiosInstance.get(
       `/documents/d/${documentId}/w/${workspaceId}/e/${elementId}/assemblies`
@@ -152,9 +165,6 @@ export class OnShapeApiClient {
     return response.data || [];
   }
 
-  /**
-   * Get part mass properties
-   */
   async getPartMassProperties(
     documentId: string, 
     workspaceId: string, 
@@ -167,9 +177,6 @@ export class OnShapeApiClient {
     return response.data;
   }
 
-  /**
-   * Search for documents
-   */
   async searchDocuments(query: string, limit: number = 20): Promise<OnShapeDocument[]> {
     const response = await this.axiosInstance.get('/documents', {
       params: {
@@ -182,17 +189,11 @@ export class OnShapeApiClient {
     return response.data.items || [];
   }
 
-  /**
-   * Get document metadata
-   */
   async getDocumentMetadata(documentId: string): Promise<any> {
     const response = await this.axiosInstance.get(`/metadata/d/${documentId}`);
     return response.data;
   }
 
-  /**
-   * Get element metadata
-   */
   async getElementMetadata(
     documentId: string, 
     workspaceId: string, 
@@ -202,5 +203,59 @@ export class OnShapeApiClient {
       `/metadata/d/${documentId}/w/${workspaceId}/e/${elementId}`
     );
     return response.data;
+  }
+
+  async exportAll(options: any, ids?: string[]): Promise<any> {
+    const documents = ids ? 
+      await Promise.all(ids.map(id => this.getDocument(id))) :
+      await this.getDocuments(100, 0);
+      
+    const result: any = {
+      documents: [],
+      exportInfo: {
+        totalDocuments: documents.length,
+        processedDocuments: 0,
+        exportDate: new Date().toISOString()
+      }
+    };
+    
+    for (const doc of documents) {
+      const docData: any = { ...doc };
+      
+      if (options.includeElements === 'true' && doc.defaultWorkspace?.id) {
+        docData.elements = await this.getElements(doc.id, doc.defaultWorkspace.id);
+      }
+      
+      result.documents.push(docData);
+      result.exportInfo.processedDocuments++;
+    }
+    
+    return result;
+  }
+
+  async exportStream(options: any, ids?: string[]): Promise<EventEmitter> {
+    const emitter = new EventEmitter();
+    
+    setTimeout(async () => {
+      try {
+        const data = await this.exportAll(options, ids);
+        emitter.emit('data', data);
+        emitter.emit('end');
+      } catch (error) {
+        emitter.emit('error', error);
+      }
+    }, 0);
+    
+    return emitter;
+  }
+
+  async fetchThumbnail(url: string): Promise<Buffer> {
+    const response = await axios.get(url, {
+      headers: {
+        'Authorization': `Bearer ${this.accessToken}`
+      },
+      responseType: 'arraybuffer'
+    });
+    return Buffer.from(response.data);
   }
 }

@@ -1,9 +1,9 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { OnShapeApiClient } from '../services/onshape-api-client.ts';
+import { OnShapeApiClient } from '../services/onshape-api-client.js';
 
 const router = Router();
 
-const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+const requireAuth = (req: Request, res: Response, next: NextFunction): void | Response => {
   if (!req.session?.authenticated) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
@@ -12,106 +12,106 @@ const requireAuth = (req: Request, res: Response, next: NextFunction) => {
 
 router.use(requireAuth);
 
-router.get('/user', async (req: Request, res: Response) => {
+router.get('/user', async (req: Request, res: Response): Promise<Response> => {
   try {
     const client = new OnShapeApiClient(req.session.accessToken!);
     const user = await client.getCurrentUser();
-    res.json(user);
+    return res.json(user);
   } catch (error) {
     console.error('Get user error:', error);
-    res.status(500).json({ error: 'Failed to fetch user' });
+    return res.status(500).json({ error: 'Failed to fetch user' });
   }
 });
 
-router.get('/documents', async (req: Request, res: Response) => {
+router.get('/documents', async (req: Request, res: Response): Promise<Response> => {
   try {
     const client = new OnShapeApiClient(req.session.accessToken!);
     const documents = await client.getDocuments();
-    res.json(documents);
+    return res.json(documents);
   } catch (error) {
     console.error('Get documents error:', error);
-    res.status(500).json({ error: 'Failed to fetch documents' });
+    return res.status(500).json({ error: 'Failed to fetch documents' });
   }
 });
 
-router.get('/documents/:id', async (req: Request, res: Response) => {
+router.get('/documents/:id', async (req: Request, res: Response): Promise<Response> => {
   try {
     const client = new OnShapeApiClient(req.session.accessToken!);
     const document = await client.getDocument(req.params.id);
-    res.json(document);
+    return res.json(document);
   } catch (error) {
     console.error('Get document error:', error);
-    res.status(500).json({ error: 'Failed to fetch document' });
+    return res.status(500).json({ error: 'Failed to fetch document' });
   }
 });
 
-router.get('/documents/:id/comprehensive', async (req: Request, res: Response) => {
+router.get('/documents/:id/comprehensive', async (req: Request, res: Response): Promise<Response> => {
   try {
     const client = new OnShapeApiClient(req.session.accessToken!);
     const data = await client.getComprehensiveDocument(req.params.id, req.query);
-    res.json(data);
+    return res.json(data);
   } catch (error) {
     console.error('Get comprehensive document error:', error);
-    res.status(500).json({ error: 'Failed to fetch comprehensive document' });
+    return res.status(500).json({ error: 'Failed to fetch comprehensive document' });
   }
 });
 
-router.get('/documents/:id/parent', async (req: Request, res: Response) => {
+router.get('/documents/:id/parent', async (req: Request, res: Response): Promise<Response> => {
   try {
     const client = new OnShapeApiClient(req.session.accessToken!);
     const parent = await client.getParentInfo(req.params.id);
-    res.json(parent);
+    return res.json(parent);
   } catch (error) {
     console.error('Get parent info error:', error);
-    res.status(500).json({ error: 'Failed to fetch parent info' });
+    return res.status(500).json({ error: 'Failed to fetch parent info' });
   }
 });
 
-router.get('/documents/:id/workspaces/:wid/elements', async (req: Request, res: Response) => {
+router.get('/documents/:id/workspaces/:wid/elements', async (req: Request, res: Response): Promise<Response> => {
   try {
     const client = new OnShapeApiClient(req.session.accessToken!);
     const elements = await client.getElements(req.params.id, req.params.wid);
-    res.json(elements);
+    return res.json(elements);
   } catch (error) {
     console.error('Get elements error:', error);
-    res.status(500).json({ error: 'Failed to fetch elements' });
+    return res.status(500).json({ error: 'Failed to fetch elements' });
   }
 });
 
-router.get('/documents/:id/workspaces/:wid/elements/:eid/parts', async (req: Request, res: Response) => {
+router.get('/documents/:id/workspaces/:wid/elements/:eid/parts', async (req: Request, res: Response): Promise<Response> => {
   try {
     const client = new OnShapeApiClient(req.session.accessToken!);
     const parts = await client.getParts(req.params.id, req.params.wid, req.params.eid);
-    res.json(parts);
+    return res.json(parts);
   } catch (error) {
     console.error('Get parts error:', error);
-    res.status(500).json({ error: 'Failed to fetch parts' });
+    return res.status(500).json({ error: 'Failed to fetch parts' });
   }
 });
 
-router.get('/documents/:id/workspaces/:wid/elements/:eid/assemblies', async (req: Request, res: Response) => {
+router.get('/documents/:id/workspaces/:wid/elements/:eid/assemblies', async (req: Request, res: Response): Promise<Response> => {
   try {
     const client = new OnShapeApiClient(req.session.accessToken!);
     const assemblies = await client.getAssemblies(req.params.id, req.params.wid, req.params.eid);
-    res.json(assemblies);
+    return res.json(assemblies);
   } catch (error) {
     console.error('Get assemblies error:', error);
-    res.status(500).json({ error: 'Failed to fetch assemblies' });
+    return res.status(500).json({ error: 'Failed to fetch assemblies' });
   }
 });
 
-router.get('/documents/:id/workspaces/:wid/elements/:eid/metadata', async (req: Request, res: Response) => {
+router.get('/documents/:id/workspaces/:wid/elements/:eid/metadata', async (req: Request, res: Response): Promise<Response> => {
   try {
     const client = new OnShapeApiClient(req.session.accessToken!);
     const metadata = await client.getElementMetadata(req.params.id, req.params.wid, req.params.eid);
-    res.json(metadata);
+    return res.json(metadata);
   } catch (error) {
     console.error('Get element metadata error:', error);
-    res.status(500).json({ error: 'Failed to fetch element metadata' });
+    return res.status(500).json({ error: 'Failed to fetch element metadata' });
   }
 });
 
-router.get('/documents/:id/workspaces/:wid/elements/:eid/parts/:pid/mass-properties', async (req: Request, res: Response) => {
+router.get('/documents/:id/workspaces/:wid/elements/:eid/parts/:pid/mass-properties', async (req: Request, res: Response): Promise<Response> => {
   try {
     const client = new OnShapeApiClient(req.session.accessToken!);
     const massProps = await client.getPartMassProperties(
@@ -120,27 +120,27 @@ router.get('/documents/:id/workspaces/:wid/elements/:eid/parts/:pid/mass-propert
       req.params.eid,
       req.params.pid
     );
-    res.json(massProps);
+    return res.json(massProps);
   } catch (error) {
     console.error('Get mass properties error:', error);
-    res.status(500).json({ error: 'Failed to fetch mass properties' });
+    return res.status(500).json({ error: 'Failed to fetch mass properties' });
   }
 });
 
-router.get('/export/all', async (req: Request, res: Response) => {
+router.get('/export/all', async (req: Request, res: Response): Promise<Response> => {
   try {
     const client = new OnShapeApiClient(req.session.accessToken!);
     const options = req.query;
     const ids = typeof req.query.ids === 'string' ? req.query.ids.split(',') : undefined;
     const data = await client.exportAll(options, ids);
-    res.json(data);
+    return res.json(data);
   } catch (error) {
     console.error('Export all error:', error);
-    res.status(500).json({ error: 'Export failed' });
+    return res.status(500).json({ error: 'Export failed' });
   }
 });
 
-router.get('/export/stream', async (req: Request, res: Response) => {
+router.get('/export/stream', async (req: Request, res: Response): Promise<void> => {
   try {
     const client = new OnShapeApiClient(req.session.accessToken!);
     const options = req.query;
@@ -171,7 +171,7 @@ router.get('/export/stream', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/thumbnail-proxy', async (req: Request, res: Response) => {
+router.get('/thumbnail-proxy', async (req: Request, res: Response): Promise<Response> => {
   try {
     const url = req.query.url as string;
     if (!url) {
@@ -183,10 +183,10 @@ router.get('/thumbnail-proxy', async (req: Request, res: Response) => {
     
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Cache-Control', 'public, max-age=86400');
-    res.send(imageBuffer);
+    return res.send(imageBuffer);
   } catch (error) {
     console.error('Thumbnail proxy error:', error);
-    res.status(500).json({ error: 'Failed to fetch thumbnail' });
+    return res.status(500).json({ error: 'Failed to fetch thumbnail' });
   }
 });
 
