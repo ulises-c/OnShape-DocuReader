@@ -10,12 +10,11 @@ import { AppController } from "./controllers/app-controller.js";
 import { DocumentController } from "./controllers/document-controller.js";
 import { ExportController } from "./controllers/export-controller.js";
 
-// Router integration (Phase 6)
-import { Router } from "../router/Router.js";
-import { HistoryState } from "../state/HistoryState.js";
-import { configureRoutes, ROUTES } from "../router/routes.js";
+// Router integration (Phase 6) - corrected import paths
+import { Router } from "./router/Router.js";
+import { HistoryState } from "./state/HistoryState.js";
+import { configureRoutes, ROUTES } from "./router/routes.js";
 
- // Handle OAuth redirect
 if (window.location.pathname === "/dashboard") {
   window.history.replaceState({}, "", "/");
 }
@@ -56,7 +55,7 @@ modalManager.setHandlers({
   onCancelExport: () => exportController.cancelExport(),
 });
 
- // Boot application
+// Boot application
 const appController = new AppController(
   state,
   services,

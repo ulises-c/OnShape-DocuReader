@@ -23,11 +23,11 @@ The numbering is just show that it's easier to keep track.
 
 # TODO Section
 
-1. Update detailed view
+2. Update detailed view
    1. The child documents (the other clickable tiles within a document), should also be updated to have a cleaner layout.
    2. Investigate why "Load Hierarchy Details" returns "No parent hierarchy available" even though there is a parent ID
    3. Go through documents and OnShape v12 API to understand document structure and other important things from the API
-2. Update what `get all`, `get selected` `get document` does
+3. Update what `get all`, `get selected` `get document` does
    1. To maintain consistency files should automatically be downloaded to a set folder
       1. `~/OnShape-DocuReader/database/`
    2. Change how the download structure
@@ -40,11 +40,8 @@ The numbering is just show that it's easier to keep track.
             1. Folder should have JSONs for each item downloaded, and their child element JSONs
             2. Thumbnails should also be downloaded within this folder (if selected)
    3. Implement image/thumbnail downloading
-3. Fix TODO in `public/js/controllers/document-controller.js`
-4. Fix file structure in `public/`
-   1. I think I see an issue with my directory as well. I have `public/js/`​ which has all my `js` files, but within `public/` I have `router/` and `state/`​ which contain `js` files.
+4. Fix TODO in `public/js/controllers/document-controller.js`
 
 # ✅ DONE
 
 See `DONE.md`
-

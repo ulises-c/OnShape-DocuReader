@@ -6,6 +6,11 @@ The numbering is just show that it's easier to keep track.
 
 # ✅ DONE
 
+1. Fix CSP and MIME type errors in Express server
+   1. Configure Express static middleware to set correct MIME type (`application/javascript`) for all `.js` files
+   2. Update Content-Security-Policy headers to allow inline scripts using hash-based approach
+   3. Verify ES6 module imports work without errors
+
 1. Refactor `public/app.js`
    1. Remove/archive the old monolithic `public/app.js` in favor of the modular entry `public/js/app.js` (index.html already loads it via `<script type="module" src="js/app.js"></script>`)
 
@@ -52,8 +57,12 @@ The numbering is just show that it's easier to keep track.
    1. Avoid monolithic code files (e.g. avoid create a massive file and split code up)
    2. Potentially means adding new pages such as: `detailed`, `document`, `assembly`, etc., but I am unsure. So think about different ways to navigating and recalling navigation
    3. Implement history-aware navigation (e.g., /document/:id routes, preserve filters and scroll position)
+6. Fix file structure in `public/`
+   1. I think I see an issue with my directory as well. I have `public/js/`​ which has all my `js` files, but within `public/` I have `router/` and `state/`​ which contain `js` files.
+   2. Continue with the creation of SPEC files in directories.
+      1. What is a `SPEC.md` file? Serves as a summary for cheap context instead of feeding entire files.
+   3. Fix broken import paths in `public/js/app.js` that prevented router initialization and broke login functionality
 
 ---
 
 _For older completed items, see notes/archives/DONE-XXX.md_
-

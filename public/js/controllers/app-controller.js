@@ -3,7 +3,7 @@
  */
 
 import { qs } from '../utils/dom-helpers.js';
-import { ROUTES } from '../../router/routes.js';
+import { ROUTES } from '../router/routes.js';
 
 export class AppController {
   constructor(state, services, navigation, controllers) {
@@ -81,7 +81,6 @@ export class AppController {
       await this.init();
     });
 
-    // Use router.back() to keep browser history coherent; fall back to Navigation if router is unavailable
     qs('#backBtn')?.addEventListener('click', () => {
       if (this.documentController?.router) {
         this.documentController.router.back();
