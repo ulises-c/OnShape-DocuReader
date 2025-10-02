@@ -1,5 +1,6 @@
 {
   "name": "onshape-docureader",
+  "type": "module",
   "version": "1.0.0",
   "description": "Using OnShape API to gather information about documents",
   "main": "dist/index.js",

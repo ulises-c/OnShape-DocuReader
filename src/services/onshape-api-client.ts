@@ -1,6 +1,7 @@
-import axios, { AxiosInstance } from 'axios';
-import { oauthConfig } from '../config/oauth.js';
-import { EventEmitter } from 'events';
+import axios from "axios";
+import type { AxiosInstance } from "axios";
+import { oauthConfig } from "../config/oauth.ts";
+import { EventEmitter } from "events";
 
 export interface OnShapeUser {
   id: string;
@@ -72,19 +73,19 @@ export class OnShapeApiClient {
       baseURL: oauthConfig.baseApiUrl,
       timeout: 30000,
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
     });
 
     this.axiosInstance.interceptors.response.use(
-      response => response,
-      error => {
-        console.error('OnShape API Error:', {
+      (response) => response,
+      (error) => {
+        console.error("OnShape API Error:", {
           status: error.response?.status,
           data: error.response?.data,
-          url: error.config?.url
+          url: error.config?.url,
         });
         throw error;
       }
@@ -92,18 +93,21 @@ export class OnShapeApiClient {
   }
 
   async getCurrentUser(): Promise<OnShapeUser> {
-    const response = await this.axiosInstance.get('/users/sessioninfo');
+    const response = await this.axiosInstance.get("/users/sessioninfo");
     return response.data;
   }
 
-  async getDocuments(limit: number = 20, offset: number = 0): Promise<OnShapeDocument[]> {
-    const response = await this.axiosInstance.get('/documents', {
+  async getDocuments(
+    limit: number = 20,
+    offset: number = 0
+  ): Promise<OnShapeDocument[]> {
+    const response = await this.axiosInstance.get("/documents", {
       params: {
         limit,
         offset,
-        sortColumn: 'modifiedAt',
-        sortOrder: 'desc'
-      }
+        sortColumn: "modifiedAt",
+        sortOrder: "desc",
+      },
     });
     return response.data.items || [];
   }
@@ -113,52 +117,85 @@ export class OnShapeApiClient {
     return response.data;
   }
 
-  async getComprehensiveDocument(documentId: string, params: any): Promise<any> {
+  async getComprehensiveDocument(
+    documentId: string,
+    params: any
+  ): Promise<any> {
     const doc = await this.getDocument(documentId);
     const result: any = { ...doc };
-    
-    if (doc.defaultWorkspace?.id && params.includeElements === 'true') {
-      result.elements = await this.getElements(documentId, doc.defaultWorkspace.id);
-      
-      if (params.includeParts === 'true' || params.includeAssemblies === 'true') {
+
+    if (doc.defaultWorkspace?.id && params.includeElements === "true") {
+      result.elements = await this.getElements(
+        documentId,
+        doc.defaultWorkspace.id
+      );
+
+      if (
+        params.includeParts === "true" ||
+        params.includeAssemblies === "true"
+      ) {
         for (const element of result.elements) {
-          if (params.includeParts === 'true') {
-            element.parts = await this.getParts(documentId, doc.defaultWorkspace.id, element.id);
+          if (params.includeParts === "true") {
+            element.parts = await this.getParts(
+              documentId,
+              doc.defaultWorkspace.id,
+              element.id
+            );
           }
-          if (params.includeAssemblies === 'true') {
-            element.assemblies = await this.getAssemblies(documentId, doc.defaultWorkspace.id, element.id);
+          if (params.includeAssemblies === "true") {
+            element.assemblies = await this.getAssemblies(
+              documentId,
+              doc.defaultWorkspace.id,
+              element.id
+            );
           }
         }
       }
     }
-    
+
     return result;
   }
 
   async getParentInfo(documentId: string): Promise<any> {
-    const response = await this.axiosInstance.get(`/documents/${documentId}/parent`);
+    const response = await this.axiosInstance.get(
+      `/documents/${documentId}/parent`
+    );
     return response.data;
   }
 
-  async getElements(documentId: string, workspaceId: string): Promise<OnShapeDocumentElement[]> {
+  async getElements(
+    documentId: string,
+    workspaceId: string
+  ): Promise<OnShapeDocumentElement[]> {
     return this.getDocumentElements(documentId, workspaceId);
   }
 
-  async getDocumentElements(documentId: string, workspaceId: string): Promise<OnShapeDocumentElement[]> {
+  async getDocumentElements(
+    documentId: string,
+    workspaceId: string
+  ): Promise<OnShapeDocumentElement[]> {
     const response = await this.axiosInstance.get(
       `/documents/d/${documentId}/w/${workspaceId}/elements`
     );
     return response.data || [];
   }
 
-  async getParts(documentId: string, workspaceId: string, elementId: string): Promise<any[]> {
+  async getParts(
+    documentId: string,
+    workspaceId: string,
+    elementId: string
+  ): Promise<any[]> {
     const response = await this.axiosInstance.get(
       `/documents/d/${documentId}/w/${workspaceId}/e/${elementId}/parts`
     );
     return response.data || [];
   }
 
-  async getAssemblies(documentId: string, workspaceId: string, elementId: string): Promise<any[]> {
+  async getAssemblies(
+    documentId: string,
+    workspaceId: string,
+    elementId: string
+  ): Promise<any[]> {
     const response = await this.axiosInstance.get(
       `/documents/d/${documentId}/w/${workspaceId}/e/${elementId}/assemblies`
     );
@@ -166,9 +203,9 @@ export class OnShapeApiClient {
   }
 
   async getPartMassProperties(
-    documentId: string, 
-    workspaceId: string, 
-    elementId: string, 
+    documentId: string,
+    workspaceId: string,
+    elementId: string,
     partId: string
   ): Promise<any> {
     const response = await this.axiosInstance.get(
@@ -177,14 +214,17 @@ export class OnShapeApiClient {
     return response.data;
   }
 
-  async searchDocuments(query: string, limit: number = 20): Promise<OnShapeDocument[]> {
-    const response = await this.axiosInstance.get('/documents', {
+  async searchDocuments(
+    query: string,
+    limit: number = 20
+  ): Promise<OnShapeDocument[]> {
+    const response = await this.axiosInstance.get("/documents", {
       params: {
         q: query,
         limit,
-        sortColumn: 'modifiedAt',
-        sortOrder: 'desc'
-      }
+        sortColumn: "modifiedAt",
+        sortOrder: "desc",
+      },
     });
     return response.data.items || [];
   }
@@ -195,8 +235,8 @@ export class OnShapeApiClient {
   }
 
   async getElementMetadata(
-    documentId: string, 
-    workspaceId: string, 
+    documentId: string,
+    workspaceId: string,
     elementId: string
   ): Promise<any> {
     const response = await this.axiosInstance.get(
@@ -206,55 +246,70 @@ export class OnShapeApiClient {
   }
 
   async exportAll(options: any, ids?: string[]): Promise<any> {
-    const documents = ids ? 
-      await Promise.all(ids.map(id => this.getDocument(id))) :
-      await this.getDocuments(100, 0);
-      
+    // First get the list of documents or use provided IDs
+    let documentsToExport: OnShapeDocumentInfo[];
+
+    if (ids && ids.length > 0) {
+      // Fetch full document info for specific IDs
+      documentsToExport = await Promise.all(
+        ids.map((id) => this.getDocument(id))
+      );
+    } else {
+      // Get list of all documents, then fetch full info for each
+      const documentList = await this.getDocuments(100, 0);
+      documentsToExport = await Promise.all(
+        documentList.map((doc) => this.getDocument(doc.id))
+      );
+    }
+
     const result: any = {
       documents: [],
       exportInfo: {
-        totalDocuments: documents.length,
+        totalDocuments: documentsToExport.length,
         processedDocuments: 0,
-        exportDate: new Date().toISOString()
-      }
+        exportDate: new Date().toISOString(),
+      },
     };
-    
-    for (const doc of documents) {
+
+    for (const doc of documentsToExport) {
       const docData: any = { ...doc };
-      
-      if (options.includeElements === 'true' && doc.defaultWorkspace?.id) {
-        docData.elements = await this.getElements(doc.id, doc.defaultWorkspace.id);
+
+      if (options.includeElements === "true" && doc.defaultWorkspace?.id) {
+        docData.elements = await this.getElements(
+          doc.id,
+          doc.defaultWorkspace.id
+        );
       }
-      
+
       result.documents.push(docData);
       result.exportInfo.processedDocuments++;
     }
-    
+
     return result;
   }
 
   async exportStream(options: any, ids?: string[]): Promise<EventEmitter> {
     const emitter = new EventEmitter();
-    
+
     setTimeout(async () => {
       try {
         const data = await this.exportAll(options, ids);
-        emitter.emit('data', data);
-        emitter.emit('end');
+        emitter.emit("data", data);
+        emitter.emit("end");
       } catch (error) {
-        emitter.emit('error', error);
+        emitter.emit("error", error);
       }
     }, 0);
-    
+
     return emitter;
   }
 
   async fetchThumbnail(url: string): Promise<Buffer> {
     const response = await axios.get(url, {
       headers: {
-        'Authorization': `Bearer ${this.accessToken}`
+        Authorization: `Bearer ${this.accessToken}`,
       },
-      responseType: 'arraybuffer'
+      responseType: "arraybuffer",
     });
     return Buffer.from(response.data);
   }

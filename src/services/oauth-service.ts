@@ -1,6 +1,6 @@
-import axios from 'axios';
-import { v4 as uuidv4 } from 'uuid';
-import { oauthConfig } from '../config/oauth';
+import axios from "axios";
+import { v4 as uuidv4 } from "uuid";
+import { oauthConfig } from "../config/oauth.ts";
 
 export interface OAuthTokens {
   access_token: string;
@@ -37,55 +37,67 @@ export class OAuthService {
     this.stateStore.set(state, codeVerifier);
 
     const params = new URLSearchParams({
-      response_type: 'code',
+      response_type: "code",
       client_id: oauthConfig.clientId,
       redirect_uri: oauthConfig.redirectUri,
       scope: oauthConfig.scope,
       state: state,
       code_challenge: codeChallenge,
-      code_challenge_method: 'S256'
+      code_challenge_method: "S256",
     });
 
-    const authUrl = `${oauthConfig.oauthBaseUrl}/oauth/authorize?${params.toString()}`;
-    
+    const authUrl = `${
+      oauthConfig.oauthBaseUrl
+    }/oauth/authorize?${params.toString()}`;
+
     return { url: authUrl, state };
   }
 
   /**
    * Exchange authorization code for access token
    */
-  public async exchangeCodeForToken(code: string, state: string): Promise<OAuthTokens> {
+  public async exchangeCodeForToken(
+    code: string,
+    state: string
+  ): Promise<OAuthTokens> {
     const codeVerifier = this.stateStore.get(state);
     if (!codeVerifier) {
-      throw new Error('Invalid or expired state parameter');
+      throw new Error("Invalid or expired state parameter");
     }
 
     // Clean up state
     this.stateStore.delete(state);
 
     const tokenUrl = `${oauthConfig.oauthBaseUrl}/oauth/token`;
-    
+
     const params = new URLSearchParams({
-      grant_type: 'authorization_code',
+      grant_type: "authorization_code",
       client_id: oauthConfig.clientId,
       client_secret: oauthConfig.clientSecret,
       redirect_uri: oauthConfig.redirectUri,
       code: code,
-      code_verifier: codeVerifier
+      code_verifier: codeVerifier,
     });
 
     try {
       const response = await axios.post(tokenUrl, params, {
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept': 'application/json'
-        }
+          "Content-Type": "application/x-www-form-urlencoded",
+          Accept: "application/json",
+        },
       });
 
       return response.data as OAuthTokens;
     } catch (error: any) {
-      console.error('Token exchange error:', error.response?.data || error.message);
-      throw new Error(`Failed to exchange authorization code: ${error.response?.data?.error_description || error.message}`);
+      console.error(
+        "Token exchange error:",
+        error.response?.data || error.message
+      );
+      throw new Error(
+        `Failed to exchange authorization code: ${
+          error.response?.data?.error_description || error.message
+        }`
+      );
     }
   }
 
@@ -94,32 +106,40 @@ export class OAuthService {
    */
   public async refreshToken(refreshToken: string): Promise<OAuthTokens> {
     const tokenUrl = `${oauthConfig.oauthBaseUrl}/oauth/token`;
-    
+
     const params = new URLSearchParams({
-      grant_type: 'refresh_token',
+      grant_type: "refresh_token",
       client_id: oauthConfig.clientId,
       client_secret: oauthConfig.clientSecret,
-      refresh_token: refreshToken
+      refresh_token: refreshToken,
     });
 
     try {
       const response = await axios.post(tokenUrl, params, {
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept': 'application/json'
-        }
+          "Content-Type": "application/x-www-form-urlencoded",
+          Accept: "application/json",
+        },
       });
 
       return response.data as OAuthTokens;
     } catch (error: any) {
-      console.error('Token refresh error:', error.response?.data || error.message);
-      throw new Error(`Failed to refresh token: ${error.response?.data?.error_description || error.message}`);
+      console.error(
+        "Token refresh error:",
+        error.response?.data || error.message
+      );
+      throw new Error(
+        `Failed to refresh token: ${
+          error.response?.data?.error_description || error.message
+        }`
+      );
     }
   }
 
   private generateCodeVerifier(): string {
-    const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
-    let result = '';
+    const charset =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
+    let result = "";
     for (let i = 0; i < 128; i++) {
       result += charset.charAt(Math.floor(Math.random() * charset.length));
     }
@@ -127,8 +147,8 @@ export class OAuthService {
   }
 
   private generateCodeChallenge(verifier: string): string {
-    const crypto = require('crypto');
-    const hash = crypto.createHash('sha256').update(verifier).digest();
-    return hash.toString('base64url');
+    const crypto = require("crypto");
+    const hash = crypto.createHash("sha256").update(verifier).digest();
+    return hash.toString("base64url");
   }
 }
