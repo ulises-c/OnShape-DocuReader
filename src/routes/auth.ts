@@ -3,11 +3,16 @@ import type { Request, Response } from "express";
 import { OAuthService } from "../services/oauth-service.ts";
 
 const router = Router();
-const oauthService = new OAuthService();
+const oauthService = OAuthService.getInstance();
 
-router.get("/login", (req: Request, res: Response): void => {
-  const { url } = oauthService.generateAuthUrl();
-  res.redirect(url);
+router.get("/login", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { url } = await oauthService.generateAuthUrl();
+    res.redirect(url);
+  } catch (error) {
+    console.error("Auth URL generation error:", error);
+    res.status(500).send("Failed to generate authentication URL");
+  }
 });
 
 router.get(

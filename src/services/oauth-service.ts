@@ -28,10 +28,10 @@ export class OAuthService {
   /**
    * Generate OAuth authorization URL for OnShape
    */
-  public generateAuthUrl(): { url: string; state: string } {
+  public async generateAuthUrl(): Promise<{ url: string; state: string }> {
     const state = uuidv4();
     const codeVerifier = this.generateCodeVerifier();
-    const codeChallenge = this.generateCodeChallenge(codeVerifier);
+    const codeChallenge = await this.generateCodeChallenge(codeVerifier);
 
     // Store the code verifier with state for later use
     this.stateStore.set(state, codeVerifier);
@@ -146,9 +146,15 @@ export class OAuthService {
     return result;
   }
 
-  private generateCodeChallenge(verifier: string): string {
-    const crypto = require("crypto");
-    const hash = crypto.createHash("sha256").update(verifier).digest();
-    return hash.toString("base64url");
+  private async generateCodeChallenge(verifier: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(verifier);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashBase64 = btoa(String.fromCharCode.apply(null, hashArray));
+    return hashBase64
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
   }
 }
