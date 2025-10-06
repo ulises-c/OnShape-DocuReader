@@ -24,12 +24,13 @@ The numbering is just show that it's easier to keep track.
 # TODO Section
 
 1. Detailed API usage (keep track per session)
-2. Automatic redirect after signing in
-3. Update detailed view
+2. Fix BUG - Clicking child elements in detailed view does not navigate to that. Instead it navigates back home
+3. Automatic redirect after signing in
+4. Update detailed view
    1. The child documents (the other clickable tiles within a document), should also be updated to have a cleaner layout.
    2. Investigate why "Load Hierarchy Details" returns "No parent hierarchy available" even though there is a parent ID
    3. Go through documents and OnShape v12 API to understand document structure and other important things from the API
-4. Update what `get all`, `get selected` `get document` does
+5. Update what `get all`, `get selected` `get document` does
    1. To maintain consistency files should automatically be downloaded to a set folder
       1. `~/OnShape-DocuReader/database/`
    2. Change how the download structure
@@ -42,7 +43,7 @@ The numbering is just show that it's easier to keep track.
             1. Folder should have JSONs for each item downloaded, and their child element JSONs
             2. Thumbnails should also be downloaded within this folder (if selected)
    3. Implement image/thumbnail downloading
-5. Fix TODO in `public/js/controllers/document-controller.js`
+6. Fix TODO in `public/js/controllers/document-controller.js`
 
 # ✅ DONE
 

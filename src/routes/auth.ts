@@ -7,6 +7,9 @@ const oauthService = OAuthService.getInstance();
 
 router.get("/login", async (req: Request, res: Response): Promise<void> => {
   try {
+    const returnTo = (req.query.returnTo as string) || "/";
+    req.session.returnTo = returnTo;
+
     const { url } = await oauthService.generateAuthUrl();
     res.redirect(url);
   } catch (error) {
@@ -41,9 +44,13 @@ router.get(
 
       req.session.save((err) => {
         if (err) console.error("Session save error:", err);
-      });
 
-      return res.redirect("/dashboard");
+        // Redirect to the originally requested URL or default to dashboard
+        const returnTo = req.session.returnTo || "/dashboard";
+        delete req.session.returnTo;
+
+        res.redirect(returnTo);
+      });
     } catch (error) {
       console.error("OAuth callback error:", error);
       return res.status(500).send("Authentication failed");

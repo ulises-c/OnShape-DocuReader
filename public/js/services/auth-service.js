@@ -12,7 +12,10 @@ export class AuthService {
   }
 
   login() {
-    window.location.href = '/auth/login';
+    const currentPath = window.location.pathname;
+    window.location.href = `/auth/login?returnTo=${encodeURIComponent(
+      currentPath
+    )}`;
   }
 
   async logout() {

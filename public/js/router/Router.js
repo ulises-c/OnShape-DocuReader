@@ -8,7 +8,6 @@
  * - Notify subscribers on route changes
  *
  * Notes:
- * - Phase 1 only: infrastructure. No app-specific route configuration yet.
  * - Handlers receive (params, state, context) where context includes path and query.
  */
 

@@ -1,9 +1,10 @@
-import 'express-session';
+import "express-session";
 
-declare module 'express-session' {
+declare module "express-session" {
   interface SessionData {
     authenticated?: boolean;
     accessToken?: string;
     refreshToken?: string;
+    returnTo?: string;
   }
 }
