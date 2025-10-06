@@ -18,11 +18,6 @@ src/
 │ ├── oauth-service.ts # OAuth 2.0 flow management
 │ ├── onshape-api-client.ts # OnShape API wrapper
 │ └── session-storage.ts # File-based session persistence
-├── router/ # [DUPLICATE - Consider removing]
-│ ├── Router.js # Server-side router (unused?)
-│ └── routes.js # Route definitions (unused?)
-├── state/ # [DUPLICATE - Consider removing]
-│ └── HistoryState.js # Server-side state (unused?)
 └── index.ts # Application entry point
 
 ```
