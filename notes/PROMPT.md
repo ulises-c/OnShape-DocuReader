@@ -3,7 +3,7 @@ You are tasked with implementing a CSV exporter feature for the OnShape DocuRead
 Requirements:
 Directory Structure:
 
-Create a new directory public/js/exporter/ to hold the exporter logic.
+Use the directory public/js/utils/ to hold the exporter logic.
 Inside this directory, create two files:
 massExporter.js
 getCSV.js
