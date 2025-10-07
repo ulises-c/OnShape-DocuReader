@@ -24,7 +24,7 @@ The numbering is just show that it's easier to keep track.
 # TODO Section
 
 1. Detailed API usage (keep track per session)
-2. `document-detail-view.js` has become quite bloated and needs to get refactored
+2. `public/views/document-detail-view.js` has become quite bloated and needs to get refactored
 3. Fix BUG - Clicking child elements in detailed view does not navigate to that. Instead it navigates back home
 4. Upon login, the initial view gets stuck on ["Loading...", "Loading documents..."]
    1. To fix this the user has to logout, and login again

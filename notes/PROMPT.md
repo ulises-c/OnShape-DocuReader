@@ -1,86 +1,138 @@
-You’re fixing the **CSV/thumbnail export** flow in a browser-based OnShape client. Current issues:
+# Refactor Document Detail View
 
-- Filenames passed to `a.download` include folder paths (`exports/...`) that browsers ignore; only the **basename** is honored.
-- Many separate automatic downloads get **blocked** if not triggered by a **user gesture**.
-- The export action may be invoked **asynchronously** after a click, causing the browser to treat downloads as non-gesture and block them.
+## Objective
 
-## Objectives
+Refactor `public/js/views/document-detail-view.js` into a cleaner, more maintainable architecture following the View SPEC principles: views should focus on DOM rendering and event binding, with no API calls or complex business logic.
 
-1. **Minimal fix path (baseline)**
+## Current Problems
 
-- Ensure **basename-only** filenames for all downloads (CSV and PNG).
-- Make the export function run **directly in the click handler** (or synchronously chained promise from it) so it’s treated as a user gesture.
-- Log concise progress; handle empty/failed docs gracefully.
+The `DocumentDetailView` class is bloated (~400 lines) with multiple responsibilities:
 
-2. **Recommended path (primary) — Single ZIP**
+- Mixing rendering, event handling, business logic, and UI feedback
+- Inline event handlers for 8+ different button types
+- Direct toast notification implementation
+- Element JSON handling mixed with view logic
+- BOM download logic embedded in view
+- Multiple download utilities (JSON, CSV) duplicated
 
-- Add `exportAllDocumentsAsZip(apiClient, documentService)` that:
+## Refactoring Strategy
 
-  - Dynamically imports **JSZip** ESM from a CDN.
-  - Adds `docName_parts.csv` and `docName.png` (if available) into a folder per document inside the ZIP.
-  - Generates one Blob and triggers **one** download using a safe basename (e.g., `onshape-docs-export-YYYY-MM-DD-HH-MM-SS.zip`).
+Extract responsibilities into separate, focused modules while maintaining the inheritance from `BaseView` and following the established patterns in the codebase.
 
-- Keep `exportAllDocuments(...)` (multi-file) as a fallback, but prefer ZIP in UI.
+## New Files to Generate
 
-3. **Filtering**
+Create these new files with the following responsibilities:
 
-- Keep using the existing `getCSV(parts)` behavior to include only parts with **ASM/PRT** in the part number (case-insensitive, tolerant of dashes/underscores).
+### 1. `public/js/views/helpers/document-info-renderer.js`
 
-4. **UI wiring**
+**Purpose**: Pure rendering functions for document metadata sections
 
-- Bind the **“Export CSV [ASM/PRT]”** button so clicking it calls the export (prefer ZIP path) in the same task as the user gesture. The page already includes a button with id `exportCSVBtn`.
+- `renderDocumentInfo(docData)` - generates info HTML
+- `renderThumbnailSection(docData)` - generates thumbnail HTML
+- `renderTagsAndLabels(docData)` - generates tags/labels HTML
+- No event binding, no state, just pure HTML generation
+- Export individual renderer functions
 
-5. **Security/arch**
+### 2. `public/js/views/helpers/element-list-renderer.js`
 
-- Never embed tokens client-side; use the existing backend proxy/services.
-- Use defensive checks for missing workspaces/elements/parts/thumbnail refs.
+**Purpose**: Pure rendering for elements list
 
-## Implementation details
+- `renderElementsList(elements)` - generates elements HTML
+- `renderElementItem(element)` - single element HTML
+- `renderElementActions(element)` - action buttons for element type
+- No event binding, just HTML generation
 
-- **Filename safety utils**
+### 3. `public/js/views/actions/document-actions.js`
 
-  - `sanitizeFilename(name): string` → `[A-Za-z0-9_-]` only; replace others with `_`.
-  - `basename(name): string` → last path segment only (for safety).
+**Purpose**: Action handlers for document-level operations
 
-- **Download helpers**
+- `DocumentActions` class with methods:
+  - `handleGetDocument(docId)`
+  - `handleGetJson(docData)`
+  - `handleCopyJson(docData)`
+  - `handleLoadHierarchy(docId, controller)`
+  - `handleExportCsv(docData, elements)`
+- Each method is self-contained and returns success/failure
+- Uses controller and services passed in constructor
 
-  - `downloadFile(contentStr, filename, mime)` → Blob → `a.download = basename(filename)`.
-  - `downloadBlob(blob, filename)` → same basename rule.
+### 4. `public/js/views/actions/element-actions.js`
 
-- **Gesture safety**
+**Purpose**: Action handlers for element-level operations
 
-  - The click handler should call **exactly one** exported function (ZIP recommended) and await it; avoid setTimeout/queued events that break gesture context.
+- `ElementActions` class with methods:
+  - `handleCopyElementJson(element, controller)`
+  - `handleFetchBomJson(element, documentId, workspaceId, service)`
+  - `handleDownloadBomCsv(element, documentId, workspaceId, service)`
+- Handles both ASSEMBLY and PART specific actions
+- Self-contained, testable methods
 
-- **JSZip import**
+### 5. `public/js/utils/toast-notification.js`
 
-  - `const JSZip = (await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.esm.min.js')).default;`
+**Purpose**: Centralized toast notification system
 
-- **Thumbnails**
+- `showToast(message, duration = 2500)` function
+- `ensureToastContainer()` - lazy container creation
+- Handles all toast styling and animation
+- Can be used across all views (singleton pattern)
+- Simple, focused utility
 
-  - Fetch via your existing **thumbnail proxy** endpoint; add `docName.png` to the doc’s folder in the ZIP.
+### 6. `public/js/utils/file-download.js`
 
-## Acceptance criteria
+**Purpose**: Generic file download utilities
 
-- [ ] CSV exports only include parts with ASM/PRT in the part number.
-- [ ] **No folder paths** in `download` filenames; only basenames.
-- [ ] Single-ZIP export works and downloads **one** file reliably after button click.
-- [ ] Multi-file export (fallback) still works when explicitly chosen and initiated via the click.
-- [ ] No uncaught errors; progress logs are readable.
+- `downloadJson(data, filename)` - download JSON blob
+- `downloadCsv(csvString, filename)` - download CSV blob
+- `createDownloadLink(blob, filename)` - core download logic
+- Removes duplication across views
 
-## Test plan (manual)
+### 7. `public/js/views/document-detail-view.js` (REFACTORED)
 
-1. Click **Export CSV [ASM/PRT]**:
+**Purpose**: Slim orchestration layer
 
-   - Expect a single ZIP to download. Open ZIP: each document has `docName_parts.csv` (filtered) and optional `docName.png`.
+- Import all helpers, renderers, and actions
+- Coordinate rendering using helper functions
+- Delegate all button actions to action classes
+- Use event delegation for all element actions
+- Maintain state capture/restore
+- ~150 lines max (down from 400+)
 
-2. Temporarily switch to multi-file path:
+## Implementation Requirements
 
-   - Expect multiple downloads to appear; filenames have **no** folder segments.
+1. **Maintain existing functionality**: All current features must work identically
+2. **Follow BaseView pattern**: Keep inheritance, maintain `render()`, `captureState()`, `restoreState()`
+3. **Use event delegation**: Single listener per container for element actions
+4. **No API calls in views**: All API calls through controller or services
+5. **Pure functions where possible**: Renderers should be stateless
+6. **Consistent error handling**: Try/catch in actions, log errors, show user feedback
+7. **ES6 modules**: Proper imports/exports for all new files
+8. **Preserve styling**: Keep all inline styles and CSS classes intact
 
-3. Remove ASM/PRT parts in one doc:
+## Success Criteria
 
-   - CSV for that doc is omitted (or empty file not created).
+- `document-detail-view.js` reduced to ~150 lines
+- Each new module has single, clear responsibility
+- All existing features work without regression
+- Toast notifications can be reused in other views
+- Action handlers are testable in isolation
+- No duplicate code between files
+- Follows SPEC principles: views render, controllers orchestrate, services fetch
 
-4. Invoke export from console without a click:
+## Implementation Order
 
-   - Multi-file path may be blocked; ZIP path should still work if allowed, but default UI remains click-driven.
+1. Create utility modules first (toast, file-download)
+2. Create renderer helpers (no dependencies)
+3. Create action classes (depend on utils)
+4. Refactor main view to use all new modules
+5. Test each button/action to verify functionality
+
+## Notes
+
+- The `_elementsMap` pattern should remain in the main view for quick lookups
+- Thumbnail service setup should remain deferred in main view
+- State capture/restore stays in main view (per SPEC)
+- Keep all escapeHtml calls for security
+- Maintain all data attributes for action binding
+
+====
+
+Generate the 7 files listed above with complete, production-ready implementations. Ensure the refactored `document-detail-view.js` is significantly shorter and cleaner while maintaining all existing functionality.
