@@ -12,7 +12,14 @@ import { escapeHtml } from "../utils/dom-helpers.js";
 import { ROUTES, pathTo } from "../router/routes.js";
 
 export class DocumentController {
-  constructor(state, services, navigation, thumbnailService, router, historyState) {
+  constructor(
+    state,
+    services,
+    navigation,
+    thumbnailService,
+    router,
+    historyState
+  ) {
     this.state = state;
     this.documentService = services.documentService;
     this.navigation = navigation;
@@ -27,12 +34,16 @@ export class DocumentController {
     );
     this.elementView = new ElementDetailView("#elementInfo", this);
     this.partView = new PartDetailView();
+    // Whitelist of element types that are known to support the metadata endpoint
+    // Values match Onshape elementType strings (e.g. PARTSTUDIO, ASSEMBLY)
+    this._metadataWhitelist = new Set(["PARTSTUDIO", "ASSEMBLY", "BLOB"]);
   }
 
   navigateToDocument(documentId) {
     try {
       const listSnap =
-        (typeof this.listView?.captureState === "function" && this.listView.captureState()) ||
+        (typeof this.listView?.captureState === "function" &&
+          this.listView.captureState()) ||
         (this.historyState?.captureState?.("documentList") ?? null);
 
       if (this.router) {
@@ -41,7 +52,10 @@ export class DocumentController {
         return;
       }
     } catch (e) {
-      console.warn("navigateToDocument: failed to capture state for navigation", e);
+      console.warn(
+        "navigateToDocument: failed to capture state for navigation",
+        e
+      );
     }
     this.viewDocument(documentId);
   }
@@ -63,9 +77,19 @@ export class DocumentController {
 
     if (restoredState && typeof this.listView?.restoreState === "function") {
       if (typeof requestAnimationFrame === "function") {
-        requestAnimationFrame(() => this.listView.restoreState(restoredState.viewSnapshot || restoredState));
+        requestAnimationFrame(() =>
+          this.listView.restoreState(
+            restoredState.viewSnapshot || restoredState
+          )
+        );
       } else {
-        setTimeout(() => this.listView.restoreState(restoredState.viewSnapshot || restoredState), 0);
+        setTimeout(
+          () =>
+            this.listView.restoreState(
+              restoredState.viewSnapshot || restoredState
+            ),
+          0
+        );
       }
     }
   }
@@ -161,9 +185,13 @@ export class DocumentController {
             console.log("Element clicked:", elementId);
             if (this.router) {
               const snap =
-                (typeof this.detailView?.captureState === "function" && this.detailView.captureState()) ||
+                (typeof this.detailView?.captureState === "function" &&
+                  this.detailView.captureState()) ||
                 (this.historyState?.captureState?.("documentDetail") ?? null);
-              const path = pathTo(ROUTES.ELEMENT_DETAIL, { docId: doc.id, elementId });
+              const path = pathTo(ROUTES.ELEMENT_DETAIL, {
+                docId: doc.id,
+                elementId,
+              });
               this.router.navigate(path, snap);
             } else {
               this.viewElement(elementId);
@@ -221,7 +249,15 @@ export class DocumentController {
     try {
       const doc = this.state.getState().currentDocument;
       let enriched = { ...element };
-      if (doc?.defaultWorkspace?.id) {
+      // For certain element types (e.g. BILLOFMATERIALS) the Onshape metadata
+      // endpoint returns 400/404 because metadata isn't supported. Avoid calling
+      // the metadata endpoint for those types and copy the element as-is.
+      const elementType =
+        (element && (element.elementType || element.type)) || "";
+      const shouldFetchMetadata = this._metadataWhitelist.has(
+        String(elementType).toUpperCase()
+      );
+      if (doc?.defaultWorkspace?.id && shouldFetchMetadata) {
         try {
           const metadata = await this.documentService.getElementMetadata(
             doc.id,
@@ -232,6 +268,9 @@ export class DocumentController {
         } catch (e) {
           console.warn("Could not fetch metadata for element:", e);
         }
+      } else {
+        // Ensure metadata key exists for consistency
+        enriched.metadata = enriched.metadata || {};
       }
       await copyToClipboard(JSON.stringify(enriched, null, 2));
     } catch (e) {
@@ -265,6 +304,9 @@ export class DocumentController {
         return;
       }
 
+      const shouldFetchMetadataForView = this._metadataWhitelist.has(
+        String(currentElement.elementType || currentElement.type).toUpperCase()
+      );
       const [parts, assemblies, metadata] = await Promise.allSettled([
         this.documentService.getParts(
           doc.id,
@@ -276,11 +318,14 @@ export class DocumentController {
           doc.defaultWorkspace.id,
           elementId
         ),
-        this.documentService.getElementMetadata(
-          doc.id,
-          doc.defaultWorkspace.id,
-          elementId
-        ),
+        // Only fetch metadata when the element type is in the whitelist
+        shouldFetchMetadataForView
+          ? this.documentService.getElementMetadata(
+              doc.id,
+              doc.defaultWorkspace.id,
+              elementId
+            )
+          : Promise.resolve({}),
       ]);
 
       currentElement.parts = parts.status === "fulfilled" ? parts.value : [];
@@ -318,7 +363,9 @@ export class DocumentController {
     await this.viewElement(elementId);
 
     if (restoredState && typeof this.elementView?.restoreState === "function") {
-      this.elementView.restoreState(restoredState.viewSnapshot || restoredState);
+      this.elementView.restoreState(
+        restoredState.viewSnapshot || restoredState
+      );
     }
   }
 
@@ -358,9 +405,14 @@ export class DocumentController {
 
       if (this.router) {
         const snap =
-          (typeof this.elementView?.captureState === "function" && this.elementView.captureState()) ||
+          (typeof this.elementView?.captureState === "function" &&
+            this.elementView.captureState()) ||
           (this.historyState?.captureState?.("elementDetail") ?? null);
-        const path = pathTo(ROUTES.PART_DETAIL, { docId: doc.id, elementId: el.id, partId });
+        const path = pathTo(ROUTES.PART_DETAIL, {
+          docId: doc.id,
+          elementId: el.id,
+          partId,
+        });
         this.router.navigate(path, snap);
       } else {
         this.navigation.navigateTo("partDetail");

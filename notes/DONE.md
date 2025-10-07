@@ -62,6 +62,12 @@ The numbering is just show that it's easier to keep track.
    2. Continue with the creation of SPEC files in directories.
       1. What is a `SPEC.md` file? Serves as a summary for cheap context instead of feeding entire files.
    3. Fix broken import paths in `public/js/app.js` that prevented router initialization and broke login functionality
+7. CSV/thumbnail export with ZIP functionality
+   1. Implement ZIP-based export for ASM/PRT filtered CSVs and thumbnails
+   2. Add utility functions for safe filename handling (basename, sanitizeFilename)
+   3. Update massCSVExporter.js with both ZIP and multi-file export modes
+   4. Ensure export runs synchronously in click handler (gesture-safe)
+   5. Fix folder path issues in download filenames (basename-only)
 
 ---
 

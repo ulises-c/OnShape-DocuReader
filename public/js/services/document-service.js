@@ -36,7 +36,26 @@ export class DocumentService {
   }
 
   async getPartMassProperties(documentId, workspaceId, elementId, partId) {
-    return this.api.getPartMassProperties(documentId, workspaceId, elementId, partId);
+    return this.api.getPartMassProperties(
+      documentId,
+      workspaceId,
+      elementId,
+      partId
+    );
+  }
+
+  async getBillOfMaterials(documentId, workspaceId, elementId, flatten = true) {
+    const params = {
+      indented: String(!flatten), // false for flattened, true for structured
+      generateIfAbsent: "false",
+    };
+
+    return this.api.getBillOfMaterials(
+      documentId,
+      workspaceId,
+      elementId,
+      params
+    );
   }
 
   async getComprehensiveDocument(documentId, params) {

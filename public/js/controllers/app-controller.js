@@ -4,11 +4,14 @@
 
 import { qs } from '../utils/dom-helpers.js';
 import { ROUTES } from '../router/routes.js';
+import { exportAllDocumentsAsZip } from '../utils/massCSVExporter.js';
 
 export class AppController {
   constructor(state, services, navigation, controllers) {
     this.state = state;
     this.authService = services.authService;
+    this.documentService = services.documentService;
+    this.apiClient = services.apiClient || services.documentService.api;
     this.documentController = controllers.documentController;
     this.exportController = controllers.exportController;
     this.navigation = navigation;
@@ -135,6 +138,49 @@ export class AppController {
     });
 
     qs('#getDocumentBtn')?.addEventListener('click', () => this.documentController.getComprehensiveDocument());
+
+    qs('#exportCSVBtn')?.addEventListener('click', async () => {
+      console.log('Export ASM/PRT CSVs button clicked');
+      const btn = qs('#exportCSVBtn');
+      const originalText = btn?.textContent;
+      
+      if (btn) {
+        btn.textContent = '⏳ Exporting...';
+        btn.disabled = true;
+      }
+
+      try {
+        await exportAllDocumentsAsZip(this.apiClient, this.documentService);
+        
+        const successDiv = document.createElement('div');
+        successDiv.className = 'success-message';
+        successDiv.textContent = '✅ ZIP export completed successfully!';
+        successDiv.style.cssText = `
+          background-color:#d4edda;border:1px solid #c3e6cb;color:#155724;
+          padding:12px 20px;border-radius:5px;margin:10px 0;position:fixed;top:20px;right:20px;z-index:1000;
+          box-shadow:0 2px 10px rgba(0,0,0,0.1);animation:slideIn 0.3s ease-out;
+        `;
+        document.body.appendChild(successDiv);
+        setTimeout(() => successDiv.remove(), 4000);
+      } catch (err) {
+        console.error('CSV export failed:', err);
+        const errDiv = document.createElement('div');
+        errDiv.className = 'error-message';
+        errDiv.textContent = `❌ Export failed: ${err.message}`;
+        errDiv.style.cssText = `
+          background-color:#f8d7da;border:1px solid #f5c6cb;color:#721c24;
+          padding:12px 20px;border-radius:5px;margin:10px 0;position:fixed;top:20px;right:20px;z-index:1000;
+          box-shadow:0 2px 10px rgba(0,0,0,0.1);
+        `;
+        document.body.appendChild(errDiv);
+        setTimeout(() => errDiv.remove(), 4000);
+      } finally {
+        if (btn) {
+          btn.textContent = originalText || '📊 Export ASM/PRT CSVs';
+          btn.disabled = false;
+        }
+      }
+    });
 
     this.bound = true;
   }

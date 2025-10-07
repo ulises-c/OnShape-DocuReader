@@ -72,6 +72,51 @@ _ACTUAL WORK HISTORY STARTS IN THE NEXT SECTION_
 
 ---
 
+## CSV/thumbnail export with ZIP functionality [not committed]
+
+**Implemented ZIP-based export for ASM/PRT filtered CSVs and thumbnails, addressing browser download blocking issues and filename path handling. Added utility functions for safe filename handling and JSZip integration.**
+
+2025-10-06 16:46:28
+
+1. Implemented ZIP-based export functionality
+   - Added `exportAllDocumentsAsZip()` in `public/js/utils/massCSVExporter.js`
+   - Dynamically imports JSZip v3.10.1 from CDN
+   - Creates organized folder structure per document inside ZIP
+   - Includes filtered CSVs (ASM/PRT only) and thumbnails per document
+   - Single download operation prevents browser blocking
+
+2. Enhanced filename safety
+   - Added `basename()` function to extract only filename from paths
+   - Updated `sanitizeFilename()` to limit length to 200 chars
+   - All download operations now use basename-only filenames
+   - Fixed folder path issues in download attributes
+
+3. Improved download utilities
+   - Added `downloadBlob()` for Blob-based downloads
+   - Updated `downloadFile()` to use safe filenames
+   - Created `fetchThumbnailBlob()` for thumbnail retrieval
+   - All downloads respect basename convention
+
+4. Updated controller integration
+   - Modified `public/js/controllers/app-controller.js` to use ZIP export
+   - Export runs synchronously in click handler (gesture-safe)
+   - Added success/error notifications with styled messages
+   - Improved user feedback during export process
+
+5. Maintained backward compatibility
+   - Kept original `exportAllDocuments()` as fallback
+   - Both export methods support same filtering (ASM/PRT pattern)
+   - Consistent error handling across both approaches
+   - Comprehensive logging for debugging
+
+6. CSV filtering preservation
+   - Maintained ASM/PRT pattern matching from `getCSV.js`
+   - Supports various formats: ASM-XXXXXX, PRT-XXXXXX
+   - Case-insensitive matching with dash/underscore tolerance
+   - Empty CSV handling (omit documents with no matches)
+
+# Work History
+
 ## Fixed TypeScript compilation errors [not committed]
 
 **Resolved all 34 TypeScript compilation errors by adding session type definitions, fixing import paths, correcting export names, adding missing return statements, and implementing missing OnShapeApiClient methods.**
@@ -109,8 +154,6 @@ _ACTUAL WORK HISTORY STARTS IN THE NEXT SECTION_
    - Added proper return types to all async route handlers
    - Fixed optional parameter handling in OnShapeApiClient
    - Ensured all code paths return appropriate values
-
-# Work History
 
 ## Fixed CSP and MIME type errors in Express server [99e5fab]
 

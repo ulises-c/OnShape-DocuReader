@@ -140,6 +140,32 @@ router.get(
 );
 
 router.get(
+  "/documents/:id/workspaces/:wid/elements/:eid/bom",
+  async (req: Request, res: Response): Promise<Response> => {
+    try {
+      const client = new OnShapeApiClient(req.session.accessToken!);
+      const bom = await client.getBillOfMaterials(
+        req.params.id,
+        req.params.wid,
+        req.params.eid,
+        req.query // Forward query params for BOM options
+      );
+      return res.json(bom);
+    } catch (error: any) {
+      console.error("Get BOM error:", error);
+      // If Onshape returns 404/400 for BOM, surface a clear message so the frontend
+      // can fallback to extracting a BILLOFMATERIALS element in the document.
+      const status = error.response?.status || 500;
+      return res.status(502).json({
+        error: "Failed to fetch BOM from Onshape",
+        status,
+        details: error.response?.data || null,
+      });
+    }
+  }
+);
+
+router.get(
   "/documents/:id/workspaces/:wid/elements/:eid/metadata",
   async (req: Request, res: Response): Promise<Response> => {
     try {
@@ -150,7 +176,14 @@ router.get(
         req.params.eid
       );
       return res.json(metadata);
-    } catch (error) {
+    } catch (error: any) {
+      // If Onshape reports 404 for element metadata, return empty metadata
+      if (error.response?.status === 404) {
+        console.info(
+          `Element metadata not found for document=${req.params.id} workspace=${req.params.wid} element=${req.params.eid}`
+        );
+        return res.json({});
+      }
       console.error("Get element metadata error:", error);
       return res
         .status(500)

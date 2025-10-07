@@ -41,6 +41,7 @@ const services = {
   documentService: new DocumentService(apiClient),
   exportService: new ExportService(apiClient),
   thumbnailService: new ThumbnailService(),
+  apiClient: apiClient,
 };
 
 // Views

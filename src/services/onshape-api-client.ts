@@ -185,10 +185,22 @@ export class OnShapeApiClient {
     workspaceId: string,
     elementId: string
   ): Promise<any[]> {
-    const response = await this.axiosInstance.get(
-      `/documents/d/${documentId}/w/${workspaceId}/e/${elementId}/parts`
-    );
-    return response.data || [];
+    try {
+      const response = await this.axiosInstance.get(
+        `/documents/d/${documentId}/w/${workspaceId}/e/${elementId}/parts`
+      );
+      return response.data || [];
+    } catch (error: any) {
+      // If Onshape returns 404 for parts (element not a PartStudio or parts not accessible),
+      // treat it as "no parts" instead of bubbling an error to the frontend.
+      if (error.response?.status === 404) {
+        console.info(
+          `OnShape getParts returned 404 for document=${documentId} workspace=${workspaceId} element=${elementId}`
+        );
+        return [];
+      }
+      throw error;
+    }
   }
 
   async getAssemblies(
@@ -196,10 +208,53 @@ export class OnShapeApiClient {
     workspaceId: string,
     elementId: string
   ): Promise<any[]> {
-    const response = await this.axiosInstance.get(
-      `/documents/d/${documentId}/w/${workspaceId}/e/${elementId}/assemblies`
-    );
-    return response.data || [];
+    try {
+      const response = await this.axiosInstance.get(
+        `/documents/d/${documentId}/w/${workspaceId}/e/${elementId}/assemblies`
+      );
+      return response.data || [];
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        console.info(
+          `OnShape getAssemblies returned 404 for document=${documentId} workspace=${workspaceId} element=${elementId}`
+        );
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get Bill of Materials for an assembly element.
+   * Uses the Assemblies BOM endpoint in the Onshape API v12.
+   */
+  async getBillOfMaterials(
+    documentId: string,
+    workspaceId: string,
+    elementId: string,
+    params?: Record<string, any>
+  ): Promise<any> {
+    try {
+      // Primary BOM endpoint for assemblies, now supports query params
+      const response = await this.axiosInstance.get(
+        `/assemblies/d/${documentId}/w/${workspaceId}/e/${elementId}/bom`,
+        params ? { params } : undefined
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Get BOM error:",
+        error.response
+          ? {
+              status: error.response.status,
+              data: error.response.data,
+              url: error.config?.url,
+            }
+          : error
+      );
+      // Let caller handle fallback behavior; surface Onshape error for visibility
+      throw error;
+    }
   }
 
   async getPartMassProperties(
@@ -239,10 +294,23 @@ export class OnShapeApiClient {
     workspaceId: string,
     elementId: string
   ): Promise<any> {
-    const response = await this.axiosInstance.get(
-      `/metadata/d/${documentId}/w/${workspaceId}/e/${elementId}`
-    );
-    return response.data;
+    try {
+      const response = await this.axiosInstance.get(
+        `/metadata/d/${documentId}/w/${workspaceId}/e/${elementId}`
+      );
+      return response.data;
+    } catch (error: any) {
+      // Onshape may return 404 (not found) or 400 (invalid request) for
+      // element types that don't support metadata (for example BILLOFMATERIALS).
+      // Treat these as "no metadata available" and return an empty object.
+      if (error.response?.status === 404 || error.response?.status === 400) {
+        console.info(
+          `OnShape getElementMetadata returned 404 for document=${documentId} workspace=${workspaceId} element=${elementId}`
+        );
+        return {};
+      }
+      throw error;
+    }
   }
 
   async exportAll(options: any, ids?: string[]): Promise<any> {

@@ -54,6 +54,17 @@ export class ApiClient {
     return res.json();
   }
 
+  async getBillOfMaterials(documentId, workspaceId, elementId, params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    const url = `/api/documents/${documentId}/workspaces/${workspaceId}/elements/${elementId}/bom${
+      queryString ? `?${queryString}` : ""
+    }`;
+
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Get BOM failed (${res.status})`);
+    return res.json();
+  }
+
   async getElementMetadata(documentId, workspaceId, elementId) {
     const res = await fetch(
       `/api/documents/${documentId}/workspaces/${workspaceId}/elements/${elementId}/metadata`
