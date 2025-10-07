@@ -14,7 +14,13 @@ public/js/views/
 ├── element-detail-view.js    # Element details with parts/assemblies/metadata tabs
 ├── part-detail-view.js       # Part details and mass properties
 ├── modal-manager.js          # Export and progress modal control
-└── navigation.js             # Page transition management
+├── navigation.js             # Page transition management
+├── actions/                  # Action handler modules
+│   ├── document-actions.js   # Document-level operations
+│   └── element-actions.js    # Element-level operations
+└── helpers/                  # Pure rendering functions
+    ├── document-info-renderer.js  # Document metadata rendering
+    └── element-list-renderer.js   # Element list rendering
 ```
 
 ## Core Responsibilities
@@ -48,21 +54,86 @@ public/js/views/
 - Search query state preservation
 - Scroll position restoration
 
-### DocumentDetailView
-**Document Details and Element Browser**
-- Display document metadata, tags, labels
+### DocumentDetailView (Refactored)
+**Document Details and Element Browser - Slim Orchestration Layer**
+- Display document metadata using helper renderers
 - Render document thumbnail with proxy fallback
 - List clickable element tiles (parts, assemblies, etc.)
-- Raw JSON display with copy-to-clipboard
-- Hierarchy loading and display
-- Element JSON copy functionality
+- Coordinate action handlers for all button interactions
+- Element JSON copy functionality via action handlers
+
+**Architecture:**
+- ~150 lines (down from 400+)
+- Uses helper modules for pure rendering
+- Delegates all actions to action handler classes
+- Maintains state capture/restore
+- Single event delegation listener for element actions
 
 **Key Features:**
-- Thumbnail loading via ThumbnailService
+- Thumbnail loading via ThumbnailService (deferred setup)
 - Formatted dates with user attribution
-- Collapsible JSON viewer
 - Element click → Navigate to element detail
-- Hierarchy expansion on-demand
+- Action delegation pattern for all operations
+- Maintains `_elementsMap` for quick element lookups
+
+**Integration Points:**
+- `helpers/document-info-renderer.js` - Pure HTML generation
+- `helpers/element-list-renderer.js` - Element list HTML
+- `actions/document-actions.js` - Document-level operations
+- `actions/element-actions.js` - Element-level operations
+
+### Action Handlers
+
+#### DocumentActions
+**Document-level operation handlers**
+- `handleGetDocument(docId)` - Single document comprehensive export
+- `handleGetJson(docData)` - Download document as JSON
+- `handleCopyJson(docData)` - Copy document JSON to clipboard
+- `handleLoadHierarchy(docId, controller)` - Load parent hierarchy
+- `handleExportCsv(docData, elements)` - Export filtered CSV (legacy)
+
+**Responsibilities:**
+- Self-contained action logic
+- Uses controller and services passed in constructor
+- Returns success/failure for feedback
+- Handles all document-level button actions
+
+#### ElementActions
+**Element-level operation handlers**
+- `handleCopyElementJson(element, controller)` - Copy element JSON with metadata
+- `handleFetchBomJson(element, documentId, workspaceId, service)` - Fetch BOM JSON
+- `handleDownloadBomCsv(element, documentId, workspaceId, service)` - Download BOM CSV
+
+**Responsibilities:**
+- Handles ASSEMBLY-specific actions (BOM)
+- Handles PART-specific actions (mass properties)
+- Self-contained, testable methods
+- Uses services for API calls
+
+### Rendering Helpers
+
+#### document-info-renderer.js
+**Pure rendering functions for document metadata**
+- `renderDocumentInfo(docData)` - Generates info section HTML
+- `renderThumbnailSection(docData)` - Generates thumbnail HTML with placeholder
+- `renderTagsAndLabels(docData)` - Generates tags/labels HTML with badges
+
+**Characteristics:**
+- No state, no side effects
+- Pure HTML string generation
+- Uses `escapeHtml()` for all dynamic content
+- Exported as individual functions
+
+#### element-list-renderer.js
+**Pure rendering for elements list**
+- `renderElementsList(elements)` - Generates full elements list HTML
+- `renderElementItem(element)` - Single element tile HTML
+- `renderElementActions(element)` - Action buttons based on element type
+
+**Characteristics:**
+- No event binding, just HTML generation
+- Type-specific action buttons (BOM for assemblies)
+- Exports individual renderer functions
 
 ### ElementDetailView
 **Element Details with Tabbed Content**
@@ -131,6 +202,27 @@ BaseView (abstract)
 - Consistent lifecycle hooks across views
 - Reduced code duplication
 
+### Refactored DocumentDetailView Architecture
+```
+DocumentDetailView (orchestrator)
+    ├── Helpers (pure rendering)
+    │   ├── document-info-renderer.js
+    │   └── element-list-renderer.js
+    ├── Actions (business logic)
+    │   ├── DocumentActions
+    │   └── ElementActions
+    └── Utilities (shared)
+        ├── toast-notification.js
+        └── file-download.js
+```
+
+**Benefits:**
+- Single responsibility principle
+- Testable action handlers
+- Reusable rendering functions
+- Clean separation of concerns
+- ~150 line main view (down from 400+)
+
 ### MVC Separation
 ```
 Controller → View → DOM
@@ -155,6 +247,14 @@ _delegate('.document-card', 'click', (e, row) => {
   const id = row.getAttribute('data-id');
   this.controller.navigateToDocument(id);
 });
+
+// DocumentDetailView: Single listener for all element actions
+elementsContainer.addEventListener('click', async (e) => {
+  const copyBtn = e.target.closest('.copy-element-json-btn');
+  if (copyBtn) {
+    await this.elementActions.handleCopyElementJson(element, this.controller);
+  }
+});
 ```
 
 **Benefits:**
@@ -175,6 +275,7 @@ captureState() {
 
 restoreState(state) {
   // Restore inputs/selections first
+  // Restore view-specific state
   // Restore scroll via requestAnimationFrame
 }
 ```
@@ -247,6 +348,22 @@ this.renderHtml(html);
 | `setCurrentTask(text)` | `string` | `void` | Update current task text |
 | `appendLog(message)` | `string` | `void` | Add log entry |
 
+### DocumentActions API
+| Method | Parameters | Returns | Purpose |
+|--------|-----------|---------|---------|
+| `handleGetDocument(docId)` | `string` | `Promise<void>` | Single doc export |
+| `handleGetJson(docData)` | `Document` | `void` | Download doc JSON |
+| `handleCopyJson(docData)` | `Document` | `Promise<boolean>` | Copy JSON to clipboard |
+| `handleLoadHierarchy(docId, controller)` | `string, Controller` | `Promise<void>` | Load hierarchy |
+| `handleExportCsv(docData, elements)` | `Document, Element[]` | `void` | Export CSV (legacy) |
+
+### ElementActions API
+| Method | Parameters | Returns | Purpose |
+|--------|-----------|---------|---------|
+| `handleCopyElementJson(element, controller)` | `Element, Controller` | `Promise<boolean>` | Copy element JSON |
+| `handleFetchBomJson(element, docId, wid, service)` | `Element, string, string, Service` | `Promise<void>` | Fetch BOM JSON |
+| `handleDownloadBomCsv(element, docId, wid, service)` | `Element, string, string, Service` | `Promise<void>` | Download BOM CSV |
+
 ## Event Flow
 
 ### Document List Interaction
@@ -288,6 +405,23 @@ controller.viewElement(elementId)
 Load element data from service
     ↓
 ElementDetailView.render(element)
+```
+
+### Refactored Action Flow (DocumentDetailView)
+```
+User clicks action button
+    ↓
+Event delegation in main view
+    ↓
+Identify button type (copy, BOM, etc.)
+    ↓
+Delegate to appropriate action handler
+    ↓
+Action handler executes (uses services)
+    ↓
+Return success/failure
+    ↓
+View provides feedback (flash button, toast)
 ```
 
 ## State Capture/Restore Flow
@@ -383,6 +517,13 @@ requestAnimationFrame(() => {
 - Use `innerHTML` for bulk rendering (fewer reflows)
 - Avoid layout thrashing in loops
 
+### Refactored View Benefits
+- Smaller main view class (~150 lines)
+- No duplicate utilities (centralized)
+- Action handlers can be tested in isolation
+- Pure rendering functions have no side effects
+- Better code organization for maintenance
+
 ## Integration Examples
 
 ### Controller Using View
@@ -401,6 +542,22 @@ class DocumentController {
     this.updateExportButtonState(ids);
   }
 }
+```
+
+### Refactored DocumentDetailView Usage
+```javascript
+// In controller
+const detailView = new DocumentDetailView(
+  '#documentDetail',
+  controller,
+  thumbnailService
+);
+
+// Render uses helpers internally
+detailView.render(documentData, elements);
+
+// Actions are handled by dedicated classes
+// No inline event handlers in view
 ```
 
 ### View Capturing State
@@ -441,13 +598,22 @@ modalManager.showExport();
 - [ ] Expand/collapse animations for element details
 - [ ] Search highlighting in document list view
 - [ ] Column sorting for document table
+- [ ] Action handler composition for complex workflows
+- [ ] Renderer function caching for repeated renders
 
 ## Dependencies
 
+### Core Dependencies
 - **dom-helpers.js**: Query selectors, event delegation, HTML escaping
 - **format-helpers.js**: Date formatting with user attribution
 - **clipboard.js**: Copy-to-clipboard functionality
-- **download.js**: JSON file download helpers (ModalManager)
+- **download.js**: JSON file download helpers
+- **toast-notification.js**: User feedback notifications (refactored out)
+- **file-download.js**: Generic file download utilities (refactored out)
+
+### View-Specific Dependencies
+- **DocumentDetailView**: helpers/document-info-renderer.js, helpers/element-list-renderer.js, actions/*
+- **ModalManager**: download.js (for export)
 
 ## Related Components
 
@@ -455,6 +621,7 @@ modalManager.showExport();
 - `public/js/services/thumbnail-service.js` - Thumbnail loading in DocumentDetailView
 - `public/js/state/app-state.js` - Global state updates from view events
 - `public/js/router/*` - Navigation integration with state capture/restore
+- `public/js/utils/*` - Shared utilities (clipboard, download, toast, DOM helpers)
 - `public/index.html` - View container elements and page structure
 - `public/styles.css` - View styling and layout
 
@@ -464,6 +631,7 @@ modalManager.showExport();
 ```javascript
 // Good: Inject dependencies (controller, services)
 const listView = new DocumentListView('#container', controller);
+const detailView = new DocumentDetailView('#detail', controller, thumbnailService);
 
 // Bad: Hardcode dependencies in view
 class DocumentListView {
@@ -519,4 +687,41 @@ const html = `<div>${escapeHtml(userInput)}</div>`;
 
 // Bad: Unescaped user input (XSS risk)
 const html = `<div>${userInput}</div>`;
+```
+
+### Action Handler Pattern (Refactored)
+```javascript
+// Good: Separate action handlers
+class DocumentActions {
+  async handleGetDocument(docId) {
+    try {
+      // Action logic
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  }
+}
+
+// Bad: Inline handlers in view
+render() {
+  button.onclick = async () => {
+    // Complex logic here
+  };
+}
+```
+
+### Pure Rendering Functions (Refactored)
+```javascript
+// Good: Pure function, no side effects
+export function renderDocumentInfo(docData) {
+  return `<div>${escapeHtml(docData.name)}</div>`;
+}
+
+// Bad: Renderer with side effects
+function renderDocumentInfo(docData) {
+  updateGlobalState(docData);
+  return `<div>${docData.name}</div>`;
+}
 ```
