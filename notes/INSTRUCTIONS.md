@@ -60,7 +60,6 @@ When you need additional context:
 - Technical details: See `ARCHITECTURE.md`
 - API information: See `ONSHAPE_API.md`
 - Usage examples: See `examples/`
-- Maintenance tasks: See `MAINTENANCE.md`
 
 ## Final Reminders
 
