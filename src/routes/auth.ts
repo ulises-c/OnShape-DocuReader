@@ -42,15 +42,26 @@ router.get(
       req.session.refreshToken = tokens.refresh_token;
       req.session.authenticated = true;
 
-      req.session.save((err) => {
-        if (err) console.error("Session save error:", err);
-
-        // Redirect to the originally requested URL or default to dashboard
-        const returnTo = req.session.returnTo || "/dashboard";
-        delete req.session.returnTo;
-
-        res.redirect(returnTo);
+      // Use promisified session save to ensure persistence before redirect
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) {
+            console.error("Session save error:", err);
+            reject(err);
+          } else {
+            console.log("Session saved successfully, ID:", req.sessionID);
+            resolve();
+          }
+        });
       });
+
+      // Give the file system a moment to flush
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const returnTo = req.session.returnTo || "/dashboard";
+      delete req.session.returnTo;
+
+      res.redirect(returnTo);
     } catch (error) {
       console.error("OAuth callback error:", error);
       return res.status(500).send("Authentication failed");
@@ -60,6 +71,7 @@ router.get(
 
 router.get("/status", (req: Request, res: Response): Response => {
   const authenticated = !!req.session?.authenticated;
+  console.log("Auth status check:", { authenticated, sessionID: req.sessionID });
   return res.json({ authenticated });
 });
 

@@ -6,6 +6,10 @@ The numbering is just show that it's easier to keep track.
 
 # ✅ DONE
 
+1. Upon login, the initial view gets stuck on ["Loading...", "Loading documents..."]
+   1. Fixed TypeScript compilation error where `SessionStorage.load()` visibility conflicted with `Store` base class
+   2. Session persistence already properly awaited in OAuth callback with file write delay before redirect
+
 1. Fix CSP and MIME type errors in Express server
    1. Configure Express static middleware to set correct MIME type (`application/javascript`) for all `.js` files
    2. Update Content-Security-Policy headers to allow inline scripts using hash-based approach
@@ -68,6 +72,7 @@ The numbering is just show that it's easier to keep track.
    3. Update massCSVExporter.js with both ZIP and multi-file export modes
    4. Ensure export runs synchronously in click handler (gesture-safe)
    5. Fix folder path issues in download filenames (basename-only)
+8. `public/views/document-detail-view.js` has become quite bloated and needs to get refactored
 
 ---
 

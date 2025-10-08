@@ -10,6 +10,7 @@ import { fileURLToPath } from "url";
 import authRoutes from "./routes/auth.ts";
 import apiRoutes from "./routes/api.ts";
 import { oauthConfig } from "./config/oauth.ts";
+import { SessionStorage } from "./services/session-storage.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,8 +53,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+const sessionStore = SessionStorage.getInstance();
+
 app.use(
   session({
+    store: sessionStore,
     secret:
       process.env.SESSION_SECRET || "your-secret-key-change-in-production",
     resave: false,
@@ -65,6 +69,11 @@ app.use(
     },
   })
 );
+
+// Cleanup expired sessions periodically (every hour)
+setInterval(() => {
+  sessionStore.cleanup();
+}, 60 * 60 * 1000);
 
 app.use(
   express.static(path.join(__dirname, "../public"), {

@@ -1,14 +1,18 @@
 import fs from 'fs';
 import path from 'path';
+import { Store } from 'express-session';
 
-export class SessionStorage {
+export class SessionStorage extends Store {
   private static instance: SessionStorage;
   private sessionsFilePath: string;
+  private sessions: Record<string, any>;
 
   private constructor() {
+    super();
     // Store sessions in a .sessions file in the project root
     this.sessionsFilePath = path.join(process.cwd(), '.sessions.json');
-    this.ensureSessionsFile();
+    this.sessions = {};
+    this.load();
   }
 
   public static getInstance(): SessionStorage {
@@ -18,77 +22,115 @@ export class SessionStorage {
     return SessionStorage.instance;
   }
 
-  private ensureSessionsFile(): void {
-    if (!fs.existsSync(this.sessionsFilePath)) {
-      fs.writeFileSync(this.sessionsFilePath, JSON.stringify({}));
-    }
-  }
-
-  private readSessions(): Record<string, any> {
+  public load(): void {
     try {
-      const data = fs.readFileSync(this.sessionsFilePath, 'utf8');
-      return JSON.parse(data);
+      if (fs.existsSync(this.sessionsFilePath)) {
+        const data = fs.readFileSync(this.sessionsFilePath, 'utf8');
+        this.sessions = JSON.parse(data);
+      } else {
+        this.sessions = {};
+        this.persist();
+      }
     } catch (error) {
-      console.error('Error reading sessions file:', error);
-      return {};
+      console.error('Error loading sessions file:', error);
+      this.sessions = {};
     }
   }
 
-  private writeSessions(sessions: Record<string, any>): void {
+  private persist(): void {
     try {
-      fs.writeFileSync(this.sessionsFilePath, JSON.stringify(sessions, null, 2));
+      fs.writeFileSync(this.sessionsFilePath, JSON.stringify(this.sessions, null, 2), { encoding: 'utf8', flag: 'w' });
     } catch (error) {
       console.error('Error writing sessions file:', error);
     }
   }
 
-  public set(sessionId: string, tokens: any): void {
-    const sessions = this.readSessions();
-    sessions[sessionId] = {
-      ...tokens,
-      createdAt: new Date().toISOString(),
-    };
-    this.writeSessions(sessions);
+  // Express-session Store interface methods
+  public get(sid: string, callback: (err: any, session?: any) => void): void {
+    try {
+      const session = this.sessions[sid];
+      callback(null, session || null);
+    } catch (error) {
+      callback(error);
+    }
   }
 
-  public get(sessionId: string): any {
-    const sessions = this.readSessions();
-    return sessions[sessionId];
+  public set(sid: string, session: any, callback?: (err?: any) => void): void {
+    try {
+      this.sessions[sid] = {
+        ...session,
+        lastAccess: new Date().toISOString(),
+      };
+      this.persist();
+      if (callback) callback(null);
+    } catch (error) {
+      if (callback) callback(error);
+    }
   }
 
-  public has(sessionId: string): boolean {
-    const sessions = this.readSessions();
-    return sessionId in sessions;
+  public destroy(sid: string, callback?: (err?: any) => void): void {
+    try {
+      delete this.sessions[sid];
+      this.persist();
+      if (callback) callback(null);
+    } catch (error) {
+      if (callback) callback(error);
+    }
   }
 
-  public delete(sessionId: string): void {
-    const sessions = this.readSessions();
-    delete sessions[sessionId];
-    this.writeSessions(sessions);
+  public all(callback: (err: any, obj?: any) => void): void {
+    try {
+      callback(null, this.sessions);
+    } catch (error) {
+      callback(error);
+    }
   }
 
-  public keys(): string[] {
-    const sessions = this.readSessions();
-    return Object.keys(sessions);
+  public length(callback: (err: any, length?: number) => void): void {
+    try {
+      callback(null, Object.keys(this.sessions).length);
+    } catch (error) {
+      callback(error);
+    }
   }
 
-  public clear(): void {
-    this.writeSessions({});
+  public clear(callback?: (err?: any) => void): void {
+    try {
+      this.sessions = {};
+      this.persist();
+      if (callback) callback(null);
+    } catch (error) {
+      if (callback) callback(error);
+    }
+  }
+
+  public touch(sid: string, session: any, callback?: (err?: any) => void): void {
+    try {
+      if (this.sessions[sid]) {
+        this.sessions[sid].lastAccess = new Date().toISOString();
+        this.persist();
+      }
+      if (callback) callback(null);
+    } catch (error) {
+      if (callback) callback(error);
+    }
   }
 
   // Clean up expired sessions (optional enhancement)
   public cleanup(): void {
-    const sessions = this.readSessions();
     const now = new Date().getTime();
     const oneWeekInMs = 7 * 24 * 60 * 60 * 1000; // 1 week
 
     const cleanedSessions = Object.fromEntries(
-      Object.entries(sessions).filter(([_, tokenData]: [string, any]) => {
-        const createdAt = new Date(tokenData.createdAt).getTime();
-        return now - createdAt < oneWeekInMs;
+      Object.entries(this.sessions).filter(([_, session]: [string, any]) => {
+        const lastAccess = new Date(session.lastAccess || session.cookie?.expires || 0).getTime();
+        return now - lastAccess < oneWeekInMs;
       })
     );
 
-    this.writeSessions(cleanedSessions);
+    if (Object.keys(cleanedSessions).length !== Object.keys(this.sessions).length) {
+      this.sessions = cleanedSessions;
+      this.persist();
+    }
   }
 }
