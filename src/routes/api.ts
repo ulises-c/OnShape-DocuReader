@@ -1,8 +1,10 @@
 import { Router } from "express";
 import type { Request, Response, NextFunction } from "express";
 import { OnShapeApiClient } from "../services/onshape-api-client.ts";
+import { ApiUsageTracker } from "../services/api-usage-tracker.ts";
 
 const router = Router();
+const usageTracker = new ApiUsageTracker();
 
 const requireAuth = (
   req: Request,
@@ -19,7 +21,11 @@ router.use(requireAuth);
 
 router.get("/user", async (req: Request, res: Response): Promise<Response> => {
   try {
-    const client = new OnShapeApiClient(req.session.accessToken!);
+    const client = new OnShapeApiClient(
+      req.session.accessToken!,
+      req.session.userId,
+      usageTracker
+    );
     const user = await client.getCurrentUser();
     return res.json(user);
   } catch (error) {
@@ -32,7 +38,11 @@ router.get(
   "/documents",
   async (req: Request, res: Response): Promise<Response> => {
     try {
-      const client = new OnShapeApiClient(req.session.accessToken!);
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
       const documents = await client.getDocuments();
       return res.json(documents);
     } catch (error) {
@@ -46,7 +56,11 @@ router.get(
   "/documents/:id",
   async (req: Request, res: Response): Promise<Response> => {
     try {
-      const client = new OnShapeApiClient(req.session.accessToken!);
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
       const document = await client.getDocument(req.params.id);
       return res.json(document);
     } catch (error) {
@@ -60,7 +74,11 @@ router.get(
   "/documents/:id/comprehensive",
   async (req: Request, res: Response): Promise<Response> => {
     try {
-      const client = new OnShapeApiClient(req.session.accessToken!);
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
       const data = await client.getComprehensiveDocument(
         req.params.id,
         req.query
@@ -79,7 +97,11 @@ router.get(
   "/documents/:id/parent",
   async (req: Request, res: Response): Promise<Response> => {
     try {
-      const client = new OnShapeApiClient(req.session.accessToken!);
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
       const parent = await client.getParentInfo(req.params.id);
       return res.json(parent);
     } catch (error) {
@@ -93,7 +115,11 @@ router.get(
   "/documents/:id/workspaces/:wid/elements",
   async (req: Request, res: Response): Promise<Response> => {
     try {
-      const client = new OnShapeApiClient(req.session.accessToken!);
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
       const elements = await client.getElements(req.params.id, req.params.wid);
       return res.json(elements);
     } catch (error) {
@@ -107,7 +133,11 @@ router.get(
   "/documents/:id/workspaces/:wid/elements/:eid/parts",
   async (req: Request, res: Response): Promise<Response> => {
     try {
-      const client = new OnShapeApiClient(req.session.accessToken!);
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
       const parts = await client.getParts(
         req.params.id,
         req.params.wid,
@@ -125,7 +155,11 @@ router.get(
   "/documents/:id/workspaces/:wid/elements/:eid/assemblies",
   async (req: Request, res: Response): Promise<Response> => {
     try {
-      const client = new OnShapeApiClient(req.session.accessToken!);
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
       const assemblies = await client.getAssemblies(
         req.params.id,
         req.params.wid,
@@ -143,18 +177,20 @@ router.get(
   "/documents/:id/workspaces/:wid/elements/:eid/bom",
   async (req: Request, res: Response): Promise<Response> => {
     try {
-      const client = new OnShapeApiClient(req.session.accessToken!);
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
       const bom = await client.getBillOfMaterials(
         req.params.id,
         req.params.wid,
         req.params.eid,
-        req.query // Forward query params for BOM options
+        req.query
       );
       return res.json(bom);
     } catch (error: any) {
       console.error("Get BOM error:", error);
-      // If Onshape returns 404/400 for BOM, surface a clear message so the frontend
-      // can fallback to extracting a BILLOFMATERIALS element in the document.
       const status = error.response?.status || 500;
       return res.status(502).json({
         error: "Failed to fetch BOM from Onshape",
@@ -169,7 +205,11 @@ router.get(
   "/documents/:id/workspaces/:wid/elements/:eid/metadata",
   async (req: Request, res: Response): Promise<Response> => {
     try {
-      const client = new OnShapeApiClient(req.session.accessToken!);
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
       const metadata = await client.getElementMetadata(
         req.params.id,
         req.params.wid,
@@ -177,7 +217,6 @@ router.get(
       );
       return res.json(metadata);
     } catch (error: any) {
-      // If Onshape reports 404 for element metadata, return empty metadata
       if (error.response?.status === 404) {
         console.info(
           `Element metadata not found for document=${req.params.id} workspace=${req.params.wid} element=${req.params.eid}`
@@ -196,7 +235,11 @@ router.get(
   "/documents/:id/workspaces/:wid/elements/:eid/parts/:pid/mass-properties",
   async (req: Request, res: Response): Promise<Response> => {
     try {
-      const client = new OnShapeApiClient(req.session.accessToken!);
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
       const massProps = await client.getPartMassProperties(
         req.params.id,
         req.params.wid,
@@ -215,7 +258,11 @@ router.get(
   "/export/all",
   async (req: Request, res: Response): Promise<Response> => {
     try {
-      const client = new OnShapeApiClient(req.session.accessToken!);
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
       const options = req.query;
       const ids =
         typeof req.query.ids === "string"
@@ -234,7 +281,11 @@ router.get(
   "/export/stream",
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const client = new OnShapeApiClient(req.session.accessToken!);
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
       const options = req.query;
       const ids =
         typeof req.query.ids === "string"
@@ -276,7 +327,11 @@ router.get(
         return res.status(400).json({ error: "URL parameter required" });
       }
 
-      const client = new OnShapeApiClient(req.session.accessToken!);
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
       const imageBuffer = await client.fetchThumbnail(url);
 
       res.setHeader("Content-Type", "image/png");
@@ -285,6 +340,31 @@ router.get(
     } catch (error) {
       console.error("Thumbnail proxy error:", error);
       return res.status(500).json({ error: "Failed to fetch thumbnail" });
+    }
+  }
+);
+
+router.get(
+  "/usage/stats",
+  async (req: Request, res: Response): Promise<Response> => {
+    try {
+      const hours = parseInt(req.query.hours as string) || 24;
+      const detailed = req.query.detailed === "true";
+
+      const stats = await usageTracker.getStats(hours);
+
+      if (detailed) {
+        const endpointBreakdown = await usageTracker.getEndpointBreakdown();
+        return res.json({
+          ...stats,
+          endpointBreakdown,
+        });
+      }
+
+      return res.json(stats);
+    } catch (error) {
+      console.error("Get usage stats error:", error);
+      return res.status(500).json({ error: "Failed to retrieve usage stats" });
     }
   }
 );

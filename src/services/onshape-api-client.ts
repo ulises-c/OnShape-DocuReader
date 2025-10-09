@@ -2,6 +2,7 @@ import axios from "axios";
 import type { AxiosInstance } from "axios";
 import { oauthConfig } from "../config/oauth.ts";
 import { EventEmitter } from "events";
+import { ApiUsageTracker } from "./api-usage-tracker.ts";
 
 export interface OnShapeUser {
   id: string;
@@ -63,12 +64,29 @@ export interface OnShapeDocumentInfo {
   }>;
 }
 
+declare module "axios" {
+  export interface AxiosRequestConfig {
+    metadata?: {
+      startTime: number;
+    };
+  }
+}
+
 export class OnShapeApiClient {
   private axiosInstance: AxiosInstance;
   private accessToken: string;
+  private usageTracker?: ApiUsageTracker;
+  private userId?: string;
 
-  constructor(accessToken: string) {
+  constructor(
+    accessToken: string,
+    userId?: string,
+    tracker?: ApiUsageTracker
+  ) {
     this.accessToken = accessToken;
+    this.userId = userId;
+    this.usageTracker = tracker;
+
     this.axiosInstance = axios.create({
       baseURL: oauthConfig.baseApiUrl,
       timeout: 30000,
@@ -79,9 +97,20 @@ export class OnShapeApiClient {
       },
     });
 
+    this.axiosInstance.interceptors.request.use((config) => {
+      config.metadata = { startTime: Date.now() };
+      return config;
+    });
+
     this.axiosInstance.interceptors.response.use(
-      (response) => response,
-      (error) => {
+      async (response) => {
+        await this.logUsage(response.config, response.status);
+        return response;
+      },
+      async (error) => {
+        const status = error.response?.status || 0;
+        await this.logUsage(error.config, status);
+
         console.error("OnShape API Error:", {
           status: error.response?.status,
           data: error.response?.data,
@@ -90,6 +119,26 @@ export class OnShapeApiClient {
         throw error;
       }
     );
+  }
+
+  private async logUsage(config: any, status: number): Promise<void> {
+    if (!this.usageTracker || !config?.metadata?.startTime) {
+      return;
+    }
+
+    try {
+      const duration = Date.now() - config.metadata.startTime;
+      await this.usageTracker.log({
+        timestamp: new Date().toISOString(),
+        endpoint: config.url || "",
+        method: config.method?.toUpperCase() || "GET",
+        userId: this.userId,
+        responseTime: duration,
+        status,
+      });
+    } catch (error) {
+      console.error("Failed to log API usage:", error);
+    }
   }
 
   async getCurrentUser(): Promise<OnShapeUser> {
@@ -191,8 +240,6 @@ export class OnShapeApiClient {
       );
       return response.data || [];
     } catch (error: any) {
-      // If Onshape returns 404 for parts (element not a PartStudio or parts not accessible),
-      // treat it as "no parts" instead of bubbling an error to the frontend.
       if (error.response?.status === 404) {
         console.info(
           `OnShape getParts returned 404 for document=${documentId} workspace=${workspaceId} element=${elementId}`
@@ -224,10 +271,6 @@ export class OnShapeApiClient {
     }
   }
 
-  /**
-   * Get Bill of Materials for an assembly element.
-   * Uses the Assemblies BOM endpoint in the Onshape API v12.
-   */
   async getBillOfMaterials(
     documentId: string,
     workspaceId: string,
@@ -235,7 +278,6 @@ export class OnShapeApiClient {
     params?: Record<string, any>
   ): Promise<any> {
     try {
-      // Primary BOM endpoint for assemblies, now supports query params
       const response = await this.axiosInstance.get(
         `/assemblies/d/${documentId}/w/${workspaceId}/e/${elementId}/bom`,
         params ? { params } : undefined
@@ -252,7 +294,6 @@ export class OnShapeApiClient {
             }
           : error
       );
-      // Let caller handle fallback behavior; surface Onshape error for visibility
       throw error;
     }
   }
@@ -300,9 +341,6 @@ export class OnShapeApiClient {
       );
       return response.data;
     } catch (error: any) {
-      // Onshape may return 404 (not found) or 400 (invalid request) for
-      // element types that don't support metadata (for example BILLOFMATERIALS).
-      // Treat these as "no metadata available" and return an empty object.
       if (error.response?.status === 404 || error.response?.status === 400) {
         console.info(
           `OnShape getElementMetadata returned 404 for document=${documentId} workspace=${workspaceId} element=${elementId}`
@@ -314,16 +352,13 @@ export class OnShapeApiClient {
   }
 
   async exportAll(options: any, ids?: string[]): Promise<any> {
-    // First get the list of documents or use provided IDs
     let documentsToExport: OnShapeDocumentInfo[];
 
     if (ids && ids.length > 0) {
-      // Fetch full document info for specific IDs
       documentsToExport = await Promise.all(
         ids.map((id) => this.getDocument(id))
       );
     } else {
-      // Get list of all documents, then fetch full info for each
       const documentList = await this.getDocuments(100, 0);
       documentsToExport = await Promise.all(
         documentList.map((doc) => this.getDocument(doc.id))

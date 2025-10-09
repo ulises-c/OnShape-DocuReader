@@ -7,31 +7,32 @@ The numbering is just show that it's easier to keep track.
 ## Instructions for Agent & LLM
 
 1. Read `INSTRUCTIONS.md`
-2. **When completing TODO items:**
-   1. Complete the actual task/implementation
-   2. Move the completed item from `TODO` section to `DONE.md`
-   3. Update `notes/HISTORY.md` following its specific instructions (append to existing `[not committed]` section)
-   4. Preserve the original numbering and sub-item structure when moving items
-3. **When adding new TODO items:**
-   1. Add to the `TODO` section with the next sequential number
-   2. Use clear, actionable language
-   3. Break down complex tasks into numbered sub-items when appropriate
-4. **Completion criteria:** A TODO item is considered complete when:
-   1. All code changes are implemented and functional
-   2. Any related documentation is updated
-   3. The feature/fix works as intended (manual verification recommended)
 
 # TODO Section
 
-1. Detailed API usage (keep track per session)
-2. Fix BUG - Clicking child elements in detailed view does not work as intended
+1. Enhance BOM to CSV procedure
+   1. Extract filtered BOM
+      1. Currently: Extracts flattened BOM
+      2. Goal: Extract flattened BOM, with columns filtered by headers, and rows filtered by contents in column (e.g. {"part name": ["PRT", "ASM"]})
+   2. Replace calls to getCSV (deprecated) with bomToCSV
+      1. Then delete getCSV
+   3. Implement massCSVExporter
+      1. Exports flattened CSV with default filtering options
+   4. Implement user based filtering
+      1. Instead of static filtering, allow checkboxes so that a user can define what the columns/rows should be filtered by
+2. Indicators for downloads
+   1. bomToCSV takes a while to download and nothing indicates if the download is working as intended or not
+   2. May need to implement detailed API usage to track
+3. Detailed API usage (keep track per session)
+   1. Create infrastructure to later on keep track across sessions
+4. Fix BUG - Clicking child elements in detailed view does not work as intended
    1. Supposed to open up something similar to detailed view, but a child element specific view. Currently does nothing
    2. May be out of scope for this project
-3. Update detailed view
+5. Update detailed view
    1. The child documents (the other clickable tiles within a document), should also be updated to have a cleaner layout.
    2. Investigate why "Load Hierarchy Details" returns "No parent hierarchy available" even though there is a parent ID
    3. Go through documents and OnShape v12 API to understand document structure and other important things from the API
-4. Update what `get all`, `get selected` `get document` does
+6. Update what `get all`, `get selected` `get document` does
    1. To maintain consistency files should automatically be downloaded to a set folder
       1. `~/OnShape-DocuReader/database/`
    2. Change how the download structure
@@ -44,7 +45,13 @@ The numbering is just show that it's easier to keep track.
             1. Folder should have JSONs for each item downloaded, and their child element JSONs
             2. Thumbnails should also be downloaded within this folder (if selected)
    3. Implement image/thumbnail downloading
-5. Fix TODO in `public/js/controllers/document-controller.js`
+7. Fix TODO in `public/js/controllers/document-controller.js`
+8. Update login workflow
+   1. Current:
+      1. If {authenticated: false}: stays in list view with "Loading...", user has to select "logout" then login
+      2. If {authenticated: true}: list view loads, no issue
+   2. Goal:
+      1. Default to login screen, check authentication status, if authenticated proceed to list view
 
 # ✅ DONE
 
