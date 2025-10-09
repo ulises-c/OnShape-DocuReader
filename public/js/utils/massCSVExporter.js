@@ -7,6 +7,7 @@
  */
 
 import { getCSV } from "./getCSV.js";
+import JSZip from "jszip";
 
 /**
  * Export all documents as a single ZIP file with CSVs and thumbnails.
@@ -26,23 +27,6 @@ export async function exportAllDocumentsAsZip(apiClient, documentService) {
   // Try to load a same-origin copy of JSZip first so Content-Security-Policy (CSP)
   // with script-src 'self' allows execution. If not present, fall back to the CDN
   // but this may be blocked by CSP (see app console for CSP errors).
-  let JSZip;
-  try {
-    // Local path served from `public/js/lib/jszip.esm.min.js` (same-origin)
-    JSZip = (await import("/js/lib/jszip.esm.min.js")).default;
-  } catch (localErr) {
-    console.warn(
-      "Failed to load local JSZip module:",
-      localErr && localErr.message
-    );
-    // try {
-    //   // Fallback to CDN (may be blocked by CSP if page restricts script-src to 'self')
-    //   JSZip = (await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.esm.min.js')).default;
-    // } catch (cdnErr) {
-    //   console.error('Failed to load JSZip from CDN:', cdnErr && cdnErr.message);
-    //   throw new Error('JSZip is required for ZIP exports. Add a same-origin copy at /js/lib/jszip.esm.min.js or allow the CDN in your CSP. See public/js/lib/README.md for instructions.');
-    // }
-  }
   const zip = new JSZip();
 
   let documents = [];
