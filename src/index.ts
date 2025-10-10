@@ -82,32 +82,34 @@ setInterval(() => {
   sessionStore.cleanup();
 }, 60 * 60 * 1000);
 
-app.use(
-  express.static(path.join(__dirname, "../public"), {
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith(".js") || filePath.endsWith(".mjs")) {
-        res.setHeader("Content-Type", "application/javascript; charset=utf-8");
-      } else if (filePath.endsWith(".json")) {
-        res.setHeader("Content-Type", "application/json; charset=utf-8");
-      } else if (filePath.endsWith(".css")) {
-        res.setHeader("Content-Type", "text/css; charset=utf-8");
-      } else if (filePath.endsWith(".html")) {
-        res.setHeader("Content-Type", "text/html; charset=utf-8");
-      }
-    },
-  })
-);
-
 app.use("/auth", authRoutes);
 app.use("/api", apiRoutes);
 
-app.get("/", (req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, "../public/index.html"));
-});
+if (process.env.NODE_ENV === "production") {
+  app.use(
+    express.static(path.join(__dirname, "public"), {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith(".js") || filePath.endsWith(".mjs")) {
+          res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+        } else if (filePath.endsWith(".json")) {
+          res.setHeader("Content-Type", "application/json; charset=utf-8");
+        } else if (filePath.endsWith(".css")) {
+          res.setHeader("Content-Type", "text/css; charset=utf-8");
+        } else if (filePath.endsWith(".html")) {
+          res.setHeader("Content-Type", "text/html; charset=utf-8");
+        }
+      },
+    })
+  );
 
-app.get("/dashboard", (req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, "../public/dashboard.html"));
-});
+  app.get("/", (req: Request, res: Response) => {
+    res.sendFile(path.join(__dirname, "public/index.html"));
+  });
+
+  app.get("/dashboard", (req: Request, res: Response) => {
+    res.sendFile(path.join(__dirname, "public/dashboard.html"));
+  });
+}
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error("Error:", err);

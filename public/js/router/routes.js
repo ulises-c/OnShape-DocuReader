@@ -18,6 +18,8 @@ export const ROUTES = {
   HOME: "/",
   DOCUMENT_LIST: "/documents",
   DOCUMENT_DETAIL: "/document/:id",
+  ELEMENT_DETAIL: "/document/:docId/element/:elementId",
+  PART_DETAIL: "/document/:docId/element/:elementId/part/:partId",
   ASSEMBLY_DETAIL: "/assembly/:id",
   ASSEMBLY_DETAILED_VIEW: "/assembly/:id/detailed",
   SEARCH_RESULTS: "/search",
@@ -41,6 +43,16 @@ export function configureRoutes(router, controllers = {}) {
     controllers.document?.showDocument?.(params.id, state, context);
   });
 
+  // Element details
+  router.register(ROUTES.ELEMENT_DETAIL, (params, state, context) => {
+    controllers.document?.showElement?.(params, state, context);
+  });
+
+  // Part details
+  router.register(ROUTES.PART_DETAIL, (params, state, context) => {
+    controllers.document?.showPart?.(params, state, context);
+  });
+
   // Assembly views
   router.register(ROUTES.ASSEMBLY_DETAIL, (params, state, context) => {
     controllers.assembly?.show?.(params.id, state, context);
@@ -52,8 +64,7 @@ export function configureRoutes(router, controllers = {}) {
 
   // Listing and search
   router.register(ROUTES.DOCUMENT_LIST, (_params, state, context) => {
-    controllers.documentList?.show?.(state, context) ||
-      controllers.document?.showList?.(state, context) ||
+    controllers.document?.showList?.(state, context) ||
       controllers.app?.showDashboard?.(state, context);
   });
 
@@ -70,9 +81,7 @@ export function configureRoutes(router, controllers = {}) {
 
   // Home route fallback to dashboard/list
   router.register(ROUTES.HOME, (_params, state, context) => {
-    controllers.app?.showHome?.(state, context) ||
-      controllers.documentList?.show?.(state, context) ||
-      controllers.app?.showDashboard?.(state, context);
+    controllers.app?.showHome?.(state, context);
   });
 
   // 404

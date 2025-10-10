@@ -1,187 +1,118 @@
-/**
- * AppController - main orchestration
- */
-
-import { qs } from '../utils/dom-helpers.js';
-import { ROUTES } from '../router/routes.js';
-import { exportAllDocumentsAsZip } from '../utils/massCSVExporter.js';
-
 export class AppController {
   constructor(state, services, navigation, controllers) {
     this.state = state;
     this.authService = services.authService;
-    this.documentService = services.documentService;
-    this.apiClient = services.apiClient || services.documentService.api;
-    this.documentController = controllers.documentController;
-    this.exportController = controllers.exportController;
     this.navigation = navigation;
-    this.bound = false;
+    this.documentController = controllers.documentController;
+    this._logoutInProgress = false;
   }
 
   async init() {
-    if (window.location.pathname === '/dashboard') {
-      window.history.replaceState({}, '', '/');
-    }
-
+    console.log('AppController.init() - Starting initialization');
+    
+    // Bind global event handlers first
     this.bindGlobalEvents();
 
+    // Check authentication status with proper error handling
     try {
       const status = await this.authService.checkStatus();
-      const isAuthenticated = !!status.authenticated;
-      this.state.setState({ isAuthenticated });
+      console.log('Auth status result:', status);
 
-      if (isAuthenticated) {
-        const user = await this.authService.getUser().catch(() => null);
-        if (user) {
-          this.state.setState({ user });
-          const userName = document.getElementById('userName');
-          if (userName) userName.textContent = user.name || 'Unknown User';
-        }
+      this.state.setState({
+        isAuthenticated: !!status.authenticated,
+      });
 
-        const authStatus = document.getElementById('authStatus');
-        if (authStatus) {
-          authStatus.textContent = 'Authenticated ✓';
-          authStatus.style.color = '#28a745';
-        }
-        this.navigation.navigateTo('dashboard');
+      // If authenticated, proceed to load documents
+      if (status.authenticated) {
+        console.log('User is authenticated, loading documents...');
         await this.documentController.loadDocuments();
+        
+        const currentHash = window.location.hash;
+        // Router will handle navigation, but ensure we have a valid default route
+        if (!currentHash || currentHash === '#/' || currentHash === '#/landing') {
+          console.log('No active route, router will set default to documents list');
+          // Router's default route logic in app.js will handle this
+        } else {
+          console.log('Active route detected, staying on current page:', currentHash);
+        }
       } else {
-        const authStatus = document.getElementById('authStatus');
-        if (authStatus) {
-          authStatus.textContent = 'Not authenticated';
-          authStatus.style.color = '#dc3545';
+        console.log('User is not authenticated, showing landing page');
+        const currentHash = window.location.hash;
+        // Redirect to landing if on a protected route
+        if (currentHash && currentHash !== '#/' && currentHash !== '#/landing') {
+          console.log('Not authenticated but on protected route, redirecting to landing');
+          window.location.hash = '#/';
         }
         this.navigation.navigateTo('landing');
       }
-    } catch (e) {
-      console.error('Error checking auth status:', e);
+    } catch (error) {
+      console.error('Failed to check auth status:', error);
+      this.state.setState({ isAuthenticated: false });
+      window.location.hash = '#/';
       this.navigation.navigateTo('landing');
     }
   }
 
   bindGlobalEvents() {
-    if (this.bound) return;
+    // Login button
+    const loginBtn = document.getElementById('loginBtn');
+    if (loginBtn) {
+      loginBtn.addEventListener('click', () => {
+        console.log('Login button clicked');
+        this.authService.login();
+      });
+    }
 
-    qs('#loginBtn')?.addEventListener('click', () => this.authService.login());
-    qs('#logoutBtn')?.addEventListener('click', async () => {
-      await this.authService.logout().catch(() => {});
-      this.state.replaceState({
-        user: null,
+    // Logout button
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', async () => {
+        console.log('Logout button clicked');
+        if (this._logoutInProgress) {
+          console.log('Logout already in progress, ignoring click');
+          return;
+        }
+        this._logoutInProgress = true;
+        await this.authService.logout();
+        // State will be updated via auth:logout event
+      });
+    }
+
+    // Listen for logout event from auth service
+    window.addEventListener('auth:logout', () => {
+      console.log('Received auth:logout event');
+      this.state.setState({ 
         isAuthenticated: false,
-        currentPage: 'landing',
+        user: null,
         documents: [],
+        selectedDocuments: [],
         currentDocument: null,
         currentElement: null,
-        currentPart: null,
-        selectedDocuments: []
+        currentPart: null
       });
       this.navigation.navigateTo('landing');
-      if (this.documentController?.router) {
-        try {
-          this.documentController.router.replace(ROUTES.HOME);
-        } catch {}
-      }
-      await this.init();
+      this._logoutInProgress = false;
     });
 
-    qs('#backBtn')?.addEventListener('click', () => {
-      if (this.documentController?.router) {
-        this.documentController.router.back();
-      } else {
-        this.navigation.navigateTo('dashboard');
-      }
+    // Listen for state changes to update UI
+    this.state.subscribe((state) => {
+      console.log('AppController state changed:', state);
+      this.updateAuthUI(state);
     });
-    qs('#backToDocBtn')?.addEventListener('click', () => {
-      if (this.documentController?.router) {
-        this.documentController.router.back();
-      } else {
-        this.navigation.navigateTo('documentDetail');
-      }
-    });
-    qs('#backToElementBtn')?.addEventListener('click', () => {
-      if (this.documentController?.router) {
-        this.documentController.router.back();
-      } else {
-        this.navigation.navigateTo('elementDetail');
-      }
-    });
+  }
 
-    qs('#refreshBtn')?.addEventListener('click', () => this.documentController.loadDocuments());
-    qs('#searchBtn')?.addEventListener('click', () => {
-      const q = (qs('#searchInput')?.value || '').trim();
-      this.documentController.search(q);
-    });
-    qs('#searchInput')?.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        const q = (qs('#searchInput')?.value || '').trim();
-        this.documentController.search(q);
-      }
-    });
+  updateAuthUI(state) {
+    const authStatus = document.getElementById('authStatus');
+    const userName = document.getElementById('userName');
 
-    qs('#getAllBtn')?.addEventListener('click', () => {
-      console.log('Get All button clicked');
-      this.exportController.showExportModal(this.state.getState().documents);
-    });
+    if (authStatus) {
+      authStatus.textContent = state.isAuthenticated
+        ? '✅ Authenticated'
+        : 'Not authenticated';
+    }
 
-    qs('#getSelectedBtn')?.addEventListener('click', () => {
-      console.log('Get Selected button clicked');
-      const selected = this.state.getState().selectedDocuments || [];
-      if (selected.length === 0) {
-        const err = document.getElementById('error');
-        if (err) {
-          err.textContent = 'No documents selected. Please select at least one document.';
-          err.style.display = 'block';
-        }
-        return;
-      }
-      this.exportController.showExportModal(selected);
-    });
-
-    qs('#getDocumentBtn')?.addEventListener('click', () => this.documentController.getComprehensiveDocument());
-
-    qs('#exportCSVBtn')?.addEventListener('click', async () => {
-      console.log('Export ASM/PRT CSVs button clicked');
-      const btn = qs('#exportCSVBtn');
-      const originalText = btn?.textContent;
-      
-      if (btn) {
-        btn.textContent = '⏳ Exporting...';
-        btn.disabled = true;
-      }
-
-      try {
-        await exportAllDocumentsAsZip(this.apiClient, this.documentService);
-        
-        const successDiv = document.createElement('div');
-        successDiv.className = 'success-message';
-        successDiv.textContent = '✅ ZIP export completed successfully!';
-        successDiv.style.cssText = `
-          background-color:#d4edda;border:1px solid #c3e6cb;color:#155724;
-          padding:12px 20px;border-radius:5px;margin:10px 0;position:fixed;top:20px;right:20px;z-index:1000;
-          box-shadow:0 2px 10px rgba(0,0,0,0.1);animation:slideIn 0.3s ease-out;
-        `;
-        document.body.appendChild(successDiv);
-        setTimeout(() => successDiv.remove(), 4000);
-      } catch (err) {
-        console.error('CSV export failed:', err);
-        const errDiv = document.createElement('div');
-        errDiv.className = 'error-message';
-        errDiv.textContent = `❌ Export failed: ${err.message}`;
-        errDiv.style.cssText = `
-          background-color:#f8d7da;border:1px solid #f5c6cb;color:#721c24;
-          padding:12px 20px;border-radius:5px;margin:10px 0;position:fixed;top:20px;right:20px;z-index:1000;
-          box-shadow:0 2px 10px rgba(0,0,0,0.1);
-        `;
-        document.body.appendChild(errDiv);
-        setTimeout(() => errDiv.remove(), 4000);
-      } finally {
-        if (btn) {
-          btn.textContent = originalText || '📊 Export ASM/PRT CSVs';
-          btn.disabled = false;
-        }
-      }
-    });
-
-    this.bound = true;
+    if (userName && state.user) {
+      userName.textContent = state.user.name || 'User';
+    }
   }
 }

@@ -13,27 +13,9 @@ import { Router } from "./router/Router.js";
 import { HistoryState } from "./state/HistoryState.js";
 import { configureRoutes, ROUTES } from "./router/routes.js";
 
-if (window.location.pathname === "/dashboard") {
-  window.history.replaceState({}, "", "/");
-}
-
 // Core instances
 const state = new AppState();
 const apiClient = new ApiClient();
-
-// Check auth status immediately
-async function checkAuthStatus() {
-  try {
-    const { authenticated } = await apiClient.getAuthStatus();
-    if (!authenticated && window.location.pathname !== "/") {
-      const auth = new AuthService(apiClient);
-      auth.login();
-    }
-  } catch (err) {
-    console.error("Auth check failed:", err);
-  }
-}
-checkAuthStatus();
 
 // Services bundle
 const services = {
@@ -62,7 +44,7 @@ const controllers = {
   exportController,
 };
 
-// Wire up modal manager handlers after export controller exists
+// Wire up modal manager handlers
 modalManager.setHandlers({
   onStartExport: (options) => exportController.startExport(options),
   onCancelExport: () => exportController.cancelExport(),
@@ -76,13 +58,11 @@ const appController = new AppController(
   controllers
 );
 
-// Initialize app first to perform auth check and initial data load,
-// then wire the router so it can take over hash-based navigation safely.
 (async () => {
   try {
-    await appController.init();
-
+    // Initialize router first before auth check
     const router = new Router();
+    
     // Register per-view strategies to preserve UI state (tabs, selections) across navigation
     const historyState = new HistoryState(state, {
       scrollSelectors: ["[data-scroll-preserve]"],
@@ -166,7 +146,7 @@ const appController = new AppController(
       },
     });
 
-    // Inject routing dependencies into controllers post-init (keeps existing boot flow intact)
+    // Expose router and historyState to documentController for link generation
     documentController.router = router;
     documentController.historyState = historyState;
 
@@ -180,27 +160,36 @@ const appController = new AppController(
         showDashboard: () => navigation.navigateTo("dashboard"),
         showNotFound: (path) => console.warn("Route not found:", path),
       },
-
       document: documentController,
-
-      // Export entry is optional in current UI; keep a no-op to satisfy route table
       export: {
         show: () => {},
       },
     });
 
-    // Start router after routes are configured
+    // Start router first
     router.start();
 
-    // Optionally set an authenticated default route for deep-link consistency
-    // If there is no hash, default to /documents for authenticated users, else to home
-    try {
-      const isAuthenticated = !!state.getState().isAuthenticated;
-      if (!window.location.hash) {
-        router.replace(isAuthenticated ? ROUTES.DOCUMENT_LIST : ROUTES.HOME);
+    // Initialize app with delayed auth check to allow session to settle after OAuth callback
+    await new Promise(resolve => setTimeout(resolve, 300));
+    await appController.init();
+
+    // Set default route based on current hash after auth check completes
+    const currentHash = window.location.hash;
+    const currentState = state.getState();
+    
+    // Only set default route if no hash or on home/landing
+    if (!currentHash || currentHash === '#/' || currentHash === '#/landing') {
+      if (currentState.isAuthenticated) {
+        // Authenticated users default to document list
+        console.log('Setting default route to documents list');
+        router.replace(ROUTES.DOCUMENT_LIST);
+      } else {
+        // Unauthenticated users stay on landing
+        console.log('Setting default route to landing/home');
+        router.replace(ROUTES.HOME);
       }
-    } catch (_) {
-      // ignore
+    } else {
+      console.log('Preserving existing route:', currentHash);
     }
   } catch (err) {
     console.error("App initialization failed:", err);

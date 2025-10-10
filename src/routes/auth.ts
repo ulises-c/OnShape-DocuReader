@@ -42,7 +42,7 @@ router.get(
       req.session.refreshToken = tokens.refresh_token;
       req.session.authenticated = true;
 
-      // Use promisified session save to ensure persistence before redirect
+      // Promisified session save with extended delay
       await new Promise<void>((resolve, reject) => {
         req.session.save((err) => {
           if (err) {
@@ -55,13 +55,20 @@ router.get(
         });
       });
 
-      // Give the file system a moment to flush
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Extended delay for file system flush
+      await new Promise(resolve => setTimeout(resolve, 250));
 
-      const returnTo = req.session.returnTo || "/dashboard";
+      const returnPath = req.session.returnTo || "/";
       delete req.session.returnTo;
 
-      res.redirect(returnTo);
+      // In development, always redirect to Vite dev server
+      // In production, redirect to the same origin
+      const redirectUrl = process.env.NODE_ENV === 'production' 
+        ? returnPath 
+        : `http://localhost:5173${returnPath}`;
+
+      console.log('OAuth callback redirecting to:', redirectUrl);
+      res.redirect(redirectUrl);
     } catch (error) {
       console.error("OAuth callback error:", error);
       return res.status(500).send("Authentication failed");
@@ -71,17 +78,23 @@ router.get(
 
 router.get("/status", (req: Request, res: Response): Response => {
   const authenticated = !!req.session?.authenticated;
-  console.log("Auth status check:", { authenticated, sessionID: req.sessionID });
+  console.log("Auth status check:", { 
+    authenticated, 
+    sessionID: req.sessionID,
+    hasAccessToken: !!req.session?.accessToken 
+  });
   return res.json({ authenticated });
 });
 
 router.post("/logout", (req: Request, res: Response): void => {
+  const sessionId = req.sessionID;
   req.session.destroy((err) => {
     if (err) {
       console.error("Logout error:", err);
       res.status(500).json({ error: "Logout failed" });
       return;
     }
+    console.log("Session destroyed:", sessionId);
     res.clearCookie("connect.sid");
     res.json({ success: true });
   });

@@ -68,13 +68,20 @@ export class DocumentController {
   }
 
   async showList(restoredState) {
+    // Always navigate to dashboard first for consistent UI state
     this.navigation.navigateTo("dashboard");
 
     const docs = this.state.getState().documents || [];
+    
+    // Always load documents if not present, ensuring data is available
     if (!docs.length) {
       await this.loadDocuments();
+    } else {
+      // If documents exist, just re-render to ensure UI is current
+      this.listView.render(docs);
     }
 
+    // Restore state after render completes
     if (restoredState && typeof this.listView?.restoreState === "function") {
       if (typeof requestAnimationFrame === "function") {
         requestAnimationFrame(() =>
