@@ -50,6 +50,9 @@ modalManager.setHandlers({
   onCancelExport: () => exportController.cancelExport(),
 });
 
+// Expose documentController globally for PartDetailView back button access
+window.__documentController = documentController;
+
 // Boot application
 const appController = new AppController(
   state,

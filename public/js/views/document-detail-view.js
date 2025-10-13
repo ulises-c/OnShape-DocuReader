@@ -47,6 +47,7 @@ export class DocumentDetailView extends BaseView {
 
     this._bindDocumentActions(docData);
     this._bindElementActions(elementsContainer, docData);
+    this._bindBackButton();
   }
 
   _renderTopBar(docData) {
@@ -161,6 +162,42 @@ export class DocumentDetailView extends BaseView {
         this.controller.documentService
       );
     }
+  }
+
+  _bindBackButton() {
+    const backBtn = document.getElementById("backBtn");
+    if (!backBtn) {
+      console.warn("[DocumentDetailView] Back button (#backBtn) not found in DOM");
+      return;
+    }
+
+    // Remove any existing listener to avoid duplicates
+    const newBtn = backBtn.cloneNode(true);
+    backBtn.parentNode?.replaceChild(newBtn, backBtn);
+
+    newBtn.addEventListener("click", async () => {
+      console.log("[DocumentDetailView] Back button clicked");
+
+      try {
+        // Capture current state before navigating
+        const currentState = typeof this.captureState === "function" 
+          ? this.captureState() 
+          : null;
+
+        // Navigate back to document list
+        if (this.controller?.router) {
+          const { ROUTES } = await import("../router/routes.js");
+          this.controller.router.navigate(ROUTES.DOCUMENT_LIST, currentState);
+        } else {
+          console.warn("[DocumentDetailView] Router not available, falling back to direct navigation");
+          this.controller?.showList?.(currentState);
+        }
+      } catch (err) {
+        console.error("[DocumentDetailView] Error navigating back:", err);
+      }
+    });
+
+    console.log("[DocumentDetailView] Back button listener attached");
   }
 
   updateHierarchy(documentId, html) {

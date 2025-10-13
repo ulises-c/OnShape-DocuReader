@@ -1,4 +1,3 @@
-// Full file content with added state capture/restore methods
 /**
  * PartDetailView - renders part details and mass properties
  */
@@ -93,11 +92,66 @@ export class PartDetailView {
           '<div class="empty-state"><h3>Loading Mass Properties...</h3><p>Mass properties could not be loaded for this part.</p></div>';
       }
     }
+
+    this._bindBackButton();
   }
 
-  /**
-   * Capture scroll position for part detail containers
-   */
+  _bindBackButton() {
+    const backBtn = document.getElementById("backToElementBtn");
+    if (!backBtn) {
+      console.warn("[PartDetailView] Back button (#backToElementBtn) not found in DOM");
+      return;
+    }
+
+    // Remove any existing listener to avoid duplicates
+    const newBtn = backBtn.cloneNode(true);
+    backBtn.parentNode?.replaceChild(newBtn, backBtn);
+
+    newBtn.addEventListener("click", async () => {
+      console.log("[PartDetailView] Back button clicked");
+
+      try {
+        // Import controller from somewhere accessible
+        // Since PartDetailView doesn't store controller, we'll need to access it via a global or pass it in constructor
+        // For now, we'll use window to access the app's documentController
+        const controller = window.__documentController;
+        if (!controller) {
+          console.warn("[PartDetailView] Controller not available");
+          return;
+        }
+
+        const currentState = typeof this.captureState === "function" 
+          ? this.captureState() 
+          : null;
+
+        const state = controller.state?.getState?.();
+        const doc = state?.currentDocument;
+        const element = state?.currentElement;
+
+        if (!doc?.id || !element?.id) {
+          console.warn("[PartDetailView] No current document or element found");
+          return;
+        }
+
+        if (controller.router) {
+          const { ROUTES, pathTo } = await import("../router/routes.js");
+          const path = pathTo(ROUTES.ELEMENT_DETAIL, { 
+            docId: doc.id, 
+            elementId: element.id 
+          });
+          controller.router.navigate(path, currentState);
+        } else {
+          console.warn("[PartDetailView] Router not available, falling back");
+          controller.viewElement?.(element.id);
+        }
+      } catch (err) {
+        console.error("[PartDetailView] Error navigating back:", err);
+      }
+    });
+
+    console.log("[PartDetailView] Back button listener attached");
+  }
+
   captureState() {
     try {
       const container = document.querySelector('.part-info');
@@ -114,9 +168,6 @@ export class PartDetailView {
     }
   }
 
-  /**
-   * Restore scroll position after the view has rendered
-   */
   restoreState(state) {
     if (!state || typeof state !== 'object') return;
 

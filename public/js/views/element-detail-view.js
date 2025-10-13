@@ -1,6 +1,6 @@
- // Full file content with added state capture/restore methods
 import { BaseView } from './base-view.js';
 import { escapeHtml } from '../utils/dom-helpers.js';
+
 export class ElementDetailView extends BaseView {
   constructor(containerSelector, controller) {
     super(containerSelector);
@@ -107,32 +107,100 @@ export class ElementDetailView extends BaseView {
           '<div class="empty-state"><h3>No Metadata Available</h3><p>No metadata found for this element.</p></div>';
       }
     }
+
+    this._bindBackButton();
   }
 
-  /**
-   * Capture scroll position for element detail containers
-   */
+  _bindBackButton() {
+    const backBtn = document.getElementById("backToDocBtn");
+    if (!backBtn) {
+      console.warn("[ElementDetailView] Back button (#backToDocBtn) not found in DOM");
+      return;
+    }
+
+    // Remove any existing listener to avoid duplicates
+    const newBtn = backBtn.cloneNode(true);
+    backBtn.parentNode?.replaceChild(newBtn, backBtn);
+
+    newBtn.addEventListener("click", async () => {
+      console.log("[ElementDetailView] Back button clicked");
+
+      try {
+        const currentState = typeof this.captureState === "function" 
+          ? this.captureState() 
+          : null;
+
+        const doc = this.controller?.state?.getState?.()?.currentDocument;
+        if (!doc?.id) {
+          console.warn("[ElementDetailView] No current document found");
+          return;
+        }
+
+        if (this.controller?.router) {
+          const { ROUTES, pathTo } = await import("../router/routes.js");
+          const path = pathTo(ROUTES.DOCUMENT_DETAIL, { id: doc.id });
+          this.controller.router.navigate(path, currentState);
+        } else {
+          console.warn("[ElementDetailView] Router not available, falling back");
+          this.controller?.viewDocument?.(doc.id);
+        }
+      } catch (err) {
+        console.error("[ElementDetailView] Error navigating back:", err);
+      }
+    });
+
+    console.log("[ElementDetailView] Back button listener attached");
+  }
+
   captureState() {
     try {
       const container = document.querySelector('.element-info');
+      const activeBtn = document.querySelector('.tab-btn.active');
+      const activeTab = activeBtn?.getAttribute('data-tab') || 'parts';
+
       return {
         scroll: {
           windowY: typeof window !== 'undefined' ? (window.scrollY || 0) : 0,
           containerTop: container ? (container.scrollTop || 0) : 0,
           containerKey: container?.getAttribute?.('data-scroll-key') || null
-        }
+        },
+        activeTab
       };
     } catch (e) {
       console.error('captureState (ElementDetailView) failed:', e);
-      return { scroll: { windowY: 0, containerTop: 0, containerKey: null } };
+      return { 
+        scroll: { windowY: 0, containerTop: 0, containerKey: null },
+        activeTab: 'parts'
+      };
     }
   }
 
-  /**
-   * Restore scroll position after the view has rendered
-   */
   restoreState(state) {
     if (!state || typeof state !== 'object') return;
+
+    // Restore active tab first
+    if (state.activeTab) {
+      try {
+        const wanted = state.activeTab;
+        const btns = Array.from(document.querySelectorAll('.tab-btn'));
+        const panels = Array.from(document.querySelectorAll('.tab-panel'));
+        
+        btns.forEach((b) => {
+          const t = b.getAttribute('data-tab');
+          if (t === wanted) b.classList.add('active');
+          else b.classList.remove('active');
+        });
+        
+        panels.forEach((p) => {
+          const id = p.id || '';
+          const tab = id.endsWith('-tab') ? id.slice(0, -4) : id;
+          if (tab === wanted) p.classList.add('active');
+          else p.classList.remove('active');
+        });
+      } catch (e) {
+        console.warn('restoreState (ElementDetailView) tab restore failed:', e);
+      }
+    }
 
     const applyScroll = () => {
       try {
