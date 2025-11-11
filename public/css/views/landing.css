@@ -1,0 +1,36 @@
+/* Landing Page */
+.features {
+  text-align: left;
+  margin: var(--spacing-xl) 0;
+}
+
+.features h3 {
+  color: var(--color-text);
+  margin-bottom: var(--spacing-md);
+}
+
+.features ul {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.features li {
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.features li:last-child {
+  border-bottom: none;
+}
+
+.auth-section {
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-xl);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.auth-status {
+  margin-top: var(--spacing-md);
+  font-style: italic;
+  color: var(--color-text-light);
+}

@@ -1,0 +1,20 @@
+/* Header Styles */
+header {
+  text-align: center;
+  margin-bottom: 2vh;
+  background: white;
+  padding: 2vh 3vw;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+header h1 {
+  color: var(--color-primary);
+  margin-bottom: 0.5vh;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+}
+
+header p {
+  color: var(--color-text-light);
+  font-size: clamp(1rem, 1.5vw, 1.3rem);
+}

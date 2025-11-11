@@ -1,0 +1,24 @@
+/* Base styles - foundational CSS */
+@import './base/variables.css';
+@import './base/reset.css';
+@import './base/typography.css';
+
+/* Layout - page structure */
+@import './layout/header.css';
+@import './layout/container.css';
+
+/* Components - reusable UI elements */
+@import './components/buttons.css';
+@import './components/forms.css';
+@import './components/cards.css';
+@import './components/modals.css';
+@import './components/tables.css';
+@import './components/tabs.css';
+
+/* Views - page-specific styles */
+@import './views/landing.css';
+@import './views/documents.css';
+@import './views/document-detail.css';
+@import './views/element-detail.css';
+@import './views/part-detail.css';
+@import './views/export.css';

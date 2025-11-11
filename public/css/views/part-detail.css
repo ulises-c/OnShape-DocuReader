@@ -1,0 +1,27 @@
+/* Part Detail View */
+.part-info {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-xl);
+}
+
+.mass-property-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.mass-property-item:last-child {
+  border-bottom: none;
+}
+
+.mass-property-label {
+  font-weight: bold;
+  color: var(--color-text);
+}
+
+.mass-property-value {
+  color: var(--color-text-light);
+  font-family: var(--font-mono);
+}

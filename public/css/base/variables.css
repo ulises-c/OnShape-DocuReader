@@ -1,0 +1,65 @@
+/* CSS Custom Properties */
+:root {
+  /* Colors */
+  --color-primary: #2c5aa0;
+  --color-primary-dark: #1a4480;
+  --color-secondary: #6c757d;
+  --color-secondary-dark: #545b62;
+  --color-success: #28a745;
+  --color-success-dark: #218838;
+  --color-danger: #dc3545;
+  --color-danger-dark: #c82333;
+  --color-warning: #ffc107;
+  --color-info: #17a2b8;
+
+  /* Neutral colors */
+  --color-text: #333;
+  --color-text-light: #666;
+  --color-text-muted: #999;
+  --color-border: #ddd;
+  --color-border-light: #eee;
+  --color-bg-card: #f9f9f9;
+  --color-bg-hover: #f3f8ff;
+  --color-bg-gray: #f8f9fa;
+  --color-bg-dark: #e9ecef;
+
+  /* Badge colors */
+  --color-tag-bg: #e3f2fd;
+  --color-tag-text: #1976d2;
+  --color-tag-border: #bbdefb;
+  --color-label-bg: #f3e5f5;
+  --color-label-text: #7b1fa2;
+  --color-label-border: #ce93d8;
+
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+
+  /* Border radius */
+  --radius-sm: 0.3vw;
+  --radius-md: 0.6vw;
+  --radius-lg: 0.8vw;
+  --radius-xl: 10px;
+  --radius-full: 50%;
+
+  /* Shadows */
+  --shadow-sm: 0 0.15vw 0.6vw rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 0.15vw 0.8vw rgba(44, 90, 160, 0.07);
+  --shadow-lg: 0 4px 15px rgba(0, 0, 0, 0.1);
+  --shadow-hover: 0 4px 15px rgba(44, 90, 160, 0.1);
+  --shadow-modal: 0 20px 40px rgba(0, 0, 0, 0.2);
+
+  /* Typography */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --font-mono: 'Courier New', monospace;
+  --line-height-base: 1.6;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.3s ease;
+  --transition-slow: 0.5s ease;
+}
