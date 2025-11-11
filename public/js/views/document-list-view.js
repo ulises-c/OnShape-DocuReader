@@ -3,7 +3,8 @@
  */
 
 import { BaseView } from './base-view.js';
-import { escapeHtml, qsa, qs } from '../utils/dom-helpers.js';
+import { qsa, qs } from '../utils/dom-helpers.js';
+import { renderPaginationControls, renderDocumentRows } from './helpers/pagination-renderer.js';
 
 export class DocumentListView extends BaseView {
   constructor(containerSelector, controller) {
@@ -12,33 +13,14 @@ export class DocumentListView extends BaseView {
     this._unsub = [];
   }
 
-  render(documents) {
+  render(documents, pagination = null) {
     if (!documents || documents.length === 0) {
       this.renderHtml('<p style="text-align:center; color:#666; font-style:italic;">No documents found</p>');
       return;
     }
 
-    const rows = documents.map((doc) => {
-      const creator = doc.creator?.name || 'Unknown Creator';
-      const created = doc.createdAt ? new Date(doc.createdAt).toLocaleString() : '-';
-      const modified = doc.modifiedAt ? new Date(doc.modifiedAt).toLocaleString() : '-';
-      const lastModifiedBy = doc.modifiedBy?.name || doc.modifiedBy || '-';
-      const parent = doc.parentName || doc.parent?.name || (doc.parentId ? `Parent ID: ${doc.parentId}` : '-');
-      const type = doc.type || 'Document';
-
-      return `
-        <tr class="document-card" data-id="${escapeHtml(doc.id)}">
-          <td class="select-column"><input type="checkbox" class="doc-checkbox" value="${escapeHtml(doc.id)}"></td>
-          <td class="doc-file-title">${escapeHtml(doc.name)}</td>
-          <td>${escapeHtml(creator)}</td>
-          <td>${escapeHtml(created)}</td>
-          <td>${escapeHtml(modified)}</td>
-          <td>${escapeHtml(lastModifiedBy)}</td>
-          <td>${escapeHtml(parent)}</td>
-          <td>${escapeHtml(type)}</td>
-        </tr>
-      `;
-    }).join('');
+    const rows = renderDocumentRows(documents);
+    const paginationHtml = pagination ? renderPaginationControls(pagination) : '';
 
     const html = `
       <table class="doc-details-table">
@@ -56,6 +38,7 @@ export class DocumentListView extends BaseView {
         </thead>
         <tbody>${rows}</tbody>
       </table>
+      ${paginationHtml}
     `;
     this.renderHtml(html);
     this.bind();
@@ -102,8 +85,61 @@ export class DocumentListView extends BaseView {
       });
     });
 
+    // Pagination controls
+    this._bindPaginationControls();
+
     // Initialize button state
     this._notifySelectionChanged();
+  }
+
+  _bindPaginationControls() {
+    // Navigation buttons
+    qsa('.pagination-btn', this.container).forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const action = btn.getAttribute('data-action');
+        const pagination = this.controller.pagination;
+        
+        let targetPage = pagination.currentPage;
+        if (action === 'first') targetPage = 1;
+        else if (action === 'prev') targetPage = Math.max(1, pagination.currentPage - 1);
+        else if (action === 'next') targetPage = Math.min(pagination.totalPages, pagination.currentPage + 1);
+        else if (action === 'last') targetPage = pagination.totalPages;
+        
+        if (targetPage !== pagination.currentPage) {
+          this.controller.changePage(targetPage);
+        }
+      });
+    });
+
+    // Page jump input
+    const pageJump = qs('.page-jump', this.container);
+    if (pageJump) {
+      pageJump.addEventListener('change', (e) => {
+        const targetPage = parseInt(e.target.value, 10);
+        const pagination = this.controller.pagination;
+        
+        if (targetPage >= 1 && targetPage <= pagination.totalPages && targetPage !== pagination.currentPage) {
+          this.controller.changePage(targetPage);
+        } else {
+          e.target.value = pagination.currentPage;
+        }
+      });
+
+      pageJump.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.target.blur();
+        }
+      });
+    }
+
+    // Page size selector
+    const pageSizeSelector = qs('.page-size-selector', this.container);
+    if (pageSizeSelector) {
+      pageSizeSelector.addEventListener('change', (e) => {
+        const newSize = parseInt(e.target.value, 10);
+        this.controller.changePageSize(newSize);
+      });
+    }
   }
 
   _notifySelectionChanged() {
@@ -135,6 +171,7 @@ export class DocumentListView extends BaseView {
       const selectedIds = qsa('.doc-checkbox:checked', this.container).map((cb) => cb.value);
       const selectAllEl = qs('#selectAll', this.container);
       const searchInput = document.querySelector('#searchInput');
+      const pagination = this.controller?.pagination || null;
 
       return {
         scroll: {
@@ -144,7 +181,11 @@ export class DocumentListView extends BaseView {
         },
         selectedIds,
         selectAll: !!(selectAllEl && selectAllEl.checked),
-        searchQuery: searchInput?.value || ''
+        searchQuery: searchInput?.value || '',
+        pagination: pagination ? {
+          currentPage: pagination.currentPage,
+          pageSize: pagination.pageSize
+        } : null
       };
     } catch (e) {
       console.error('captureState (DocumentListView) failed:', e);
@@ -152,7 +193,8 @@ export class DocumentListView extends BaseView {
         scroll: { windowY: 0, containerTop: 0, containerKey: null },
         selectedIds: [],
         selectAll: false,
-        searchQuery: ''
+        searchQuery: '',
+        pagination: null
       };
     }
   }
@@ -164,6 +206,16 @@ export class DocumentListView extends BaseView {
     if (!state || typeof state !== 'object') return;
 
     try {
+      // Restore pagination if needed (controller should handle this, but we preserve the state)
+      if (state.pagination && this.controller) {
+        const { currentPage, pageSize } = state.pagination;
+        if (currentPage !== this.controller.pagination.currentPage || 
+            pageSize !== this.controller.pagination.pageSize) {
+          this.controller.loadDocuments(currentPage, pageSize);
+          return;
+        }
+      }
+
       // Restore search query first (affects filtering if any external logic later uses it)
       const searchInput = document.querySelector('#searchInput');
       if (searchInput && typeof state.searchQuery === 'string') {

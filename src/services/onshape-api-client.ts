@@ -149,7 +149,7 @@ export class OnShapeApiClient {
   async getDocuments(
     limit: number = 20,
     offset: number = 0
-  ): Promise<OnShapeDocument[]> {
+  ): Promise<{ items: OnShapeDocument[]; totalCount: number }> {
     const response = await this.axiosInstance.get("/documents", {
       params: {
         limit,
@@ -158,7 +158,10 @@ export class OnShapeApiClient {
         sortOrder: "desc",
       },
     });
-    return response.data.items || [];
+    return {
+      items: response.data.items || [],
+      totalCount: response.data.totalCount || response.data.items?.length || 0,
+    };
   }
 
   async getDocument(documentId: string): Promise<OnShapeDocumentInfo> {
@@ -361,7 +364,7 @@ export class OnShapeApiClient {
     } else {
       const documentList = await this.getDocuments(100, 0);
       documentsToExport = await Promise.all(
-        documentList.map((doc) => this.getDocument(doc.id))
+        documentList.items.map((doc) => this.getDocument(doc.id))
       );
     }
 

@@ -37,6 +37,14 @@ export class DocumentController {
     // Whitelist of element types that are known to support the metadata endpoint
     // Values match Onshape elementType strings (e.g. PARTSTUDIO, ASSEMBLY)
     this._metadataWhitelist = new Set(["PARTSTUDIO", "ASSEMBLY", "BLOB"]);
+    
+    // Pagination state
+    this.pagination = {
+      currentPage: 1,
+      pageSize: 20,
+      totalCount: 0,
+      totalPages: 0
+    };
   }
 
   navigateToDocument(documentId) {
@@ -68,17 +76,30 @@ export class DocumentController {
   }
 
   async showList(restoredState) {
-    // Always navigate to dashboard first for consistent UI state
     this.navigation.navigateTo("dashboard");
 
-    const docs = this.state.getState().documents || [];
-    
-    // Always load documents if not present, ensuring data is available
-    if (!docs.length) {
-      await this.loadDocuments();
+    const currentState = this.state.getState();
+    const docs = currentState.documents || [];
+    const pagination = currentState.pagination || null;
+
+    // Check if we need to restore a specific page
+    const targetPage = restoredState?.viewSnapshot?.pagination?.currentPage || 
+                      restoredState?.pagination?.currentPage ||
+                      this.pagination.currentPage;
+    const targetPageSize = restoredState?.viewSnapshot?.pagination?.pageSize ||
+                          restoredState?.pagination?.pageSize ||
+                          this.pagination.pageSize;
+
+    // Load documents if not present or if page/size changed
+    const needsLoad = !docs.length || 
+                     targetPage !== this.pagination.currentPage ||
+                     targetPageSize !== this.pagination.pageSize;
+
+    if (needsLoad) {
+      await this.loadDocuments(targetPage, targetPageSize);
     } else {
-      // If documents exist, just re-render to ensure UI is current
-      this.listView.render(docs);
+      // Re-render with current pagination state
+      this.listView.render(docs, pagination || this.pagination);
     }
 
     // Restore state after render completes
@@ -101,30 +122,67 @@ export class DocumentController {
     }
   }
 
-  async loadDocuments() {
+  async loadDocuments(page = 1, pageSize = this.pagination.pageSize) {
     const loadingEl = document.getElementById("loading");
     const errorEl = document.getElementById("error");
     const gridEl = document.getElementById("documentsGrid");
 
-    loadingEl.style.display = "block";
-    errorEl.style.display = "none";
-    gridEl.innerHTML = "";
+    if (loadingEl) loadingEl.style.display = "block";
+    if (errorEl) errorEl.style.display = "none";
+    if (gridEl) gridEl.innerHTML = "";
 
     try {
-      const docs = await this.documentService.getAll();
-      const transformed = docs.map((d) => ({
+      const offset = (page - 1) * pageSize;
+      const result = await this.documentService.getAll(pageSize, offset);
+      
+      const items = result.items || result || [];
+      const totalCount = result.totalCount !== undefined ? result.totalCount : items.length;
+      
+      const transformed = items.map((d) => ({
         ...d,
         creator: d.createdBy || d.owner,
       }));
-      this.state.setState({ documents: transformed });
-      loadingEl.style.display = "none";
-      this.listView.render(transformed);
+      
+      this.pagination = {
+        currentPage: page,
+        pageSize: pageSize,
+        totalCount: totalCount,
+        totalPages: Math.max(1, Math.ceil(totalCount / pageSize))
+      };
+      
+      this.state.setState({ 
+        documents: transformed,
+        pagination: this.pagination
+      });
+      
+      if (loadingEl) loadingEl.style.display = "none";
+      this.listView.render(transformed, this.pagination);
     } catch (error) {
       console.error("Error loading documents:", error);
-      loadingEl.style.display = "none";
-      errorEl.textContent = "Failed to load documents: " + error.message;
-      errorEl.style.display = "block";
+      if (loadingEl) loadingEl.style.display = "none";
+      if (errorEl) {
+        errorEl.textContent = "Failed to load documents: " + error.message;
+        errorEl.style.display = "block";
+      }
     }
+  }
+
+  async changePage(page) {
+    const newPage = parseInt(page, 10);
+    if (isNaN(newPage) || newPage < 1 || newPage > this.pagination.totalPages) {
+      console.warn(`Invalid page number: ${page}`);
+      return;
+    }
+    await this.loadDocuments(newPage, this.pagination.pageSize);
+  }
+
+  async changePageSize(newSize) {
+    const size = parseInt(newSize, 10);
+    if (isNaN(size) || size < 1) {
+      console.warn(`Invalid page size: ${newSize}`);
+      return;
+    }
+    await this.loadDocuments(1, size);
   }
 
   onSelectionChanged(documentIds) {

@@ -7,16 +7,19 @@ Pure rendering functions; no state; no side effects; HTML string generation only
 ```
 public/js/views/helpers/
 ├── document-info-renderer.js (metadata HTML)
-└── element-list-renderer.js (element list HTML)
+├── element-list-renderer.js (element list HTML)
+└── pagination-renderer.js (pagination controls HTML)
 ```
 
 ## Responsibilities
 **document-info-renderer.js**: renderDocumentInfo(docData); renderThumbnailSection(docData); renderTagsAndLabels(docData) - Pure functions for document metadata HTML
 **element-list-renderer.js**: renderElementsList(elements); renderElementItem(element); renderElementActions(element) - Pure functions for element list HTML; type-specific action buttons
+**pagination-renderer.js**: renderPaginationControls(pagination); renderDocumentRows(documents) - Pure functions for pagination UI and document table rows
 
 ## Interfaces
 **document-info-renderer.js**: All functions take data objects; return HTML strings; use escapeHtml()
 **element-list-renderer.js**: All functions take element data; return HTML strings; renderElementActions() generates type-specific buttons (BOM for ASSEMBLY)
+**pagination-renderer.js**: All functions take data/state objects; return HTML strings; use escapeHtml()
 
 ## Patterns
 - Pure functions: no side effects; no state mutations
