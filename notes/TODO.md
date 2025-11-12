@@ -47,15 +47,5 @@ The numbering is just show that it's easier to keep track.
             2. Thumbnails should also be downloaded within this folder (if selected)
    3. Implement image/thumbnail downloading
 7. Fix TODO in `public/js/controllers/document-controller.js`
-8. Fix login workflow and overall page navigation
-   1. Current:
-      1. If {authenticated: false}: stays in list view with "Loading...", user has to select "logout" then login
-         1. UPDATE: Fixed somewhat, but other changes introduced and making it so that selecting logout does nothing now. Stuck on non-authenticated version of main view
-      2. If {authenticated: true}: list view loads, no issue
-         1. I have been unable to test this again since changes were made, but this is the expected behaviour
-   2. Goal:
-      1. Default to login screen, check authentication status, if authenticated proceed to list view
-   3. New page(s):
-      1. To help with navigation I think it may be a good idea to add at least one new page:
-         1. `login`: default page when loading the web app, redirects to main page if authenticated
-         2. If other pages are needed let me know
+8. Add page navigation for the main page, currently limited to 20 most recently edited documents.
+9. Add Folder views to mimic Onshape

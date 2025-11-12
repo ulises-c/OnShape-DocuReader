@@ -38,12 +38,15 @@ router.get(
   "/documents",
   async (req: Request, res: Response): Promise<Response> => {
     try {
+      const limit = parseInt(String(req.query.limit || "20"), 10);
+      const offset = parseInt(String(req.query.offset || "0"), 10);
+      
       const client = new OnShapeApiClient(
         req.session.accessToken!,
         req.session.userId,
         usageTracker
       );
-      const documents = await client.getDocuments();
+      const documents = await client.getDocuments(limit, offset);
       return res.json(documents);
     } catch (error) {
       console.error("Get documents error:", error);

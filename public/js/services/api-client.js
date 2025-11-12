@@ -18,8 +18,12 @@ export class ApiClient {
     return res.json();
   }
 
-  async getDocuments() {
-    const res = await fetch("/api/documents");
+  async getDocuments(limit = 20, offset = 0) {
+    const params = new URLSearchParams({
+      limit: String(limit),
+      offset: String(offset)
+    });
+    const res = await fetch(`/api/documents?${params.toString()}`);
     if (!res.ok) throw new Error(`Get documents failed (${res.status})`);
     return res.json();
   }
