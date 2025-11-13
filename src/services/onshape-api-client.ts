@@ -150,6 +150,9 @@ export class OnShapeApiClient {
     limit: number = 20,
     offset: number = 0
   ): Promise<{ items: OnShapeDocument[]; totalCount: number }> {
+    // Diagnostic: log request parameters to trace pagination behavior
+    console.log("OnShapeApiClient.getDocuments request", { limit, offset });
+
     const response = await this.axiosInstance.get("/documents", {
       params: {
         limit,
@@ -158,9 +161,39 @@ export class OnShapeApiClient {
         sortOrder: "desc",
       },
     });
+
+    const data: any = response?.data || {};
+    const items: OnShapeDocument[] = Array.isArray(data.items) ? data.items : [];
+    const totalFromApi =
+      typeof data.totalCount === "number" ? (data.totalCount as number) : undefined;
+
+    // Some Onshape deployments may not return totalCount.
+    // Heuristic: if page is full, assume there might be more, so report "unknown total"
+    // by adding +1 beyond the current window to keep Next enabled. If not full, clamp to actual seen total.
+    const hasMore = items.length === limit;
+    const computedTotal =
+      totalFromApi !== undefined
+        ? totalFromApi
+        : offset + items.length + (hasMore ? 1 : 0);
+
+    // Diagnostic: log response structure and derived values
+    try {
+      console.log("OnShapeApiClient.getDocuments response", {
+        limit,
+        offset,
+        keys: Object.keys(data || {}),
+        itemsLength: items.length,
+        totalFromApi,
+        computedTotal,
+        hasMore,
+      });
+    } catch {
+      // ignore logging errors
+    }
+
     return {
-      items: response.data.items || [],
-      totalCount: response.data.totalCount || response.data.items?.length || 0,
+      items,
+      totalCount: computedTotal,
     };
   }
 

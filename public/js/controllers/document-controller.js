@@ -133,28 +133,57 @@ export class DocumentController {
 
     try {
       const offset = (page - 1) * pageSize;
+
+      // Diagnostics for pagination flow
+      console.log("[DocumentController.loadDocuments] input", {
+        page,
+        pageSize,
+        offset
+      });
+
       const result = await this.documentService.getAll(pageSize, offset);
-      
-      const items = result.items || result || [];
-      const totalCount = result.totalCount !== undefined ? result.totalCount : items.length;
-      
+
+      const items = Array.isArray(result?.items)
+        ? result.items
+        : (Array.isArray(result) ? result : []);
+
+      // If backend does not provide a reliable totalCount, compute a heuristic total so that Next can stay enabled
+      let totalCount;
+      if (typeof result?.totalCount === "number" && result.totalCount >= 0) {
+        totalCount = result.totalCount;
+      } else {
+        const hasMore = items.length === pageSize;
+        totalCount = offset + items.length + (hasMore ? 1 : 0);
+      }
+
+      // More diagnostics
+      console.log("[DocumentController.loadDocuments] api result", {
+        itemsLength: items.length,
+        totalCount,
+        hasMoreAssumed: items.length === pageSize
+      });
+
       const transformed = items.map((d) => ({
         ...d,
         creator: d.createdBy || d.owner,
       }));
-      
+
       this.pagination = {
         currentPage: page,
         pageSize: pageSize,
         totalCount: totalCount,
-        totalPages: Math.max(1, Math.ceil(totalCount / pageSize))
+        totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
       };
-      
-      this.state.setState({ 
+
+      // Diagnostics for computed pagination state
+      console.log("[DocumentController.loadDocuments] pagination computed", this.pagination);
+      console.log("[DocumentController.loadDocuments] render count", transformed.length);
+
+      this.state.setState({
         documents: transformed,
-        pagination: this.pagination
+        pagination: this.pagination,
       });
-      
+
       if (loadingEl) loadingEl.style.display = "none";
       this.listView.render(transformed, this.pagination);
     } catch (error) {
