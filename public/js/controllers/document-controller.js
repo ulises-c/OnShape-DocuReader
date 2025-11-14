@@ -172,6 +172,24 @@ export class DocumentController {
         creator: d.createdBy || d.owner,
       }));
 
+      // If grouping info exists, map group documents to transformed copies
+      let groupsTransformed = null;
+      if (Array.isArray(result?.groups)) {
+        const byId = new Map(transformed.map((d) => [d.id, d]));
+        groupsTransformed = result.groups.map((g) => ({
+          ...g,
+          documents: (g.documents || []).map((doc) => byId.get(doc.id) || doc),
+        }));
+      }
+
+      // Compute hierarchical folder tree either from service or locally from groups
+      let folderTree = null;
+      if (result?.tree) {
+        folderTree = result.tree;
+      } else if (Array.isArray(groupsTransformed)) {
+        folderTree = this._buildFolderTreeFromGroups(groupsTransformed);
+      }
+
       this.pagination = {
         currentPage: page,
         pageSize: pageSize,
@@ -185,11 +203,22 @@ export class DocumentController {
 
       this.state.setState({
         documents: transformed,
+        folderGroups: groupsTransformed || null,
+        folderTree: folderTree || null,
         pagination: this.pagination,
       });
 
       if (loadingEl) loadingEl.style.display = "none";
-      this.listView.render(transformed, this.pagination);
+      if (folderTree) {
+        // Use hierarchical list view by default when a folder tree is available
+        this.listView.renderHierarchicalList
+          ? this.listView.renderHierarchicalList(folderTree, this.pagination)
+          : this.listView.renderFolderGrid(folderTree, this.pagination);
+      } else if (groupsTransformed) {
+        this.listView.renderGrouped(groupsTransformed, this.pagination);
+      } else {
+        this.listView.render(transformed, this.pagination);
+      }
     } catch (error) {
       console.error("Error loading documents:", error);
       if (loadingEl) loadingEl.style.display = "none";

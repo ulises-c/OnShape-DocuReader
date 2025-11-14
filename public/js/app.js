@@ -4,6 +4,7 @@ import { AuthService } from "./services/auth-service.js";
 import { DocumentService } from "./services/document-service.js";
 import { ExportService } from "./services/export-service.js";
 import { ThumbnailService } from "./services/thumbnail-service.js";
+import { FolderService } from "./services/folder-service.js";
 import { Navigation } from "./views/navigation.js";
 import { ModalManager } from "./views/modal-manager.js";
 import { AppController } from "./controllers/app-controller.js";
@@ -18,11 +19,13 @@ const state = new AppState();
 const apiClient = new ApiClient();
 
 // Services bundle
+const folderService = new FolderService();
 const services = {
   authService: new AuthService(apiClient),
-  documentService: new DocumentService(apiClient),
+  documentService: new DocumentService(apiClient, folderService),
   exportService: new ExportService(apiClient),
   thumbnailService: new ThumbnailService(),
+  folderService,
   apiClient: apiClient,
 };
 
