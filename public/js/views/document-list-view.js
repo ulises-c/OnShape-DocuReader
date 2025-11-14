@@ -15,9 +15,14 @@ export class DocumentListView extends BaseView {
 
   _toggleFolderSection(folderId) {
     const headers = qsa(`.folder-header[data-folder-id="${CSS.escape(folderId)}"]`, this.container);
-    const rows = qsa(`tr[data-parent-id="${CSS.escape(folderId)}"]`, this.container);
     const expanded = !this._isExpanded(folderId);
     this._setExpanded(folderId, expanded);
+
+    // Resolve folder path from the first matching header
+    let folderPath = null;
+    if (headers.length > 0) {
+      folderPath = headers[0].getAttribute('data-folder-path') || null;
+    }
 
     // Update header indicator and aria-expanded
     headers.forEach((h) => {
@@ -28,9 +33,26 @@ export class DocumentListView extends BaseView {
       }
     });
 
-    rows.forEach((r) => {
-      r.style.display = expanded ? '' : 'none';
+    // For legacy grid sections (if present), toggle containers
+    const containers = qsa(`.folder-section[data-folder-id="${CSS.escape(folderId)}"] .folder-content`, this.container);
+    containers.forEach((c) => {
+      c.style.display = expanded ? '' : 'none';
     });
+
+    // Path-aware toggle for hierarchical list rows: hide/show descendants
+    if (folderPath) {
+      const selector = `[data-folder-path^="${CSS.escape(folderPath)}/"]`;
+      const rows = qsa(selector, this.container);
+      rows.forEach((row) => {
+        row.style.display = expanded ? '' : 'none';
+      });
+    } else {
+      // Fallback: toggle direct document rows by parent-id
+      const docRows = qsa(`tr.document-card[data-parent-id="${CSS.escape(folderId)}"]`, this.container);
+      docRows.forEach((row) => {
+        row.style.display = expanded ? '' : 'none';
+      });
+    }
   }
 
   _isExpanded(folderId) {
@@ -48,7 +70,6 @@ export class DocumentListView extends BaseView {
   _applyFolderVisibility(folderId) {
     const expanded = this._isExpanded(folderId);
     const headers = qsa(`.folder-header[data-folder-id="${CSS.escape(folderId)}"]`, this.container);
-    const rows = qsa(`tr[data-parent-id="${CSS.escape(folderId)}"]`, this.container);
 
     headers.forEach((h) => {
       const btn = h.querySelector('.folder-toggle');
@@ -56,9 +77,28 @@ export class DocumentListView extends BaseView {
         btn.setAttribute('aria-expanded', String(expanded));
         btn.textContent = expanded ? '▾' : '▸';
       }
+      // If we have a path on this header, apply visibility to all descendant rows
+      const folderPath = h.getAttribute('data-folder-path') || null;
+      if (folderPath) {
+        const selector = `[data-folder-path^="${CSS.escape(folderPath)}/"]`;
+        const rows = qsa(selector, this.container);
+        rows.forEach((row) => {
+          row.style.display = expanded ? '' : 'none';
+        });
+      } else {
+        // Fallback to direct children by parent-id
+        const fid = h.getAttribute('data-folder-id');
+        const docRows = qsa(`tr.document-card[data-parent-id="${CSS.escape(String(fid))}"]`, this.container);
+        docRows.forEach((row) => {
+          row.style.display = expanded ? '' : 'none';
+        });
+      }
     });
-    rows.forEach((r) => {
-      r.style.display = expanded ? '' : 'none';
+
+    // Maintain legacy grid containers if present
+    const containers = qsa(`.folder-section[data-folder-id="${CSS.escape(folderId)}"] .folder-content`, this.container);
+    containers.forEach((c) => {
+      c.style.display = expanded ? '' : 'none';
     });
   }
 
@@ -189,6 +229,9 @@ export class DocumentListView extends BaseView {
     this.renderHtml(html);
     this.bind();
 
+    // Next button behaves as "Fetch more documents" in grouped view
+    this._tweakPaginationForFetchMore();
+
     // Ensure visibility state matches persisted expansion map
     const headers = qsa('.folder-header', this.container);
     headers.forEach((h) => {
@@ -197,9 +240,144 @@ export class DocumentListView extends BaseView {
     });
   }
 
+  /**
+   * Render hierarchical folder grid from a root node.
+   * Node shape: { folder, documents[], children[], groupModifiedAt }
+   */
+  renderFolderGrid(rootNode, pagination = null) {
+    // Hierarchical LIST view using a single table; collapsible via path-aware selectors
+    if (!rootNode || !rootNode.folder) {
+      this.renderHtml('<p style="text-align:center; color:#666; font-style:italic;">No documents found</p>');
+      return;
+    }
+
+    const paginationHtml = pagination ? renderPaginationControls(pagination) : '';
+    const colCount = 8;
+    const rows = [];
+
+    // Render a folder header row and its content rows (documents + nested folders)
+    const renderNodeRows = (node, level = 0, path = 'root') => {
+      const fid = String(node.folder?.id || 'root');
+      const fname = escapeHtml(String(node.folder?.name || (fid === 'root' ? 'Root' : `Folder ${fid}`)));
+      const count = Array.isArray(node.documents) ? node.documents.length : 0;
+      const expanded = this._isExpanded(fid);
+      const indicator = expanded ? '▾' : '▸';
+
+      const indent = Math.max(0, level) * 12;
+
+      // Folder header row carries both folder id and a stable folder path for path-aware toggling
+      rows.push(`
+        <tr class="folder-header" data-folder-id="${escapeHtml(fid)}" data-folder-path="${escapeHtml(path)}">
+          <td colspan="${colCount}">
+            <button class="folder-toggle" aria-expanded="${expanded}" aria-controls="folder-${escapeHtml(fid)}" style="background:none;border:none;cursor:pointer;font-size:14px;">
+              ${indicator}
+            </button>
+            <span class="folder-name" style="font-weight:600; margin-left: 6px; padding-left:${indent}px;">${fname}</span>
+            <span class="folder-count" style="color:#666; margin-left: 6px;">(${count})</span>
+          </td>
+        </tr>
+      `);
+
+      // Document rows under this folder
+      if (Array.isArray(node.documents)) {
+        for (const d of node.documents) {
+          const hiddenAttr = expanded ? '' : 'style="display:none"';
+          const creatorName = escapeHtml(String((d.creator?.name || d.owner?.name || d.createdBy?.name || '') || ''));
+          const createdAt = escapeHtml(String(d.createdAt || ''));
+          const modifiedAt = escapeHtml(String(d.modifiedAt || ''));
+          const lastModBy = escapeHtml(String(d.lastModifiedBy?.name || ''));
+          const typeText = d.isPublic === true ? 'Public' : (d.isPublic === false ? 'Private' : '-');
+
+          rows.push(`
+            <tr class="document-card" data-id="${escapeHtml(String(d.id))}" data-parent-id="${escapeHtml(fid)}" data-folder-path="${escapeHtml(path)}" ${hiddenAttr}>
+              <td class="select-column"><input type="checkbox" class="doc-checkbox" value="${escapeHtml(String(d.id))}"></td>
+              <td>${escapeHtml(String(d.name || 'Untitled'))}</td>
+              <td>${creatorName || '-'}</td>
+              <td>${createdAt || '-'}</td>
+              <td>${modifiedAt || '-'}</td>
+              <td>${lastModBy || '-'}</td>
+              <td>${escapeHtml(String(node.folder?.name || (fid === 'root' ? 'Root' : `Folder ${fid}`)))}</td>
+              <td>${escapeHtml(String(typeText))}</td>
+            </tr>
+          `);
+        }
+      }
+
+      // Recurse into children; each child inherits and extends the folder path
+      if (Array.isArray(node.children) && node.children.length) {
+        for (const child of node.children) {
+          const childId = String(child.folder?.id || '');
+          const childPath = path ? `${path}/${childId}` : childId || 'root';
+          renderNodeRows(child, level + 1, childPath);
+        }
+      }
+    };
+
+    // Table header + rows
+    const tableHead = `
+      <thead>
+        <tr>
+          <th class="select-column"><input type="checkbox" id="selectAll" title="Select All"></th>
+          <th>Name</th>
+          <th>Creator</th>
+          <th>Date Created</th>
+          <th>Date Modified</th>
+          <th>Last Modified By</th>
+          <th>Parent</th>
+          <th>Type</th>
+        </tr>
+      </thead>
+    `;
+
+    // Kick off rendering from root with path "root"
+    renderNodeRows(rootNode, 0, 'root');
+
+    const html = `
+      <table class="doc-details-table">
+        ${tableHead}
+        <tbody id="folder-tree-body">
+          ${rows.join('')}
+        </tbody>
+      </table>
+      ${paginationHtml}
+    `;
+
+    this.renderHtml(html);
+    this.bind();
+
+    // Next button behaves as "Fetch more documents" in hierarchical list view
+    this._tweakPaginationForFetchMore();
+
+    // Ensure visibility state matches persisted expansion map
+    const headers = qsa('.folder-header', this.container);
+    headers.forEach((h) => {
+      const fid = h.getAttribute('data-folder-id');
+      if (fid) this._applyFolderVisibility(fid);
+    });
+  }
+
+  _tweakPaginationForFetchMore() {
+    try {
+      const nextBtn = qs('.pagination-btn[data-action="next"]', this.container);
+      if (nextBtn) {
+        nextBtn.textContent = 'Fetch more documents';
+        nextBtn.title = 'Load the next batch of documents';
+        if (this.controller && this.controller.hasMore === false) {
+          nextBtn.setAttribute('disabled', 'true');
+          nextBtn.classList.add('disabled');
+        } else {
+          nextBtn.removeAttribute('disabled');
+          nextBtn.classList.remove('disabled');
+        }
+      }
+    } catch {
+      // no-op, cosmetic only
+    }
+  }
+
   bind() {
     this.unbind();
-    // Row click (document open)
+    // Row/cell/card click (document open)
     this._unsub.push(
       this._delegate('.document-card', 'click', (e, row) => {
         if (e.target.type === 'checkbox' || e.target.closest('.select-column')) return;
@@ -260,14 +438,29 @@ export class DocumentListView extends BaseView {
   _bindPaginationControls() {
     // Navigation buttons
     qsa('.pagination-btn', this.container).forEach((btn) => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
         const action = btn.getAttribute('data-action');
         const pagination = this.controller.pagination;
+
+        // Intercept "next" to perform incremental fetch-and-append
+        if (action === 'next') {
+          e.preventDefault();
+          if (btn.hasAttribute('disabled')) return;
+          if (typeof this.controller.fetchMore === 'function') {
+            this.controller.fetchMore();
+          } else {
+            // Fallback to page change if fetchMore is not available
+            const target = Math.min(pagination.totalPages, pagination.currentPage + 1);
+            if (target !== pagination.currentPage) {
+              this.controller.changePage(target);
+            }
+          }
+          return;
+        }
         
         let targetPage = pagination.currentPage;
         if (action === 'first') targetPage = 1;
         else if (action === 'prev') targetPage = Math.max(1, pagination.currentPage - 1);
-        else if (action === 'next') targetPage = Math.min(pagination.totalPages, pagination.currentPage + 1);
         else if (action === 'last') targetPage = pagination.totalPages;
         
         if (targetPage !== pagination.currentPage) {

@@ -1,4 +1,3 @@
-// file: public/js/services/folder-service.js
 /**
  * FolderService - fetches folder metadata with simple in-memory cache.
  * Server provides SQLite-backed caching and X-Cache headers for observability.
@@ -7,11 +6,71 @@ export class FolderService {
   constructor() {
     this._cache = new Map(); // id -> { data, expiresAt }
     this._ttlMs = 5 * 60 * 1000; // client-side soft TTL
+    this._rootPreloaded = false;
+  }
+
+  /**
+   * Preload top-level folder tree and seed the cache with parentId = "root".
+   * This primes hierarchy so UI can nest top-level folders correctly.
+   */
+  async preloadRootTree() {
+    if (this._rootPreloaded) return;
+    try {
+      const res = await fetch(`/api/folders/tree/root`);
+      if (!res.ok) throw new Error(`Preload root tree failed (${res.status})`);
+      const data = await res.json();
+      const now = Date.now();
+      if (Array.isArray(data?.folders)) {
+        for (const f of data.folders) {
+          const out = {
+            id: String(f.id),
+            name: String(f.name || `Folder ${f.id}`),
+            description: null,
+            owner: null,
+            modifiedAt: null,
+            parentId: f.parentId ?? "root",
+          };
+          this._cache.set(out.id, { data: out, expiresAt: now + this._ttlMs });
+        }
+      }
+      this._rootPreloaded = true;
+    } catch (e) {
+      console.warn("FolderService.preloadRootTree failed:", e);
+    }
+  }
+
+  /**
+   * Optionally preload children for a specific folder to enhance hierarchy depth.
+   * Non-blocking enrichment; failures do not break UI.
+   */
+  async preloadFolderTree(folderId) {
+    if (!folderId || folderId === "root") return;
+    try {
+      const res = await fetch(`/api/folders/tree/${encodeURIComponent(folderId)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const now = Date.now();
+      if (Array.isArray(data?.folders)) {
+        for (const f of data.folders) {
+          const out = {
+            id: String(f.id),
+            name: String(f.name || `Folder ${f.id}`),
+            description: null,
+            owner: null,
+            modifiedAt: null,
+            parentId: f.parentId ?? folderId,
+          };
+          this._cache.set(out.id, { data: out, expiresAt: now + this._ttlMs });
+        }
+      }
+    } catch {
+      // silently ignore
+    }
   }
 
   /**
    * Get folder info for a single folder id.
-   * Returns { id, name, description, owner, modifiedAt }
+   * Returns { id, name, description, owner, modifiedAt, parentId }
    */
   async getFolderInfo(folderId) {
     if (!folderId || folderId === "root") {
@@ -21,6 +80,7 @@ export class FolderService {
         description: null,
         owner: null,
         modifiedAt: null,
+        parentId: null,
       };
     }
 
@@ -39,6 +99,7 @@ export class FolderService {
         description: data.description ?? null,
         owner: data.owner ?? null,
         modifiedAt: data.modifiedAt ?? null,
+        parentId: data.parentId ?? null,
       };
 
       // Cache the result
@@ -52,6 +113,7 @@ export class FolderService {
         description: null,
         owner: null,
         modifiedAt: null,
+        parentId: null,
       };
       this._cache.set(folderId, { data: fallback, expiresAt: now + 30_000 });
       return fallback;
@@ -81,6 +143,13 @@ export class FolderService {
     }
 
     if (misses.length) {
+      // Soft-preload children of each candidate to capture parent relationships deeper in the tree.
+      // This runs in the background and does not block the batch resolution.
+      misses.forEach((fid) => {
+        // Fire and forget to opportunistically enrich hierarchy
+        this.preloadFolderTree(fid);
+      });
+
       const results = await Promise.allSettled(
         misses.map((id) => this.getFolderInfo(id))
       );
@@ -95,6 +164,7 @@ export class FolderService {
             description: null,
             owner: null,
             modifiedAt: null,
+            parentId: null,
           };
         }
       });

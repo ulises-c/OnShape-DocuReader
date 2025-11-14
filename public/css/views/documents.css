@@ -101,11 +101,13 @@
 }
 
 .documents-grid {
-  display: block;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--spacing-lg);
   width: 100%;
-  overflow-x: auto;
+  overflow: hidden;
   margin: 0;
-  padding: 0;
+  padding: 0.5rem 0;
 }
 
 .document-card {

@@ -9,6 +9,15 @@ export class DocumentService {
   }
 
   async getAll(limit = 20, offset = 0) {
+    // Prime top-level folder hierarchy so parentId for root children is known.
+    if (this.folderService?.preloadRootTree) {
+      try {
+        await this.folderService.preloadRootTree();
+      } catch {
+        // non-fatal
+      }
+    }
+
     const result = await this.api.getDocuments(limit, offset);
     if (!this.folderService) return result;
 
@@ -21,8 +30,7 @@ export class DocumentService {
     // Group by parentId (documents without parentId go to "root")
     const groupsMap = new Map();
     for (const d of items) {
-      const parentId =
-        d.parentId || d.parent?.id || null;
+      const parentId = d.parentId || d.parent?.id || null;
       const key = parentId || "root";
       if (!groupsMap.has(key)) groupsMap.set(key, []);
       groupsMap.get(key).push(d);
@@ -69,13 +77,20 @@ export class DocumentService {
       folderMap = {};
     }
 
+    // Opportunistically preload children for each encountered folder, to enrich hierarchy depth progressively.
+    if (this.folderService?.preloadFolderTree) {
+      nonRootIds.forEach((fid) => {
+        this.folderService.preloadFolderTree(fid);
+      });
+    }
+
     const groups = [];
     for (const [key, docs] of groupsMap.entries()) {
       const isRoot = key === "root";
       const folderInfo = isRoot
-        ? { id: "root", name: "Root", description: null, owner: null, modifiedAt: null }
+        ? { id: "root", name: "Root", description: null, owner: null, modifiedAt: null, parentId: null }
         : folderMap[key] ||
-          { id: key, name: `Folder ${key}`, description: null, owner: null, modifiedAt: null };
+          { id: key, name: `Folder ${key}`, description: null, owner: null, modifiedAt: null, parentId: null };
 
       groups.push({
         folder: folderInfo,
@@ -95,6 +110,9 @@ export class DocumentService {
       return bm - am;
     });
 
+    // Build hierarchical tree using folder parentId relationships
+    const tree = this.buildTreeFromGroups(groups);
+
     return {
       items,
       totalCount:
@@ -102,7 +120,57 @@ export class DocumentService {
           ? result.totalCount
           : items.length,
       groups,
+      tree,
     };
+  }
+
+  /**
+   * Build a hierarchical folder tree from flat groups.
+   * Returns a root node: { folder, documents, children[], groupModifiedAt }
+   */
+  buildTreeFromGroups(groups) {
+    const nodesById = new Map();
+    // Create nodes for each group
+    for (const g of groups) {
+      nodesById.set(String(g.folder.id), {
+        folder: g.folder,
+        documents: Array.isArray(g.documents) ? g.documents.slice() : [],
+        groupModifiedAt: g.groupModifiedAt || null,
+        children: [],
+      });
+    }
+
+    // Ensure a root node exists
+    if (!nodesById.has("root")) {
+      nodesById.set("root", {
+        folder: { id: "root", name: "Root", description: null, owner: null, modifiedAt: null, parentId: null },
+        documents: [],
+        groupModifiedAt: null,
+        children: [],
+      });
+    }
+
+    // Link nodes to parents
+    for (const [id, node] of nodesById.entries()) {
+      if (id === "root") continue;
+      const parentId = node.folder?.parentId || null;
+      const parentNode =
+        (parentId && nodesById.get(String(parentId))) || nodesById.get("root");
+      parentNode.children.push(node);
+    }
+
+    // Sort children by latest activity
+    for (const [_id, node] of nodesById.entries()) {
+      if (Array.isArray(node.children) && node.children.length) {
+        node.children.sort((a, b) => {
+          const am = new Date(a.groupModifiedAt || 0).getTime();
+          const bm = new Date(b.groupModifiedAt || 0).getTime();
+          return bm - am;
+        });
+      }
+    }
+
+    return nodesById.get("root");
   }
 
   async getById(documentId) {

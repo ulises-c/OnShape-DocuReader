@@ -23,6 +23,19 @@ folderDb.exec(`
   CREATE INDEX IF NOT EXISTS idx_folders_fetched ON folders(fetched_at);
 `);
 
+// Try to add parent_id column if it does not exist yet (idempotent via try/catch)
+try {
+  const cols = folderDb
+    .prepare("PRAGMA table_info(folders)")
+    .all()
+    .map((r: any) => r.name);
+  if (!cols.includes("parent_id")) {
+    folderDb.exec(`ALTER TABLE folders ADD COLUMN parent_id TEXT`);
+  }
+} catch (e) {
+  // ignore migration errors
+}
+
 const requireAuth = (
   req: Request,
   res: Response,
@@ -49,6 +62,7 @@ router.get(
           description: null,
           owner: null,
           modifiedAt: null,
+          parentId: null,
         });
       }
 
@@ -65,6 +79,7 @@ router.get(
             modified_at?: string | null;
             fetched_at?: string | null;
             microversion?: string | null;
+            parent_id?: string | null;
           }
         | undefined;
 
@@ -82,6 +97,7 @@ router.get(
           description: row.description ?? null,
           owner: row.owner ?? null,
           modifiedAt: row.modified_at ?? null,
+          parentId: row.parent_id ?? null,
         });
       }
 
@@ -99,23 +115,25 @@ router.get(
         description:
           typeof folder.description === "string" ? folder.description : null,
         owner:
-        folder?.owner?.name ||
-        folder?.owner?.id ||
-        (typeof folder.owner === "string" ? folder.owner : null),
+          folder?.owner?.name ||
+          folder?.owner?.id ||
+          (typeof folder.owner === "string" ? folder.owner : null),
         owner_type:
           typeof folder?.owner?.type === "number" ? folder.owner.type : null,
-        created_at:
-          folder.createdAt || folder.created_at || null,
-        modified_at:
-          folder.modifiedAt || folder.modified_at || null,
+        created_at: folder.createdAt || folder.created_at || null,
+        modified_at: folder.modifiedAt || folder.modified_at || null,
         microversion: folder.microversion || null,
+        parent_id:
+          folder?.parentId ||
+          folder?.parent?.id ||
+          null,
       };
 
       folderDb
         .prepare(
           `
-          INSERT INTO folders (id, name, description, owner, owner_type, created_at, modified_at, microversion, fetched_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+          INSERT INTO folders (id, name, description, owner, owner_type, created_at, modified_at, microversion, fetched_at, parent_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?)
           ON CONFLICT(id) DO UPDATE SET
             name=excluded.name,
             description=excluded.description,
@@ -124,7 +142,8 @@ router.get(
             created_at=excluded.created_at,
             modified_at=excluded.modified_at,
             microversion=excluded.microversion,
-            fetched_at=datetime('now')
+            fetched_at=datetime('now'),
+            parent_id=excluded.parent_id
         `
         )
         .run(
@@ -135,7 +154,8 @@ router.get(
           info.owner_type ?? null,
           info.created_at,
           info.modified_at,
-          info.microversion
+          info.microversion,
+          info.parent_id
         );
 
       res.setHeader("X-Cache", "MISS");
@@ -145,6 +165,7 @@ router.get(
         description: info.description,
         owner: info.owner,
         modifiedAt: info.modified_at,
+        parentId: info.parent_id ?? null,
       });
     } catch (error: any) {
       console.error("Get folder error:", error);
@@ -159,6 +180,7 @@ router.get(
           description: row.description ?? null,
           owner: row.owner ?? null,
           modifiedAt: row.modified_at ?? null,
+          parentId: row.parent_id ?? null,
         });
       }
       res.setHeader("X-Cache", "MISS");
@@ -168,7 +190,128 @@ router.get(
         description: null,
         owner: null,
         modifiedAt: null,
+        parentId: null,
       });
+    }
+  }
+);
+
+// Global tree: top-level nodes
+router.get(
+  "/folders/tree/root",
+  async (req: Request, res: Response): Promise<Response> => {
+    try {
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
+      const data: any = await client.getGlobalTreeMagicRoot(true);
+
+      // Attempt to extract list of nodes resiliently across possible shapes
+      const list: any[] = Array.isArray(data?.items)
+        ? data.items
+        : Array.isArray(data?.children)
+        ? data.children
+        : Array.isArray(data?.nodes)
+        ? data.nodes
+        : Array.isArray(data)
+        ? data
+        : [];
+
+      // Heuristic: identify folder-like nodes conservatively
+      const folders = list.filter((n: any) => {
+        const t = String(n?.nodeType || n?.type || n?.kind || "").toLowerCase();
+        return (
+          t.includes("folder") ||
+          n?.isContainer === true ||
+          n?.folder === true ||
+          t === "w" // some deployments mark folder as 'w'
+        );
+      });
+
+      const upsert = folderDb.prepare(`
+        INSERT INTO folders (id, name, parent_id, fetched_at)
+        VALUES (?, ?, ?, datetime('now'))
+        ON CONFLICT(id) DO UPDATE SET
+          name=excluded.name,
+          parent_id=excluded.parent_id,
+          fetched_at=datetime('now')
+      `);
+
+      const simplified = folders.map((n: any) => {
+        const id = String(n?.id || n?.folderId || n?.oid || "");
+        const name = String(n?.name || n?.label || `Folder ${id}`);
+        // At top-level, parent is virtual "root"
+        upsert.run(id, name, "root");
+        return { id, name, parentId: "root" };
+      });
+
+      return res.json({ folders: simplified });
+    } catch (error) {
+      console.error("Get global tree root error:", error);
+      return res.status(500).json({ error: "Failed to fetch folder tree root" });
+    }
+  }
+);
+
+// Global tree: children of a specific folder id
+router.get(
+  "/folders/tree/:id",
+  async (req: Request, res: Response): Promise<Response> => {
+    const id = String(req.params.id || "").trim();
+    if (!id) return res.status(400).json({ error: "Folder id is required" });
+
+    try {
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
+      const data: any = await client.getGlobalTreeFolder(id);
+
+      const list: any[] = Array.isArray(data?.items)
+        ? data.items
+        : Array.isArray(data?.children)
+        ? data.children
+        : Array.isArray(data?.nodes)
+        ? data.nodes
+        : Array.isArray(data)
+        ? data
+        : [];
+
+      const folders = list.filter((n: any) => {
+        const t = String(n?.nodeType || n?.type || n?.kind || "").toLowerCase();
+        return (
+          t.includes("folder") ||
+          n?.isContainer === true ||
+          n?.folder === true ||
+          t === "w"
+        );
+      });
+
+      const upsert = folderDb.prepare(`
+        INSERT INTO folders (id, name, parent_id, fetched_at)
+        VALUES (?, ?, ?, datetime('now'))
+        ON CONFLICT(id) DO UPDATE SET
+          name=excluded.name,
+          parent_id=excluded.parent_id,
+          fetched_at=datetime('now')
+      `);
+
+      const simplified = folders.map((n: any) => {
+        const fid = String(n?.id || n?.folderId || n?.oid || "");
+        const name = String(n?.name || n?.label || `Folder ${fid}`);
+        upsert.run(fid, name, id);
+        return { id: fid, name, parentId: id };
+      });
+
+      return res.json({ folders: simplified });
+    } catch (error) {
+      console.error("Get global tree folder error:", error);
+      return res
+        .status(500)
+        .json({ error: "Failed to fetch folder children" });
     }
   }
 );
