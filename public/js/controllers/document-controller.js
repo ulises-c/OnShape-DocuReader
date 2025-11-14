@@ -168,16 +168,6 @@ export class DocumentController {
         creator: d.createdBy || d.owner,
       }));
 
-      // If grouping info exists, map group documents to transformed copies
-      let groupsTransformed = null;
-      if (Array.isArray(result?.groups)) {
-        const byId = new Map(transformed.map((d) => [d.id, d]));
-        groupsTransformed = result.groups.map((g) => ({
-          ...g,
-          documents: (g.documents || []).map((doc) => byId.get(doc.id) || doc),
-        }));
-      }
-
       this.pagination = {
         currentPage: page,
         pageSize: pageSize,
@@ -191,16 +181,11 @@ export class DocumentController {
 
       this.state.setState({
         documents: transformed,
-        folderGroups: groupsTransformed || null,
         pagination: this.pagination,
       });
 
       if (loadingEl) loadingEl.style.display = "none";
-      if (groupsTransformed) {
-        this.listView.renderGrouped(groupsTransformed, this.pagination);
-      } else {
-        this.listView.render(transformed, this.pagination);
-      }
+      this.listView.render(transformed, this.pagination);
     } catch (error) {
       console.error("Error loading documents:", error);
       if (loadingEl) loadingEl.style.display = "none";

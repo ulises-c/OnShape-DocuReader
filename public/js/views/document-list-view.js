@@ -3,7 +3,7 @@
  */
 
 import { BaseView } from './base-view.js';
-import { qsa, qs, escapeHtml } from '../utils/dom-helpers.js';
+import { qsa, qs } from '../utils/dom-helpers.js';
 import { renderPaginationControls, renderDocumentRows } from './helpers/pagination-renderer.js';
 
 export class DocumentListView extends BaseView {
@@ -11,72 +11,6 @@ export class DocumentListView extends BaseView {
     super(containerSelector);
     this.controller = controller;
     this._unsub = [];
-  }
-
-  _toggleFolderSection(folderId) {
-    const headers = qsa(`.folder-header[data-folder-id="${CSS.escape(folderId)}"]`, this.container);
-    const rows = qsa(`tr[data-parent-id="${CSS.escape(folderId)}"]`, this.container);
-    const expanded = !this._isExpanded(folderId);
-    this._setExpanded(folderId, expanded);
-
-    // Update header indicator and aria-expanded
-    headers.forEach((h) => {
-      const btn = h.querySelector('.folder-toggle');
-      if (btn) {
-        btn.setAttribute('aria-expanded', String(expanded));
-        btn.textContent = expanded ? '▾' : '▸';
-      }
-    });
-
-    rows.forEach((r) => {
-      r.style.display = expanded ? '' : 'none';
-    });
-  }
-
-  _isExpanded(folderId) {
-    const map = this._getExpandedMap();
-    if (folderId === 'root' && map.root == null) return true; // default expand root
-    return !!map[folderId];
-  }
-
-  _setExpanded(folderId, expanded) {
-    const map = this._getExpandedMap();
-    map[folderId] = !!expanded;
-    this._saveExpandedMap(map);
-  }
-
-  _applyFolderVisibility(folderId) {
-    const expanded = this._isExpanded(folderId);
-    const headers = qsa(`.folder-header[data-folder-id="${CSS.escape(folderId)}"]`, this.container);
-    const rows = qsa(`tr[data-parent-id="${CSS.escape(folderId)}"]`, this.container);
-
-    headers.forEach((h) => {
-      const btn = h.querySelector('.folder-toggle');
-      if (btn) {
-        btn.setAttribute('aria-expanded', String(expanded));
-        btn.textContent = expanded ? '▾' : '▸';
-      }
-    });
-    rows.forEach((r) => {
-      r.style.display = expanded ? '' : 'none';
-    });
-  }
-
-  _getExpandedMap() {
-    try {
-      const raw = sessionStorage.getItem('folderExpanded');
-      return raw ? JSON.parse(raw) : {};
-    } catch {
-      return {};
-    }
-  }
-
-  _saveExpandedMap(map) {
-    try {
-      sessionStorage.setItem('folderExpanded', JSON.stringify(map || {}));
-    } catch {
-      // ignore storage errors
-    }
   }
 
   render(documents, pagination = null) {
@@ -108,93 +42,6 @@ export class DocumentListView extends BaseView {
     `;
     this.renderHtml(html);
     this.bind();
-  }
-
-  renderGrouped(folderGroups, pagination = null) {
-    if (!Array.isArray(folderGroups) || folderGroups.length === 0) {
-      this.renderHtml('<p style="text-align:center; color:#666; font-style:italic;">No documents found</p>');
-      return;
-    }
-
-    const paginationHtml = pagination ? renderPaginationControls(pagination) : '';
-    const bodyRows = [];
-
-    const colCount = 8;
-    for (const g of folderGroups) {
-      const folderId = String(g.folder?.id || 'root');
-      const folderName = escapeHtml(String(g.folder?.name || (folderId === 'root' ? 'Root' : `Folder ${folderId}`)));
-      const count = Array.isArray(g.documents) ? g.documents.length : 0;
-      const expanded = this._isExpanded(folderId);
-      const indicator = expanded ? '▾' : '▸';
-
-      // Folder header row
-      bodyRows.push(`
-        <tr class="folder-header" data-folder-id="${escapeHtml(folderId)}">
-          <td colspan="${colCount}">
-            <button class="folder-toggle" aria-expanded="${expanded}" aria-controls="folder-${escapeHtml(folderId)}" style="background:none;border:none;cursor:pointer;font-size:14px;">
-              ${indicator}
-            </button>
-            <span class="folder-name" style="font-weight:600; margin-left: 6px;">${folderName}</span>
-            <span class="folder-count" style="color:#666; margin-left: 6px;">(${count})</span>
-          </td>
-        </tr>
-      `);
-
-      // Document rows under this folder
-      if (Array.isArray(g.documents)) {
-        for (const d of g.documents) {
-          const hiddenAttr = expanded ? '' : 'style="display:none"';
-          const creatorName = escapeHtml(String((d.creator?.name || d.owner?.name || d.createdBy?.name || '') || ''));
-          const createdAt = escapeHtml(String(d.createdAt || ''));
-          const modifiedAt = escapeHtml(String(d.modifiedAt || ''));
-          const lastModBy = escapeHtml(String(d.lastModifiedBy?.name || ''));
-          const typeText = d.isPublic === true ? 'Public' : (d.isPublic === false ? 'Private' : '-');
-
-          bodyRows.push(`
-            <tr class="document-card" data-id="${escapeHtml(String(d.id))}" data-parent-id="${escapeHtml(folderId)}" ${hiddenAttr}>
-              <td class="select-column"><input type="checkbox" class="doc-checkbox" value="${escapeHtml(String(d.id))}"></td>
-              <td>${escapeHtml(String(d.name || 'Untitled'))}</td>
-              <td>${creatorName || '-'}</td>
-              <td>${createdAt || '-'}</td>
-              <td>${modifiedAt || '-'}</td>
-              <td>${lastModBy || '-'}</td>
-              <td>${folderName}</td>
-              <td>${escapeHtml(String(typeText))}</td>
-            </tr>
-          `);
-        }
-      }
-    }
-
-    const html = `
-      <table class="doc-details-table">
-        <thead>
-          <tr>
-            <th class="select-column"><input type="checkbox" id="selectAll" title="Select All"></th>
-            <th>Name</th>
-            <th>Creator</th>
-            <th>Date Created</th>
-            <th>Date Modified</th>
-            <th>Last Modified By</th>
-            <th>Parent</th>
-            <th>Type</th>
-          </tr>
-        </thead>
-        <tbody id="folder-groups-body">
-          ${bodyRows.join('')}
-        </tbody>
-      </table>
-      ${paginationHtml}
-    `;
-    this.renderHtml(html);
-    this.bind();
-
-    // Ensure visibility state matches persisted expansion map
-    const headers = qsa('.folder-header', this.container);
-    headers.forEach((h) => {
-      const fid = h.getAttribute('data-folder-id');
-      if (fid) this._applyFolderVisibility(fid);
-    });
   }
 
   bind() {
@@ -240,18 +87,6 @@ export class DocumentListView extends BaseView {
 
     // Pagination controls
     this._bindPaginationControls();
-
-    // Folder toggle controls
-    this._unsub.push(
-      this._delegate('.folder-header', 'click', (e, header) => {
-        const btn = e.target.closest('.folder-toggle');
-        if (!btn && !e.target.closest('.folder-header')) return;
-        const folderId = header.getAttribute('data-folder-id');
-        if (folderId) {
-          this._toggleFolderSection(folderId);
-        }
-      })
-    );
 
     // Initialize button state
     this._notifySelectionChanged();

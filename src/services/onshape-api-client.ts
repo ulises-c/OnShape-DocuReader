@@ -387,25 +387,6 @@ export class OnShapeApiClient {
     }
   }
 
-  async getFolder(folderId: string): Promise<any> {
-    try {
-      const response = await this.axiosInstance.get(`/folders/${encodeURIComponent(folderId)}`);
-      return response.data || {};
-    } catch (error: any) {
-      console.error(
-        "Get folder error:",
-        error.response
-          ? {
-              status: error.response.status,
-              data: error.response.data,
-              url: error.config?.url,
-            }
-          : error
-      );
-      throw error;
-    }
-  }
-
   async exportAll(options: any, ids?: string[]): Promise<any> {
     let documentsToExport: OnShapeDocumentInfo[];
 
