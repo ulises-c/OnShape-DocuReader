@@ -387,52 +387,6 @@ export class OnShapeApiClient {
     }
   }
 
-  // Some endpoints are not versioned (not under /api/vX). Derive root /api base safely.
-  private rootApiBase(): string {
-    try {
-      return oauthConfig.baseApiUrl.replace(/\/api\/v?\d+$/i, "/api");
-    } catch {
-      return "https://cad.onshape.com/api";
-    }
-  }
-
-  // Global tree root: lists top-level folders/documents; optional path-to-root for breadcrumbs.
-  async getGlobalTreeMagicRoot(getPathToRoot: boolean = true): Promise<any> {
-    const url = `${this.rootApiBase()}/globaltreenodes/magic/1`;
-    const response = await this.axiosInstance.get(url, {
-      params: { getPathToRoot: getPathToRoot ? "true" : "false" },
-    });
-    return response.data;
-  }
-
-  // Contents of a folder: returns folders and documents under the given folder id.
-  async getGlobalTreeFolder(folderId: string): Promise<any> {
-    const url = `${this.rootApiBase()}/globaltreenodes/folder/${encodeURIComponent(
-      folderId
-    )}`;
-    const response = await this.axiosInstance.get(url);
-    return response.data;
-  }
-
-  async getFolder(folderId: string): Promise<any> {
-    try {
-      const response = await this.axiosInstance.get(`/folders/${encodeURIComponent(folderId)}`);
-      return response.data || {};
-    } catch (error: any) {
-      console.error(
-        "Get folder error:",
-        error.response
-          ? {
-              status: error.response.status,
-              data: error.response.data,
-              url: error.config?.url,
-            }
-          : error
-      );
-      throw error;
-    }
-  }
-
   async exportAll(options: any, ids?: string[]): Promise<any> {
     let documentsToExport: OnShapeDocumentInfo[];
 
