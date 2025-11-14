@@ -2,9 +2,26 @@ import { Router } from "express";
 import type { Request, Response, NextFunction } from "express";
 import { OnShapeApiClient } from "../services/onshape-api-client.ts";
 import { ApiUsageTracker } from "../services/api-usage-tracker.ts";
+import Database from "better-sqlite3";
 
 const router = Router();
 const usageTracker = new ApiUsageTracker();
+
+const folderDb = new Database(".data/app.db");
+folderDb.exec(`
+  CREATE TABLE IF NOT EXISTS folders (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    owner TEXT,
+    owner_type INTEGER,
+    created_at TEXT,
+    modified_at TEXT,
+    fetched_at TEXT DEFAULT (datetime('now')),
+    microversion TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_folders_fetched ON folders(fetched_at);
+`);
 
 const requireAuth = (
   req: Request,
@@ -18,6 +35,143 @@ const requireAuth = (
 };
 
 router.use(requireAuth);
+
+router.get(
+  "/folders/:id",
+  async (req: Request, res: Response): Promise<Response> => {
+    const id = String(req.params.id || "").trim();
+    try {
+      if (!id || id.toLowerCase() === "root") {
+        res.setHeader("X-Cache", "BYPASS");
+        return res.json({
+          id: "root",
+          name: "Root",
+          description: null,
+          owner: null,
+          modifiedAt: null,
+        });
+      }
+
+      const row = folderDb
+        .prepare("SELECT * FROM folders WHERE id = ?")
+        .get(id) as
+        | {
+            id: string;
+            name: string;
+            description?: string | null;
+            owner?: string | null;
+            owner_type?: number | null;
+            created_at?: string | null;
+            modified_at?: string | null;
+            fetched_at?: string | null;
+            microversion?: string | null;
+          }
+        | undefined;
+
+      const TTL_MS = 7 * 24 * 60 * 60 * 1000;
+      const isFresh =
+        !!row &&
+        !!row.fetched_at &&
+        Date.now() - new Date(row.fetched_at).getTime() < TTL_MS;
+
+      if (isFresh) {
+        res.setHeader("X-Cache", "HIT");
+        return res.json({
+          id: row.id,
+          name: row.name,
+          description: row.description ?? null,
+          owner: row.owner ?? null,
+          modifiedAt: row.modified_at ?? null,
+        });
+      }
+
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
+
+      const folder = await client.getFolder(id);
+
+      const info = {
+        id: String(folder.id || id),
+        name: String(folder.name || `Folder ${id}`),
+        description:
+          typeof folder.description === "string" ? folder.description : null,
+        owner:
+        folder?.owner?.name ||
+        folder?.owner?.id ||
+        (typeof folder.owner === "string" ? folder.owner : null),
+        owner_type:
+          typeof folder?.owner?.type === "number" ? folder.owner.type : null,
+        created_at:
+          folder.createdAt || folder.created_at || null,
+        modified_at:
+          folder.modifiedAt || folder.modified_at || null,
+        microversion: folder.microversion || null,
+      };
+
+      folderDb
+        .prepare(
+          `
+          INSERT INTO folders (id, name, description, owner, owner_type, created_at, modified_at, microversion, fetched_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+          ON CONFLICT(id) DO UPDATE SET
+            name=excluded.name,
+            description=excluded.description,
+            owner=excluded.owner,
+            owner_type=excluded.owner_type,
+            created_at=excluded.created_at,
+            modified_at=excluded.modified_at,
+            microversion=excluded.microversion,
+            fetched_at=datetime('now')
+        `
+        )
+        .run(
+          info.id,
+          info.name,
+          info.description,
+          info.owner,
+          info.owner_type ?? null,
+          info.created_at,
+          info.modified_at,
+          info.microversion
+        );
+
+      res.setHeader("X-Cache", "MISS");
+      return res.json({
+        id: info.id,
+        name: info.name,
+        description: info.description,
+        owner: info.owner,
+        modifiedAt: info.modified_at,
+      });
+    } catch (error: any) {
+      console.error("Get folder error:", error);
+      const row = folderDb
+        .prepare("SELECT * FROM folders WHERE id = ?")
+        .get(id) as any;
+      if (row) {
+        res.setHeader("X-Cache", "STALE");
+        return res.json({
+          id: row.id,
+          name: row.name,
+          description: row.description ?? null,
+          owner: row.owner ?? null,
+          modifiedAt: row.modified_at ?? null,
+        });
+      }
+      res.setHeader("X-Cache", "MISS");
+      return res.json({
+        id,
+        name: `Folder ${id}`,
+        description: null,
+        owner: null,
+        modifiedAt: null,
+      });
+    }
+  }
+);
 
 router.get("/user", async (req: Request, res: Response): Promise<Response> => {
   try {
