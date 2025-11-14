@@ -45,8 +45,6 @@ export class DocumentController {
       totalCount: 0,
       totalPages: 0
     };
-    // Track whether more documents are available server-side for "Fetch more" UX
-    this.hasMore = true;
   }
 
   navigateToDocument(documentId) {
@@ -165,8 +163,6 @@ export class DocumentController {
         hasMoreAssumed: items.length === pageSize
       });
 
-      this.hasMore = items.length === pageSize;
-
       const transformed = items.map((d) => ({
         ...d,
         creator: d.createdBy || d.owner,
@@ -180,14 +176,6 @@ export class DocumentController {
           ...g,
           documents: (g.documents || []).map((doc) => byId.get(doc.id) || doc),
         }));
-      }
-
-      // Compute hierarchical folder tree either from service or locally from groups
-      let folderTree = null;
-      if (result?.tree) {
-        folderTree = result.tree;
-      } else if (Array.isArray(groupsTransformed)) {
-        folderTree = this._buildFolderTreeFromGroups(groupsTransformed);
       }
 
       this.pagination = {
@@ -204,17 +192,11 @@ export class DocumentController {
       this.state.setState({
         documents: transformed,
         folderGroups: groupsTransformed || null,
-        folderTree: folderTree || null,
         pagination: this.pagination,
       });
 
       if (loadingEl) loadingEl.style.display = "none";
-      if (folderTree) {
-        // Use hierarchical list view by default when a folder tree is available
-        this.listView.renderHierarchicalList
-          ? this.listView.renderHierarchicalList(folderTree, this.pagination)
-          : this.listView.renderFolderGrid(folderTree, this.pagination);
-      } else if (groupsTransformed) {
+      if (groupsTransformed) {
         this.listView.renderGrouped(groupsTransformed, this.pagination);
       } else {
         this.listView.render(transformed, this.pagination);
@@ -224,126 +206,6 @@ export class DocumentController {
       if (loadingEl) loadingEl.style.display = "none";
       if (errorEl) {
         errorEl.textContent = "Failed to load documents: " + error.message;
-        errorEl.style.display = "block";
-      }
-    }
-  }
-
-  async fetchMore() {
-    const loadingEl = document.getElementById("loading");
-    const errorEl = document.getElementById("error");
-
-    if (loadingEl) loadingEl.style.display = "block";
-    if (errorEl) errorEl.style.display = "none";
-
-    try {
-      const pageSize = this.pagination.pageSize;
-      const nextPage = this.pagination.currentPage + 1;
-      const offset = (nextPage - 1) * pageSize;
-
-      const result = await this.documentService.getAll(pageSize, offset);
-      const newItems = Array.isArray(result?.items) ? result.items : [];
-
-      this.hasMore = newItems.length === pageSize;
-
-      // Merge documents into a deduped array keyed by id
-      const prevDocs = Array.isArray(this.state.getState().documents)
-        ? this.state.getState().documents
-        : [];
-      const mergedDocsMap = new Map(prevDocs.map((d) => [d.id, d]));
-      for (const d of newItems) {
-        mergedDocsMap.set(d.id, { ...d, creator: d.createdBy || d.owner });
-      }
-      const mergedDocs = Array.from(mergedDocsMap.values());
-
-      // Merge folder groups: update existing folder entries or add new ones
-      const prevGroups = Array.isArray(this.state.getState().folderGroups)
-        ? this.state.getState().folderGroups
-        : [];
-      const groupMap = new Map(
-        prevGroups.map((g) => [
-          String(g.folder?.id || "root"),
-          { ...g, documents: [...(g.documents || [])], folder: g.folder, groupModifiedAt: g.groupModifiedAt || null },
-        ])
-      );
-
-      const incomingGroups = Array.isArray(result?.groups) ? result.groups : [];
-      for (const g of incomingGroups) {
-        const fid = String(g.folder?.id || "root");
-        const existing = groupMap.get(fid) || {
-          folder: g.folder,
-          documents: [],
-          groupModifiedAt: null,
-        };
-
-        const docMap = new Map(existing.documents.map((doc) => [doc.id, doc]));
-        for (const doc of g.documents || []) {
-          const updated = { ...doc, creator: doc.createdBy || doc.owner };
-          docMap.set(updated.id, updated);
-        }
-        // Maintain reverse-chronological order by modifiedAt within each folder
-        const docsSorted = Array.from(docMap.values()).sort((a, b) => {
-          const am = new Date(a.modifiedAt || a.modified_at || 0).getTime();
-          const bm = new Date(b.modifiedAt || b.modified_at || 0).getTime();
-          return bm - am;
-        });
-
-        groupMap.set(fid, {
-          folder: existing.folder || g.folder,
-          documents: docsSorted,
-          groupModifiedAt: docsSorted.length
-            ? docsSorted[0].modifiedAt || docsSorted[0].modified_at || null
-            : null,
-        });
-      }
-
-      // Sort groups with Root first, then by latest activity
-      const groups = Array.from(groupMap.values()).sort((a, b) => {
-        if (a.folder?.id === "root") return -1;
-        if (b.folder?.id === "root") return 1;
-        const am = new Date(a.groupModifiedAt || 0).getTime();
-        const bm = new Date(b.groupModifiedAt || 0).getTime();
-        return bm - am;
-      });
-
-      // Build hierarchical tree from updated groups
-      const folderTree = this._buildFolderTreeFromGroups(groups);
-
-      // Advance pagination counters with a safe total estimation
-      this.pagination.currentPage = nextPage;
-
-      const prevTotal = this.pagination.totalCount || 0;
-      const inferredTotal = mergedDocs.length + (this.hasMore ? 1 : 0);
-      const newTotal =
-        typeof result?.totalCount === "number"
-          ? result.totalCount
-          : inferredTotal;
-
-      this.pagination.totalCount = Math.max(prevTotal, newTotal);
-      this.pagination.totalPages = Math.max(
-        1,
-        Math.ceil(this.pagination.totalCount / pageSize)
-      );
-
-      this.state.setState({
-        documents: mergedDocs,
-        folderGroups: groups,
-        folderTree,
-        pagination: this.pagination,
-      });
-
-      if (loadingEl) loadingEl.style.display = "none";
-      if (this.listView.renderHierarchicalList) {
-        this.listView.renderHierarchicalList(folderTree, this.pagination);
-      } else {
-        this.listView.renderFolderGrid(folderTree, this.pagination);
-      }
-    } catch (error) {
-      console.error("fetchMore failed:", error);
-      if (loadingEl) loadingEl.style.display = "none";
-      if (errorEl) {
-        errorEl.textContent =
-          "Failed to fetch more documents: " + error.message;
         errorEl.style.display = "block";
       }
     }
@@ -768,46 +630,5 @@ export class DocumentController {
     `;
     document.body.appendChild(div);
     setTimeout(() => div.remove(), 4000);
-  }
-
-  /**
-   * Build folder tree locally from groups when service did not provide one.
-   * Uses folder.parentId if available, otherwise attaches to root.
-   */
-  _buildFolderTreeFromGroups(groups) {
-    const nodesById = new Map();
-    for (const g of groups) {
-      nodesById.set(String(g.folder.id), {
-        folder: g.folder,
-        documents: Array.isArray(g.documents) ? g.documents.slice() : [],
-        groupModifiedAt: g.groupModifiedAt || null,
-        children: [],
-      });
-    }
-    if (!nodesById.has("root")) {
-      nodesById.set("root", {
-        folder: { id: "root", name: "Root", description: null, owner: null, modifiedAt: null, parentId: null },
-        documents: [],
-        groupModifiedAt: null,
-        children: [],
-      });
-    }
-    for (const [id, node] of nodesById.entries()) {
-      if (id === "root") continue;
-      const parentId = node.folder?.parentId || null;
-      const parentNode =
-        (parentId && nodesById.get(String(parentId))) || nodesById.get("root");
-      parentNode.children.push(node);
-    }
-    for (const [_id, node] of nodesById.entries()) {
-      if (Array.isArray(node.children) && node.children.length) {
-        node.children.sort((a, b) => {
-          const am = new Date(a.groupModifiedAt || 0).getTime();
-          const bm = new Date(b.groupModifiedAt || 0).getTime();
-          return bm - am;
-        });
-      }
-    }
-    return nodesById.get("root");
   }
 }

@@ -48,6 +48,4 @@ The numbering is just show that it's easier to keep track.
    3. Implement image/thumbnail downloading
 7. Fix TODO in `public/js/controllers/document-controller.js`
 8. Add page navigation for the main page, currently limited to 20 most recently edited documents.
-   1. Update: Mostly working, but changing items per page beyond 20 breaks it.
-9. Restructure list view to mimic folder view (group by document parent ID)
-10. Ability to exclude certain prefixes to folders, e.g. 400 (OTS), 800 (sandboxes), to limit amount of documents loaded and API calls
+9. Add Folder views to mimic Onshape
