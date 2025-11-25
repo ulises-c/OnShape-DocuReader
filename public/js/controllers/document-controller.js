@@ -6,6 +6,7 @@ import { DocumentListView } from "../views/document-list-view.js";
 import { DocumentDetailView } from "../views/document-detail-view.js";
 import { ElementDetailView } from "../views/element-detail-view.js";
 import { PartDetailView } from "../views/part-detail-view.js";
+import { WorkspaceView } from "../views/workspace-view.js";
 import { formatDateWithUser } from "../utils/format-helpers.js";
 import { copyToClipboard } from "../utils/clipboard.js";
 import { escapeHtml } from "../utils/dom-helpers.js";
@@ -27,6 +28,7 @@ export class DocumentController {
     this.historyState = historyState || null;
 
     this.listView = new DocumentListView("#documentsGrid", this);
+    this.workspaceView = new WorkspaceView("#workspaceContainer", this);
     this.detailView = new DocumentDetailView(
       "#documentInfo",
       this,
@@ -45,6 +47,28 @@ export class DocumentController {
       totalCount: 0,
       totalPages: 0
     };
+
+    // Workspace state
+    this.workspaceState = {
+      currentFolderId: null,
+      breadcrumbs: [] // Array of {id, name}
+    };
+
+    this._bindDashboardEvents();
+  }
+
+  _bindDashboardEvents() {
+    // We can bind directly because the elements are static in index.html
+    // Even if called before app init, the DOM nodes exist.
+    const header = document.getElementById('recentSectionHeader');
+    if (header) {
+      header.addEventListener('click', () => {
+        const section = document.getElementById('recentSection');
+        if (section) {
+          section.classList.toggle('collapsed');
+        }
+      });
+    }
   }
 
   navigateToDocument(documentId) {
@@ -102,6 +126,27 @@ export class DocumentController {
       this.listView.render(docs, pagination || this.pagination);
     }
 
+    // Initialize workspace (loads root folder)
+    // Check if we have restored workspace state
+    const restoredWorkspace = restoredState?.viewSnapshot?.workspace || restoredState?.workspace;
+    if (restoredWorkspace) {
+       // Restore path if possible, for now just load what was last
+       if (restoredWorkspace.currentFolderId) {
+         this.workspaceState.breadcrumbs = restoredWorkspace.breadcrumbs || [];
+         await this.loadFolder(restoredWorkspace.currentFolderId, false); // don't push breadcrumb
+       } else {
+         await this.loadWorkspaceRoot();
+       }
+    } else {
+      // Default load root if no state
+      if (!this.workspaceState.currentFolderId) {
+        await this.loadWorkspaceRoot();
+      } else {
+        // Refresh current folder
+        await this.loadFolder(this.workspaceState.currentFolderId, false);
+      }
+    }
+
     // Restore state after render completes
     if (restoredState && typeof this.listView?.restoreState === "function") {
       if (typeof requestAnimationFrame === "function") {
@@ -119,6 +164,61 @@ export class DocumentController {
           0
         );
       }
+    }
+  }
+
+  async loadWorkspaceRoot() {
+    this.workspaceView.showLoading();
+    try {
+      this.workspaceState.currentFolderId = null;
+      this.workspaceState.breadcrumbs = [];
+      const result = await this.documentService.getGlobalTreeRootNodes();
+      const items = result.items || [];
+      this.workspaceView.render(items, this.workspaceState.breadcrumbs);
+    } catch (error) {
+      console.error("Error loading workspace root:", error);
+      this.workspaceView.showError("Failed to load workspace");
+    }
+  }
+
+  async loadFolder(folderId, updateBreadcrumbs = true, folderName = null) {
+    this.workspaceView.showLoading();
+    try {
+      const result = await this.documentService.getGlobalTreeFolderContents(folderId);
+      const items = result.items || [];
+      
+      if (updateBreadcrumbs) {
+        // If we're navigating down, add to breadcrumbs
+        // Note: ideally the API returns path info. For now we push manual name if provided.
+        // If not navigating down (e.g. refresh), we assume breadcrumbs are set.
+        if (folderName) {
+            this.workspaceState.breadcrumbs.push({ id: folderId, name: folderName });
+        }
+      }
+
+      this.workspaceState.currentFolderId = folderId;
+      this.workspaceView.render(items, this.workspaceState.breadcrumbs);
+    } catch (error) {
+      console.error(`Error loading folder ${folderId}:`, error);
+      this.workspaceView.showError("Failed to load folder contents");
+    }
+  }
+
+  navigateToFolder(folderId, folderName) {
+    this.loadFolder(folderId, true, folderName);
+  }
+
+  navigateToRootFolder() {
+    this.loadWorkspaceRoot();
+  }
+
+  navigateToFolderBreadcrumb(folderId) {
+    // Find index of folder in breadcrumbs
+    const index = this.workspaceState.breadcrumbs.findIndex(b => b.id === folderId);
+    if (index !== -1) {
+      // Slice breadcrumbs up to that index (inclusive)
+      this.workspaceState.breadcrumbs = this.workspaceState.breadcrumbs.slice(0, index + 1);
+      this.loadFolder(folderId, false);
     }
   }
 

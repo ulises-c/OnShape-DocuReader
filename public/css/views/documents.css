@@ -40,31 +40,18 @@
 }
 
 .documents-section {
-  background: white;
-  padding: 1vh 1vw 1.5vh 1vw;
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
+  background: transparent;
+  padding: var(--spacing-md);
+  border-radius: 0;
+  box-shadow: none;
   overflow-x: auto;
   position: relative;
   box-sizing: border-box;
+  max-height: 50vh;
+  overflow-y: auto;
 }
 
-.documents-section::after {
-  content: "← Scroll horizontally to see more columns →";
-  position: absolute;
-  bottom: 0.5vh;
-  right: 1vw;
-  font-size: clamp(0.7rem, 0.8vw, 0.9rem);
-  color: var(--color-text-muted);
-  font-style: italic;
-  opacity: 0;
-  transition: opacity var(--transition-base);
-  pointer-events: none;
-}
 
-.documents-section:hover::after {
-  opacity: 1;
-}
 
 /* Custom scrollbar */
 .documents-section::-webkit-scrollbar {
@@ -159,4 +146,175 @@
   .documents-section {
     padding: 1.5vh 2vw 2vh 2vw;
   }
+}
+
+/* Dashboard Layout */
+.dashboard-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 2vh;
+}
+
+/* Section Styling */
+.section-recent,
+.section-workspace {
+  background: white;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.section-recent {
+  flex-shrink: 0;
+  transition: all var(--transition-base);
+}
+
+.section-workspace {
+  flex: 1;
+  min-height: 400px;
+}
+
+/* Headers */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: var(--color-bg-gray);
+  border-bottom: 1px solid var(--color-border-light);
+  user-select: none;
+}
+
+#recentSectionHeader {
+  cursor: pointer;
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--color-primary);
+}
+
+/* Toggle Icon */
+.toggle-icon {
+  font-size: 0.8rem;
+  color: var(--color-text-light);
+  transition: transform var(--transition-base);
+}
+
+.section-recent.collapsed .toggle-icon {
+  transform: rotate(-90deg);
+}
+
+/* Collapsible Content */
+.section-content {
+  transition: max-height var(--transition-base), opacity var(--transition-base);
+  max-height: 1000px; /* Large enough for content */
+  opacity: 1;
+}
+
+.section-recent.collapsed .section-content {
+  max-height: 0;
+  opacity: 0;
+}
+
+/* Scroll Hint */
+.scroll-hint-text {
+  text-align: right;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+  padding: 0.5rem 1rem 0;
+  margin-bottom: -0.5rem;
+  position: relative;
+  z-index: 5;
+}
+
+/* Sticky Header & Scroll Fixes */
+.doc-details-table th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--color-bg-gray);
+  box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Ensure table is wide enough to scroll */
+.doc-details-table {
+  min-width: 1000px;
+  overflow: visible;
+}
+
+/* Workspace Container adaptation */
+.workspace-container {
+  padding: var(--spacing-md);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.breadcrumbs {
+  padding-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border-light);
+  font-size: 0.95rem;
+}
+
+.breadcrumb-item {
+  cursor: pointer;
+  color: var(--color-primary);
+}
+
+.breadcrumb-item:hover {
+  text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+  color: var(--color-text-light);
+  font-weight: 500;
+  cursor: default;
+  text-decoration: none;
+}
+
+.breadcrumb-separator {
+  color: var(--color-text-muted);
+  font-size: 0.9em;
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.workspace-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.workspace-item:hover {
+  background-color: var(--color-bg-hover);
+}
+
+.item-icon {
+  font-size: 2rem;
+  margin-bottom: var(--spacing-xs);
+}
+
+.item-name {
+  font-size: 0.85rem;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }

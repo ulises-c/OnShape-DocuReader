@@ -77,6 +77,7 @@ export class OnShapeApiClient {
   private accessToken: string;
   private usageTracker?: ApiUsageTracker;
   private userId?: string;
+  private baseApiRoot: string;
 
   constructor(
     accessToken: string,
@@ -86,6 +87,8 @@ export class OnShapeApiClient {
     this.accessToken = accessToken;
     this.userId = userId;
     this.usageTracker = tracker;
+    // Base API root without version segment, used for non-versioned endpoints like globaltreenodes
+    this.baseApiRoot = oauthConfig.baseApiUrl.replace(/\/v\d+$/, "");
 
     this.axiosInstance = axios.create({
       baseURL: oauthConfig.baseApiUrl,
@@ -385,6 +388,72 @@ export class OnShapeApiClient {
       }
       throw error;
     }
+  }
+
+  // GlobalTreeNodes: root-level folders and documents
+  async getGlobalTreeRootNodes(options: { limit?: number; offset?: number; getPathToRoot?: boolean; raw?: boolean } = {}): Promise<any> {
+    const url = `${this.baseApiRoot}/globaltreenodes/magic/1`;
+    const params: Record<string, any> = {};
+    if (typeof options.limit === "number") params.limit = options.limit;
+    if (typeof options.offset === "number") params.offset = options.offset;
+    if (options.getPathToRoot) params.getPathToRoot = "true";
+
+    const response = await this.axiosInstance.get(url, { params });
+    const data = response?.data || {};
+    const items = Array.isArray(data.items) ? data.items.map((it: any) => this.mapGlobalTreeNode(it)) : [];
+
+    return {
+      href: data.href || url,
+      next: data.next || null,
+      items,
+      raw: options.raw ? data : undefined,
+    };
+  }
+
+  // GlobalTreeNodes: contents of a given folder by ID
+  async getGlobalTreeFolderContents(folderId: string, options: { limit?: number; offset?: number; getPathToRoot?: boolean; raw?: boolean } = {}): Promise<any> {
+    const url = `${this.baseApiRoot}/globaltreenodes/folder/${encodeURIComponent(folderId)}`;
+    const params: Record<string, any> = {};
+    if (typeof options.limit === "number") params.limit = options.limit;
+    if (typeof options.offset === "number") params.offset = options.offset;
+    if (options.getPathToRoot) params.getPathToRoot = "true";
+
+    const response = await this.axiosInstance.get(url, { params });
+    const data = response?.data || {};
+    const items = Array.isArray(data.items) ? data.items.map((it: any) => this.mapGlobalTreeNode(it)) : [];
+
+    return {
+      href: data.href || url,
+      next: data.next || null,
+      items,
+      raw: options.raw ? data : undefined,
+    };
+  }
+
+  private mapGlobalTreeNode(item: any): any {
+    if (!item || typeof item !== "object") return item;
+    return {
+      id: item.id,
+      name: item.name,
+      jsonType: item.jsonType || item.resourceType,
+      resourceType: item.resourceType,
+      isContainer: !!item.isContainer,
+      isMutable: !!item.isMutable,
+      active: !!item.active,
+      trash: !!item.trash,
+      parentId: item.parentId ?? null,
+      owner: item.owner ?? null,
+      permissionSet: Array.isArray(item.permissionSet) ? item.permissionSet : [],
+      createdAt: item.createdAt,
+      modifiedAt: item.modifiedAt,
+      createdBy: item.createdBy,
+      modifiedBy: item.modifiedBy,
+      href: item.href,
+      treeHref: item.treeHref,
+      unparentHref: item.unparentHref,
+      connectionName: item.connectionName,
+      description: item.description,
+    };
   }
 
   async exportAll(options: any, ids?: string[]): Promise<any> {

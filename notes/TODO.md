@@ -48,4 +48,8 @@ The numbering is just show that it's easier to keep track.
    3. Implement image/thumbnail downloading
 7. Fix TODO in `public/js/controllers/document-controller.js`
 8. Add page navigation for the main page, currently limited to 20 most recently edited documents.
-9. Add Folder views to mimic Onshape
+9. Grab all folders via `globaltreenodes`, for root directory it's found via `https://cad.onshape.com/api/globaltreenodes/magic/1` and for more information of folders with a folder ID `fid` more information is found via `https://cad.onshape.com/api/globaltreenodes/folder/[fid]`
+   1. Building on `globaltreenodes`, refresh the main page, split it into `Recently Updated` and `Workspace`, workspace contains all the folders in root, and clicking into the folder should retreive all the files in that folder (same process for nested folders)
+   2. Caching via database should also be implemented to reduce API calls and have a more populated database instead of having to retreive data every time.
+   3. Pagination should be reworked. Instead of retreiving latest worked documents, documents should be retreived by folders, using tree nodes.
+10. Implement caching (redis?) and a longer term database (sql?)

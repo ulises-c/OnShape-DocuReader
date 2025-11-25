@@ -7,6 +7,7 @@ This document provides a general overview of the OnShape API v12 that is used in
 ## Onshape REST API
 
 - https://cad.onshape.com/glassworks/explorer
+- https://onshape-public.github.io/docs/
 
 ## API Base Information
 

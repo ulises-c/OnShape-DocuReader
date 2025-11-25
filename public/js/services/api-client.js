@@ -91,6 +91,28 @@ export class ApiClient {
     return res.json();
   }
 
+  async getGlobalTreeNodes(limit = 20, offset = 0, getPathToRoot = false) {
+    const params = new URLSearchParams({
+      limit: String(limit),
+      offset: String(offset),
+      getPathToRoot: String(getPathToRoot)
+    });
+    const res = await fetch(`/api/onshape/folders?${params.toString()}`);
+    if (!res.ok) throw new Error(`Get root folders failed (${res.status})`);
+    return res.json();
+  }
+
+  async getFolderContents(folderId, limit = 20, offset = 0, getPathToRoot = false) {
+    const params = new URLSearchParams({
+      limit: String(limit),
+      offset: String(offset),
+      getPathToRoot: String(getPathToRoot)
+    });
+    const res = await fetch(`/api/onshape/folders/${folderId}?${params.toString()}`);
+    if (!res.ok) throw new Error(`Get folder contents failed (${res.status})`);
+    return res.json();
+  }
+
   async exportAll(options, ids) {
     const params = new URLSearchParams();
     Object.entries(options).forEach(([k, v]) => params.append(k, String(v)));

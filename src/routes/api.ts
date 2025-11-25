@@ -258,6 +258,74 @@ router.get(
 );
 
 router.get(
+  "/onshape/folders",
+  async (req: Request, res: Response): Promise<Response> => {
+    try {
+      const limitRaw = String(req.query.limit ?? "");
+      const offsetRaw = String(req.query.offset ?? "");
+      const limit = Number.parseInt(limitRaw, 10);
+      const offset = Number.parseInt(offsetRaw, 10);
+      const getPathToRoot = req.query.getPathToRoot === "true";
+      const raw = req.query.raw === "true";
+
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
+
+      const data = await client.getGlobalTreeRootNodes({
+        limit: Number.isNaN(limit) ? undefined : limit,
+        offset: Number.isNaN(offset) ? undefined : offset,
+        getPathToRoot,
+        raw,
+      });
+
+      return res.json(data);
+    } catch (error) {
+      console.error("Get root folders error:", error);
+      return res.status(500).json({ error: "Failed to fetch root folders" });
+    }
+  }
+);
+
+router.get(
+  "/onshape/folders/:id",
+  async (req: Request, res: Response): Promise<Response> => {
+    try {
+      const folderId = req.params.id;
+      const limitRaw = String(req.query.limit ?? "");
+      const offsetRaw = String(req.query.offset ?? "");
+      const limit = Number.parseInt(limitRaw, 10);
+      const offset = Number.parseInt(offsetRaw, 10);
+      const getPathToRoot = req.query.getPathToRoot === "true";
+      const raw = req.query.raw === "true";
+
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
+
+      const data = await client.getGlobalTreeFolderContents(folderId, {
+        limit: Number.isNaN(limit) ? undefined : limit,
+        offset: Number.isNaN(offset) ? undefined : offset,
+        getPathToRoot,
+        raw,
+      });
+
+      return res.json(data);
+    } catch (error: any) {
+      const status = error?.response?.status || 500;
+      console.error("Get folder contents error:", error);
+      return res
+        .status(status >= 400 && status < 600 ? status : 500)
+        .json({ error: "Failed to fetch folder contents" });
+    }
+  }
+);
+
+router.get(
   "/export/all",
   async (req: Request, res: Response): Promise<Response> => {
     try {

@@ -59,10 +59,35 @@
                     <button id="exportCSVBtn" class="btn btn-warning">📊 Export CSV [ASM/PRT]</button>
                 </div>
 
-                <div class="documents-section" data-scroll-preserve data-scroll-key="documents-section">
-                    <div id="loading" class="loading">Loading documents...</div>
-                    <div id="documentsGrid" class="documents-grid"></div>
-                    <div id="error" class="error-message" style="display: none;"></div>
+                <div class="dashboard-layout">
+                    <!-- Workspace Section -->
+                    <div class="section-workspace">
+                        <div class="section-header">
+                            <h3>Workspace</h3>
+                        </div>
+                        <div class="workspace-container" id="workspaceContainer" data-scroll-preserve data-scroll-key="workspace-section">
+                            <div id="workspaceBreadcrumbs" class="breadcrumbs"></div>
+                            <div id="workspaceLoading" class="loading" style="display: none;">Loading workspace...</div>
+                            <div id="workspaceGrid" class="workspace-grid"></div>
+                            <div id="workspaceError" class="error-message" style="display: none;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Recently Updated Documents Section -->
+                    <div class="section-recent" id="recentSection">
+                        <div class="section-header" id="recentSectionHeader">
+                            <h3>Recently Updated Documents</h3>
+                            <span class="toggle-icon">▼</span>
+                        </div>
+                        <div class="section-content">
+                            <div class="scroll-hint-text">← Scroll horizontally to see more columns →</div>
+                            <div class="documents-section" data-scroll-preserve data-scroll-key="documents-section">
+                                <div id="loading" class="loading">Loading documents...</div>
+                                <div id="documentsGrid" class="documents-grid"></div>
+                                <div id="error" class="error-message" style="display: none;"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

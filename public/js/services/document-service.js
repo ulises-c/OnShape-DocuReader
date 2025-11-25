@@ -35,6 +35,14 @@ export class DocumentService {
     return this.api.getParentInfo(documentId);
   }
 
+  async getGlobalTreeRootNodes(limit, offset) {
+    return this.api.getGlobalTreeNodes(limit, offset);
+  }
+
+  async getGlobalTreeFolderContents(folderId, limit, offset) {
+    return this.api.getFolderContents(folderId, limit, offset);
+  }
+
   async getPartMassProperties(documentId, workspaceId, elementId, partId) {
     return this.api.getPartMassProperties(
       documentId,
