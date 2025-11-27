@@ -47,3 +47,6 @@ next-env.d.ts
 # AI Pack
 .aipack/
 /notes/PROMPT.md
+/notes/RESPONSE.md
+.aipack-distiller/
+ako-config.jsonc
