@@ -1,8 +1,10 @@
 import axios from "axios";
 import type { AxiosInstance } from "axios";
+import pLimit from "p-limit";
 import { oauthConfig } from "../config/oauth.ts";
 import { EventEmitter } from "events";
 import { ApiUsageTracker } from "./api-usage-tracker.ts";
+import type { DirectoryStats, AssemblyReference, ExportMetadata, AssemblyBomFetchResult, AggregateBomResult, ExportProgressEvent } from "../types/onshape.ts";
 
 export interface OnShapeUser {
   id: string;
@@ -63,6 +65,8 @@ export interface OnShapeDocumentInfo {
     isPublic: boolean;
   }>;
 }
+
+// AggregateBomResult is now imported from types/onshape.ts
 
 declare module "axios" {
   export interface AxiosRequestConfig {
@@ -453,6 +457,755 @@ export class OnShapeApiClient {
       unparentHref: item.unparentHref,
       connectionName: item.connectionName,
       description: item.description,
+    };
+  }
+
+  /**
+   * Aggregate BOM export using BFS traversal of all folders and documents.
+   * Finds all assemblies and fetches their flattened BOMs.
+   */
+  /**
+   * Pre-scan the workspace tree to gather statistics without fetching BOMs.
+   * Uses BFS traversal to count folders, documents, and element types.
+   * Returns assembly list for subsequent parallel BOM fetching.
+   * 
+   * @param options.delayMs - Delay between API calls (default: 100)
+   * @param options.onProgress - Optional callback for progress updates (Phase 4.4)
+   * @param options.signal - Optional AbortSignal for cancellation
+   * @param options.scope - Optional scope for partial export (Phase 4.7)
+   */
+  async getDirectoryStats(options: { 
+    delayMs?: number; 
+    onProgress?: (progress: { foldersScanned: number; documentsScanned: number }) => void;
+    signal?: AbortSignal;
+    scope?: { scope: 'full' | 'partial'; documentIds?: string[]; folderIds?: string[] };
+  } = {}): Promise<DirectoryStats> {
+    const startTime = Date.now();
+    const delay = options.delayMs ?? 100;
+
+    // Statistics accumulators
+    let totalFolders = 0;
+    let totalDocuments = 0;
+    let maxDepth = 0;
+    const levelCounts: Map<number, number> = new Map();
+    const elementCounts = {
+      ASSEMBLY: 0,
+      PARTSTUDIO: 0,
+      DRAWING: 0,
+      BLOB: 0,
+      OTHER: 0,
+    };
+    const assemblies: AssemblyReference[] = [];
+
+    // BFS queue: { id, name, type, depth, path }
+    const queue: Array<{
+      id: string;
+      name: string;
+      type: string;
+      depth: number;
+      path: string[];
+    }> = [];
+    const visited = new Set<string>();
+
+    const isPartialExport = options.scope?.scope === 'partial' && 
+      ((options.scope.documentIds?.length || 0) > 0 || (options.scope.folderIds?.length || 0) > 0);
+
+    console.log("[DirectoryStats] Starting pre-scan with delay:", delay, "ms", 
+      isPartialExport ? `(partial: ${options.scope?.documentIds?.length || 0} docs, ${options.scope?.folderIds?.length || 0} folders)` : "(full)");
+
+    // Helper to check if aborted
+    const checkAborted = () => {
+      if (options.signal?.aborted) {
+        throw new Error('Export cancelled');
+      }
+    };
+
+    // 1. Seed queue based on scope (Phase 4.7)
+    if (isPartialExport) {
+      // PARTIAL EXPORT: Process only specified items
+      
+      // Add specified folders to queue
+      if (options.scope?.folderIds?.length) {
+        for (const folderId of options.scope.folderIds) {
+          queue.push({
+            id: folderId,
+            name: "Selected Folder",
+            type: "folder",
+            depth: 0,
+            path: [],
+          });
+        }
+      }
+      
+      // Add specified documents to queue
+      if (options.scope?.documentIds?.length) {
+        for (const docId of options.scope.documentIds) {
+          queue.push({
+            id: docId,
+            name: "Selected Document",
+            type: "document-summary",
+            depth: 0,
+            path: [],
+          });
+        }
+      }
+    } else {
+      // FULL EXPORT: Original BFS from root
+      try {
+        const rootData = await this.getGlobalTreeRootNodes({ limit: 50 });
+        for (const item of rootData.items || []) {
+          queue.push({
+            id: item.id,
+            name: item.name || "Unknown",
+            type: item.jsonType || item.resourceType || "unknown",
+            depth: 0,
+            path: [],
+          });
+        }
+      } catch (err: any) {
+        console.error("[DirectoryStats] Failed to fetch root nodes:", err.message);
+      }
+    }
+
+    // 2. BFS loop
+    while (queue.length > 0) {
+      checkAborted();
+      
+      const current = queue.shift()!;
+
+      // Skip if already visited
+      if (visited.has(current.id)) {
+        continue;
+      }
+      visited.add(current.id);
+
+      // Update max depth
+      maxDepth = Math.max(maxDepth, current.depth);
+
+      // Rate limiting delay
+      await new Promise((r) => setTimeout(r, delay));
+
+      const itemType = current.type.toLowerCase();
+
+      // Handle folders
+      if (itemType === "folder") {
+        console.log("[DirectoryStats] Scanning folder:", current.name);
+        totalFolders++;
+
+        // Track level counts for widest level calculation
+        levelCounts.set(current.depth, (levelCounts.get(current.depth) || 0) + 1);
+
+        // Emit scan progress
+        if (options.onProgress) {
+          options.onProgress({ foldersScanned: totalFolders, documentsScanned: totalDocuments });
+        }
+
+        try {
+          const folderData = await this.getGlobalTreeFolderContents(current.id, { limit: 50 });
+          for (const child of folderData.items || []) {
+            if (!visited.has(child.id)) {
+              queue.push({
+                id: child.id,
+                name: child.name || "Unknown",
+                type: child.jsonType || child.resourceType || "unknown",
+                depth: current.depth + 1,
+                path: [...current.path, current.name],
+              });
+            }
+          }
+        } catch (err: any) {
+          console.error("[DirectoryStats] Error scanning folder", current.name, ":", err.message);
+        }
+        continue;
+      }
+
+      // Handle documents
+      if (itemType === "document-summary" || itemType === "document") {
+        console.log("[DirectoryStats] Processing document:", current.name);
+        totalDocuments++;
+
+        // Emit scan progress
+        if (options.onProgress) {
+          options.onProgress({ foldersScanned: totalFolders, documentsScanned: totalDocuments });
+        }
+
+        try {
+          // Fetch document details
+          const doc = await this.getDocument(current.id);
+          const workspaceId = doc.defaultWorkspace?.id;
+
+          if (!workspaceId) {
+            console.log("[DirectoryStats] No default workspace for document:", current.name);
+            continue;
+          }
+
+          // Rate limiting delay before elements call
+          await new Promise((r) => setTimeout(r, delay));
+
+          // Fetch elements
+          const elements = await this.getElements(current.id, workspaceId);
+
+          // Categorize elements by type
+          for (const element of elements) {
+            const elementType = element.elementType || element.type || "OTHER";
+
+            switch (elementType.toUpperCase()) {
+              case "ASSEMBLY":
+                elementCounts.ASSEMBLY++;
+                assemblies.push({
+                  documentId: current.id,
+                  documentName: doc.name || current.name,
+                  workspaceId: workspaceId,
+                  elementId: element.id,
+                  elementName: element.name || "Unnamed Assembly",
+                  folderPath: current.path,
+                });
+                break;
+              case "PARTSTUDIO":
+                elementCounts.PARTSTUDIO++;
+                break;
+              case "DRAWING":
+                elementCounts.DRAWING++;
+                break;
+              case "BLOB":
+                elementCounts.BLOB++;
+                break;
+              default:
+                elementCounts.OTHER++;
+            }
+          }
+        } catch (err: any) {
+          console.error("[DirectoryStats] Error processing document", current.name, ":", err.message);
+        }
+      }
+    }
+
+    // Find widest level
+    let widestLevel = { depth: 0, count: 0 };
+    for (const [depth, count] of levelCounts) {
+      if (count > widestLevel.count) {
+        widestLevel = { depth, count };
+      }
+    }
+
+    const scanDurationMs = Date.now() - startTime;
+
+    const result: DirectoryStats = {
+      scanDate: new Date().toISOString(),
+      scanDurationMs,
+      summary: {
+        totalFolders,
+        totalDocuments,
+        maxDepth,
+        widestLevel,
+      },
+      elementTypes: elementCounts,
+      estimates: {
+        assembliesFound: assemblies.length,
+        estimatedBomApiCalls: assemblies.length,
+        estimatedTimeMinutes: Math.ceil((assemblies.length * 500) / 60000), // 500ms avg per BOM
+      },
+      assemblies,
+    };
+
+    console.log("[DirectoryStats] Pre-scan complete:", result.summary);
+    return result;
+  }
+
+  /**
+   * Helper: Delay execution for rate limiting
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Fetch BOM for a single assembly.
+   * Returns null if assembly has no BOM (graceful 404 handling).
+   */
+  private async getAssemblyBom(
+    documentId: string,
+    workspaceId: string,
+    elementId: string
+  ): Promise<{ headers: any[]; rows: any[] } | null> {
+    try {
+      const response = await this.getBillOfMaterials(documentId, workspaceId, elementId, { indented: "false" });
+      
+      // Extract headers and rows from response
+      return {
+        headers: response.headers || response.columnHeaders?.map((h: any) => h.name) || [],
+        rows: response.rows || response.bomTable?.items || []
+      };
+    } catch (error: any) {
+      // 404 is expected for assemblies without BOMs
+      if (error.response?.status === 404 || error.message?.includes('404')) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Export aggregate BOM data for all assemblies with progress callbacks for SSE streaming.
+   * Uses parallel fetching with controlled concurrency (Phase 4.3/4.4).
+   * 
+   * @param options.delayMs - Delay between API calls (per worker)
+   * @param options.workerCount - Number of concurrent workers (1-8)
+   * @param options.onProgress - Callback for progress events (Phase 4.4)
+   * @param options.signal - AbortSignal for cancellation (Phase 4.4)
+   * @param options.scope - Optional scope for partial export (Phase 4.7)
+   */
+  async getAggregateBomWithProgress(
+    options: {
+      delayMs?: number;
+      workerCount?: number;
+      onProgress?: (event: ExportProgressEvent) => void;
+      signal?: AbortSignal;
+      scope?: { scope: 'full' | 'partial'; documentIds?: string[]; folderIds?: string[] };
+    } = {}
+  ): Promise<AggregateBomResult> {
+    const startTime = Date.now();
+    const delayMs = options.delayMs ?? 100;
+    const onProgress = options.onProgress;
+    const signal = options.signal;
+    
+    // Clamp worker count to safe range (1-8)
+    const workers = Math.max(1, Math.min(8, options.workerCount ?? 4));
+    
+    // Check if partial export (Phase 4.7)
+    const isPartialExport = options.scope?.scope === 'partial' && 
+      ((options.scope.documentIds?.length || 0) > 0 || (options.scope.folderIds?.length || 0) > 0);
+
+    // Helper to check if aborted
+    const checkAborted = () => {
+      if (signal?.aborted) {
+        throw new Error('Export cancelled');
+      }
+    };
+
+    // Emit initializing phase
+    if (onProgress) {
+      onProgress({
+        phase: 'initializing',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    checkAborted();
+
+    // Get current user for metadata (with graceful fallback)
+    let currentUser: { name: string; email: string } = { name: 'Unknown', email: '' };
+    try {
+      const userInfo = await this.getCurrentUser();
+      currentUser = {
+        name: userInfo.name || `${userInfo.firstName || ''} ${userInfo.lastName || ''}`.trim() || 'Unknown',
+        email: userInfo.email || ''
+      };
+    } catch (error: any) {
+      console.warn('[AggregateBOM] Could not fetch user info:', error.message);
+      // Continue with default "Unknown" user
+    }
+
+    checkAborted();
+
+    // Phase 1: Pre-scan to get assembly list with progress
+    console.log(`[AggregateBOM] Starting pre-scan with ${workers} workers...`);
+    
+    // Emit scanning phase start
+    if (onProgress) {
+      onProgress({
+        phase: 'scanning',
+        scan: { foldersScanned: 0, documentsScanned: 0 },
+        timing: { elapsedMs: Date.now() - startTime, avgFetchMs: 0, estimatedRemainingMs: 0 },
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const stats = await this.getDirectoryStats({
+      delayMs,
+      signal,
+      scope: options.scope,
+      onProgress: (scanProgress) => {
+        if (onProgress) {
+          onProgress({
+            phase: 'scanning',
+            scan: scanProgress,
+            timing: { elapsedMs: Date.now() - startTime, avgFetchMs: 0, estimatedRemainingMs: 0 },
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+    });
+    
+    console.log(`[AggregateBOM] Pre-scan complete: ${stats.assemblies.length} assemblies found`);
+
+    checkAborted();
+
+    // Phase 2: Parallel BOM fetching with progress
+    console.log(`[AggregateBOM] Fetching BOMs with ${workers} workers, delay=${delayMs}ms...`);
+    
+    const limit = pLimit(workers);
+    let completedCount = 0;
+    let succeededCount = 0;
+    let failedCount = 0;
+    const fetchTimes: number[] = [];
+
+    // Helper to emit fetch progress
+    const emitFetchProgress = (currentAssembly: string, currentPath: string[]) => {
+      if (!onProgress) return;
+      
+      const avgFetchMs = fetchTimes.length > 0 
+        ? fetchTimes.reduce((a, b) => a + b, 0) / fetchTimes.length 
+        : 500;
+      const remaining = stats.assemblies.length - completedCount;
+      const estimatedRemainingMs = remaining * avgFetchMs;
+      
+      onProgress({
+        phase: 'fetching',
+        fetch: {
+          current: completedCount,
+          total: stats.assemblies.length,
+          currentAssembly,
+          currentPath,
+          succeeded: succeededCount,
+          failed: failedCount
+        },
+        timing: {
+          elapsedMs: Date.now() - startTime,
+          avgFetchMs: Math.round(avgFetchMs),
+          estimatedRemainingMs: Math.round(estimatedRemainingMs)
+        },
+        timestamp: new Date().toISOString()
+      });
+    };
+
+    // Initial fetch progress
+    emitFetchProgress('', []);
+
+    const results = await Promise.all(
+      stats.assemblies.map(assembly =>
+        limit(async (): Promise<AssemblyBomFetchResult> => {
+          checkAborted();
+          
+          const fetchStart = Date.now();
+          
+          // Emit progress before starting this assembly
+          emitFetchProgress(assembly.elementName, assembly.folderPath);
+          
+          try {
+            // Rate limiting delay
+            if (delayMs > 0) {
+              await this.delay(delayMs);
+            }
+            
+            checkAborted();
+            
+            // Fetch BOM for this assembly
+            const bom = await this.getAssemblyBom(
+              assembly.documentId,
+              assembly.workspaceId,
+              assembly.elementId
+            );
+            
+            const fetchDurationMs = Date.now() - fetchStart;
+            fetchTimes.push(fetchDurationMs);
+            // Keep only last 20 for rolling average
+            if (fetchTimes.length > 20) fetchTimes.shift();
+            
+            completedCount++;
+            succeededCount++;
+            
+            console.log(
+              `[AggregateBOM] ✓ ${completedCount}/${stats.assemblies.length}: ` +
+              `"${assembly.elementName}" (${fetchDurationMs}ms)`
+            );
+            
+            // Emit progress after completion
+            emitFetchProgress(assembly.elementName, assembly.folderPath);
+            
+            return {
+              source: {
+                documentId: assembly.documentId,
+                documentName: assembly.documentName,
+                folderPath: assembly.folderPath,
+                workspaceId: assembly.workspaceId
+              },
+              assembly: {
+                elementId: assembly.elementId,
+                name: assembly.elementName
+              },
+              bom: bom ? {
+                headers: bom.headers || [],
+                rows: bom.rows || []
+              } : null,
+              fetchDurationMs
+            };
+          } catch (error) {
+            const fetchDurationMs = Date.now() - fetchStart;
+            fetchTimes.push(fetchDurationMs);
+            if (fetchTimes.length > 20) fetchTimes.shift();
+            
+            completedCount++;
+            failedCount++;
+            
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            
+            console.warn(
+              `[AggregateBOM] ✗ ${completedCount}/${stats.assemblies.length}: ` +
+              `"${assembly.elementName}" - ${errorMessage}`
+            );
+            
+            // Emit error progress (but don't stop)
+            if (onProgress) {
+              onProgress({
+                phase: 'fetching',
+                fetch: {
+                  current: completedCount,
+                  total: stats.assemblies.length,
+                  currentAssembly: assembly.elementName,
+                  currentPath: assembly.folderPath,
+                  succeeded: succeededCount,
+                  failed: failedCount
+                },
+                error: {
+                  message: errorMessage,
+                  assembly: assembly.elementName
+                },
+                timestamp: new Date().toISOString()
+              });
+            }
+            
+            return {
+              source: {
+                documentId: assembly.documentId,
+                documentName: assembly.documentName,
+                folderPath: assembly.folderPath,
+                workspaceId: assembly.workspaceId
+              },
+              assembly: {
+                elementId: assembly.elementId,
+                name: assembly.elementName
+              },
+              bom: null,
+              error: errorMessage,
+              fetchDurationMs
+            };
+          }
+        })
+      )
+    );
+
+    // Calculate summary statistics
+    const totalBomRows = results.reduce(
+      (sum, r) => sum + (r.bom?.rows?.length || 0),
+      0
+    );
+
+    const exportDurationMs = Date.now() - startTime;
+
+    console.log('[AggregateBOM] ════════════════════════════════════════');
+    console.log('[AggregateBOM] Export Complete');
+    console.log(`[AggregateBOM]   Duration: ${(exportDurationMs / 1000).toFixed(1)}s`);
+    console.log(`[AggregateBOM]   Workers: ${workers}`);
+    console.log(`[AggregateBOM]   Assemblies: ${succeededCount}/${results.length} succeeded`);
+    console.log(`[AggregateBOM]   BOM Rows: ${totalBomRows}`);
+    console.log('[AggregateBOM] ════════════════════════════════════════');
+
+    return {
+      metadata: {
+        reportGeneratedAt: new Date().toISOString(),
+        generatedBy: currentUser.name || currentUser.email || 'Unknown',
+        exportDurationMs,
+        exportConfig: {
+          workerCount: workers,
+          delayMs,
+          scope: isPartialExport ? 'partial' : 'full',
+          ...(isPartialExport && options.scope?.documentIds?.length && {
+            selectedDocuments: options.scope.documentIds
+          }),
+          ...(isPartialExport && options.scope?.folderIds?.length && {
+            selectedFolders: options.scope.folderIds
+          }),
+          ...(isPartialExport && {
+            selectedItemCount: (options.scope?.documentIds?.length || 0) + (options.scope?.folderIds?.length || 0)
+          })
+        }
+      },
+      exportDate: new Date().toISOString(),
+      summary: {
+        foldersScanned: stats.summary.totalFolders,
+        documentsScanned: stats.summary.totalDocuments,
+        assembliesFound: results.length,
+        assembliesSucceeded: succeededCount,
+        assembliesFailed: failedCount,
+        totalBomRows
+      },
+      assemblies: results
+    };
+  }
+
+  /**
+   * Export aggregate BOM data for all assemblies in the workspace.
+   * Uses parallel fetching with controlled concurrency (Phase 4.3).
+   * 
+   * @param delayMs - Delay between API calls (per worker)
+   * @param workerCount - Number of concurrent workers (1-8)
+   */
+  async getAggregateBom(options: { delayMs?: number; workerCount?: number } = {}): Promise<AggregateBomResult> {
+    // Delegate to the progress-enabled version without callbacks
+    return this.getAggregateBomWithProgress({
+      delayMs: options.delayMs,
+      workerCount: options.workerCount
+    });
+  }
+
+  /**
+   * Original getAggregateBom implementation (kept for reference during transition).
+   * @deprecated Use getAggregateBomWithProgress instead
+   */
+  private async getAggregateBomLegacy(options: { delayMs?: number; workerCount?: number } = {}): Promise<AggregateBomResult> {
+    const startTime = Date.now();
+    const delayMs = options.delayMs ?? 100;
+    
+    // Clamp worker count to safe range (1-8)
+    const workers = Math.max(1, Math.min(8, options.workerCount ?? 4));
+
+    // Get current user for metadata (with graceful fallback)
+    let currentUser: { name: string; email: string } = { name: 'Unknown', email: '' };
+    try {
+      const userInfo = await this.getCurrentUser();
+      currentUser = {
+        name: userInfo.name || `${userInfo.firstName || ''} ${userInfo.lastName || ''}`.trim() || 'Unknown',
+        email: userInfo.email || ''
+      };
+    } catch (error: any) {
+      console.warn('[AggregateBOM] Could not fetch user info:', error.message);
+      // Continue with default "Unknown" user
+    }
+
+    // Phase 1: Pre-scan to get assembly list
+    console.log(`[AggregateBOM] Starting pre-scan with ${workers} workers...`);
+    const stats = await this.getDirectoryStats({ delayMs });
+    console.log(`[AggregateBOM] Pre-scan complete: ${stats.assemblies.length} assemblies found`);
+
+    // Phase 2: Parallel BOM fetching
+    console.log(`[AggregateBOM] Fetching BOMs with ${workers} workers, delay=${delayMs}ms...`);
+    
+    const limit = pLimit(workers);
+    let completedCount = 0;
+
+    const results = await Promise.all(
+      stats.assemblies.map(assembly =>
+        limit(async (): Promise<AssemblyBomFetchResult> => {
+          const fetchStart = Date.now();
+          
+          try {
+            // Rate limiting delay
+            if (delayMs > 0) {
+              await this.delay(delayMs);
+            }
+            
+            // Fetch BOM for this assembly
+            const bom = await this.getAssemblyBom(
+              assembly.documentId,
+              assembly.workspaceId,
+              assembly.elementId
+            );
+            
+            completedCount++;
+            const fetchDurationMs = Date.now() - fetchStart;
+            
+            console.log(
+              `[AggregateBOM] ✓ ${completedCount}/${stats.assemblies.length}: ` +
+              `"${assembly.elementName}" (${fetchDurationMs}ms)`
+            );
+            
+            return {
+              source: {
+                documentId: assembly.documentId,
+                documentName: assembly.documentName,
+                folderPath: assembly.folderPath,
+                workspaceId: assembly.workspaceId
+              },
+              assembly: {
+                elementId: assembly.elementId,
+                name: assembly.elementName
+              },
+              bom: bom ? {
+                headers: bom.headers || [],
+                rows: bom.rows || []
+              } : null,
+              fetchDurationMs
+            };
+          } catch (error) {
+            completedCount++;
+            const fetchDurationMs = Date.now() - fetchStart;
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            
+            console.warn(
+              `[AggregateBOM] ✗ ${completedCount}/${stats.assemblies.length}: ` +
+              `"${assembly.elementName}" - ${errorMessage}`
+            );
+            
+            return {
+              source: {
+                documentId: assembly.documentId,
+                documentName: assembly.documentName,
+                folderPath: assembly.folderPath,
+                workspaceId: assembly.workspaceId
+              },
+              assembly: {
+                elementId: assembly.elementId,
+                name: assembly.elementName
+              },
+              bom: null,
+              error: errorMessage,
+              fetchDurationMs
+            };
+          }
+        })
+      )
+    );
+
+    // Calculate summary statistics
+    const assembliesSucceeded = results.filter(r => r.bom !== null).length;
+    const assembliesFailed = results.filter(r => r.error).length;
+    const totalBomRows = results.reduce(
+      (sum, r) => sum + (r.bom?.rows?.length || 0),
+      0
+    );
+
+    const exportDurationMs = Date.now() - startTime;
+
+    console.log('[AggregateBOM] ════════════════════════════════════════');
+    console.log('[AggregateBOM] Export Complete');
+    console.log(`[AggregateBOM]   Duration: ${(exportDurationMs / 1000).toFixed(1)}s`);
+    console.log(`[AggregateBOM]   Workers: ${workers}`);
+    console.log(`[AggregateBOM]   Assemblies: ${assembliesSucceeded}/${results.length} succeeded`);
+    console.log(`[AggregateBOM]   BOM Rows: ${totalBomRows}`);
+    console.log('[AggregateBOM] ════════════════════════════════════════');
+
+    return {
+      metadata: {
+        reportGeneratedAt: new Date().toISOString(),
+        generatedBy: currentUser.name || currentUser.email || 'Unknown',
+        exportDurationMs,
+        exportConfig: {
+          workerCount: workers,
+          delayMs,
+          scope: 'full'
+        }
+      },
+      exportDate: new Date().toISOString(),
+      summary: {
+        foldersScanned: stats.summary.totalFolders,
+        documentsScanned: stats.summary.totalDocuments,
+        assembliesFound: results.length,
+        assembliesSucceeded,
+        assembliesFailed,
+        totalBomRows
+      },
+      assemblies: results
     };
   }
 

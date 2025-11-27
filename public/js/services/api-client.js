@@ -91,6 +91,141 @@ export class ApiClient {
     return res.json();
   }
 
+  async getAggregateBom(delayMs = 100) {
+    const params = new URLSearchParams({
+      delay: String(delayMs)
+    });
+    const res = await fetch(`/api/export/aggregate-bom?${params.toString()}`);
+    if (!res.ok) throw new Error(`Get aggregate BOM failed (${res.status})`);
+    return res.json();
+  }
+
+  /**
+   * Get directory statistics (pre-scan without fetching BOMs).
+   * @param {number} delayMs - Delay between API calls in ms
+   * @param {Object} scope - Optional scope for partial export (Phase 4.7)
+   * @param {string} scope.scope - 'full' or 'partial'
+   * @param {string[]} scope.documentIds - Document IDs for partial
+   * @param {string[]} scope.folderIds - Folder IDs for partial
+   * @returns {Promise<Object>} Directory stats including assembly list
+   */
+  async getDirectoryStats(delayMs = 100, scope = null) {
+    const params = new URLSearchParams({
+      delay: String(delayMs)
+    });
+    
+    // Phase 4.7: Add scope parameters
+    if (scope?.scope === 'partial') {
+      params.set('scope', 'partial');
+      if (scope.documentIds?.length) {
+        params.set('documentIds', scope.documentIds.join(','));
+      }
+      if (scope.folderIds?.length) {
+        params.set('folderIds', scope.folderIds.join(','));
+      }
+    }
+    
+    const res = await fetch(`/api/export/directory-stats?${params.toString()}`);
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(error.error || `Get directory stats failed (${res.status})`);
+    }
+    return res.json();
+  }
+
+  /**
+   * Start aggregate BOM export with SSE progress streaming.
+   * @param {Object} options - Export options
+   * @param {number} options.workers - Number of parallel workers (1-8)
+   * @param {number} options.delay - Delay between API calls in ms
+   * @param {Object} options.scope - Optional scope for partial export (Phase 4.7)
+   * @param {function} options.onProgress - Callback for progress events
+   * @param {function} options.onComplete - Callback when export completes
+   * @param {function} options.onError - Callback for errors
+   * @returns {function} Cleanup function to close SSE connection
+   */
+  startAggregateBomStream({ workers = 4, delay = 100, scope = null, onProgress, onComplete, onError }) {
+    const params = new URLSearchParams();
+    params.set('workers', workers.toString());
+    params.set('delay', delay.toString());
+    
+    // Phase 4.7: Add scope parameters
+    if (scope?.scope === 'partial') {
+      params.set('scope', 'partial');
+      if (scope.documentIds?.length) {
+        params.set('documentIds', scope.documentIds.join(','));
+      }
+      if (scope.folderIds?.length) {
+        params.set('folderIds', scope.folderIds.join(','));
+      }
+    }
+    
+    const url = `/api/export/aggregate-bom-stream?${params.toString()}`;
+    const eventSource = new EventSource(url);
+    
+    eventSource.addEventListener('connected', (e) => {
+      console.log('[Export SSE] Connected:', JSON.parse(e.data));
+    });
+    
+    eventSource.addEventListener('progress', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (onProgress) onProgress(data);
+      } catch (err) {
+        console.error('[Export SSE] Failed to parse progress:', err);
+      }
+    });
+    
+    eventSource.addEventListener('complete', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        eventSource.close();
+        if (onComplete) onComplete(data.result);
+      } catch (err) {
+        console.error('[Export SSE] Failed to parse complete:', err);
+        if (onError) onError(new Error('Failed to parse export result'));
+      }
+    });
+    
+    eventSource.addEventListener('error', (e) => {
+      // Check if this is a real error or just connection closed
+      if (eventSource.readyState === EventSource.CLOSED) {
+        console.log('[Export SSE] Connection closed');
+        return;
+      }
+      
+      // Try to parse error data if available
+      let errorMessage = 'Export failed';
+      if (e.data) {
+        try {
+          const data = JSON.parse(e.data);
+          errorMessage = data.error?.message || errorMessage;
+        } catch (err) {
+          // Ignore parse error
+        }
+      }
+      
+      eventSource.close();
+      if (onError) onError(new Error(errorMessage));
+    });
+    
+    // Also handle generic errors
+    eventSource.onerror = (e) => {
+      if (eventSource.readyState === EventSource.CLOSED) {
+        return; // Already handled
+      }
+      console.error('[Export SSE] Connection error:', e);
+      eventSource.close();
+      if (onError) onError(new Error('Connection to server lost'));
+    };
+    
+    // Return cleanup function
+    return () => {
+      console.log('[Export SSE] Closing connection');
+      eventSource.close();
+    };
+  }
+
   async getGlobalTreeNodes(limit = 20, offset = 0, getPathToRoot = false) {
     const params = new URLSearchParams({
       limit: String(limit),

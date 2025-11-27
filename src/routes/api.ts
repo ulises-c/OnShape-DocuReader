@@ -389,6 +389,231 @@ router.get(
   }
 );
 
+/**
+ * GET /api/export/directory-stats
+ *
+ * Pre-scan the workspace tree to gather statistics.
+ * Fast alternative to full export - doesn't fetch BOMs.
+ * Returns assembly list for subsequent parallel BOM fetching.
+ * 
+ * Query params:
+ *   - delay: Delay between API calls in ms (default: 100)
+ *   - scope: 'full' | 'partial' (default: 'full')
+ *   - documentIds: Comma-separated document IDs (for partial)
+ *   - folderIds: Comma-separated folder IDs (for partial)
+ */
+router.get(
+  "/export/directory-stats",
+  async (req: Request, res: Response): Promise<Response> => {
+    try {
+      const delayMs = parseInt(String(req.query.delay ?? "100"), 10);
+      
+      // Parse scope parameters (Phase 4.7)
+      const scopeParam = req.query.scope as string;
+      const documentIdsParam = req.query.documentIds as string;
+      const folderIdsParam = req.query.folderIds as string;
+      
+      const scope = scopeParam === 'partial' 
+        ? {
+            scope: 'partial' as const,
+            documentIds: documentIdsParam ? documentIdsParam.split(',').filter(Boolean) : undefined,
+            folderIds: folderIdsParam ? folderIdsParam.split(',').filter(Boolean) : undefined
+          }
+        : undefined;
+
+      console.log("[Export] Starting directory stats pre-scan with delay:", delayMs, "ms",
+        scope ? `(partial: ${scope.documentIds?.length || 0} docs, ${scope.folderIds?.length || 0} folders)` : "(full)");
+
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
+
+      const stats = await client.getDirectoryStats({ delayMs, scope });
+
+      console.log("[Export] Directory stats complete:", stats.summary);
+
+      return res.json(stats);
+    } catch (error: any) {
+      console.error("[Export] Directory stats error:", error);
+      return res.status(500).json({
+        error: "Failed to scan directory",
+        message: error.message,
+      });
+    }
+  }
+);
+
+/**
+ * GET /api/export/aggregate-bom-stream
+ * 
+ * Stream aggregate BOM export with real-time progress via SSE (Phase 4.4).
+ * 
+ * Query params:
+ *   - delay: Delay between API calls in ms (default: 100)
+ *   - workers: Number of parallel workers 1-8 (default: 4)
+ *   - scope: 'full' | 'partial' (default: 'full')
+ *   - documentIds: Comma-separated document IDs (for partial)
+ *   - folderIds: Comma-separated folder IDs (for partial)
+ * 
+ * Events emitted:
+ *   - connected: Initial connection established
+ *   - progress: Export progress update
+ *   - complete: Export finished successfully (includes full result)
+ *   - error: Export failed
+ */
+router.get(
+  "/export/aggregate-bom-stream",
+  async (req: Request, res: Response): Promise<void> => {
+    const accessToken = req.session?.accessToken;
+    
+    if (!accessToken) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+    
+    const delayMs = parseInt(String(req.query.delay ?? "100"), 10);
+    const workerCount = parseInt(String(req.query.workers ?? "4"), 10);
+    
+    // Parse scope parameters (Phase 4.7)
+    const scopeParam = req.query.scope as string;
+    const documentIdsParam = req.query.documentIds as string;
+    const folderIdsParam = req.query.folderIds as string;
+    
+    const scope = scopeParam === 'partial' 
+      ? {
+          scope: 'partial' as const,
+          documentIds: documentIdsParam ? documentIdsParam.split(',').filter(Boolean) : undefined,
+          folderIds: folderIdsParam ? folderIdsParam.split(',').filter(Boolean) : undefined
+        }
+      : undefined;
+    
+    // Set SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+    
+    let closed = false;
+    
+    const sendEvent = (event: string, data: any) => {
+      if (closed) return;
+      try {
+        res.write(`event: ${event}\n`);
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+      } catch (e) {
+        closed = true;
+      }
+    };
+    
+    // Create abort controller for cancellation
+    const abortController = new AbortController();
+    
+    // Handle client disconnect
+    req.on('close', () => {
+      console.log('[Export SSE] Client disconnected');
+      closed = true;
+      abortController.abort();
+    });
+    
+    // Send connected event
+    sendEvent('connected', { timestamp: new Date().toISOString() });
+    
+    console.log(`[Export SSE] Starting stream (workers=${workerCount}, delay=${delayMs}ms)`,
+      scope ? `(partial: ${scope.documentIds?.length || 0} docs, ${scope.folderIds?.length || 0} folders)` : "(full)");
+    
+    try {
+      const client = new OnShapeApiClient(
+        accessToken,
+        req.session.userId,
+        usageTracker
+      );
+      
+      const result = await client.getAggregateBomWithProgress({
+        delayMs,
+        workerCount,
+        onProgress: (event) => {
+          if (!closed) {
+            sendEvent('progress', event);
+          }
+        },
+        signal: abortController.signal,
+        scope
+      });
+      
+      // Send complete event with full result
+      if (!closed) {
+        sendEvent('complete', {
+          phase: 'complete',
+          result,
+          timestamp: new Date().toISOString()
+        });
+      }
+      
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (message === 'Export cancelled') {
+        console.log('[Export SSE] Export cancelled by client');
+      } else {
+        console.error('[Export SSE] Export error:', error);
+        if (!closed) {
+          sendEvent('error', {
+            phase: 'error',
+            error: { message },
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+    } finally {
+      if (!closed) {
+        res.end();
+      }
+    }
+  }
+);
+
+/**
+ * GET /api/export/aggregate-bom
+ * 
+ * Export aggregate BOM data for all assemblies.
+ * Uses parallel fetching with controlled concurrency (Phase 4.3).
+ * 
+ * Query params:
+ *   - delay: Delay between API calls in ms (default: 100)
+ *   - workers: Number of parallel workers 1-8 (default: 4)
+ */
+router.get(
+  "/export/aggregate-bom",
+  async (req: Request, res: Response): Promise<Response> => {
+    try {
+      const delayMs = parseInt(String(req.query.delay ?? "100"), 10);
+      const workerCount = parseInt(String(req.query.workers ?? "4"), 10);
+
+      console.log(`[AggregateBOM] Starting export (workers=${workerCount}, delay=${delayMs}ms)`);
+
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
+
+      const result = await client.getAggregateBom({ delayMs, workerCount });
+
+      console.log("[AggregateBOM] Export complete:", result.summary);
+
+      return res.json(result);
+    } catch (error: any) {
+      console.error("Aggregate BOM export error:", error);
+      return res.status(500).json({
+        error: "Aggregate BOM export failed",
+        message: error.message,
+      });
+    }
+  }
+);
+
 router.get(
   "/thumbnail-proxy",
   async (req: Request, res: Response): Promise<Response> => {

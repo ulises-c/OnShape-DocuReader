@@ -318,3 +318,52 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* ================================
+   Phase 4.7: Export Selection
+   ================================ */
+
+/* Export selection checkbox */
+.export-select-checkbox {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  z-index: 5;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.workspace-item {
+  position: relative;
+}
+
+.workspace-item:hover .export-select-checkbox,
+.workspace-item.export-selected .export-select-checkbox {
+  opacity: 1;
+}
+
+.export-select-checkbox input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+/* Selected state */
+.workspace-item.export-selected {
+  background-color: #e8f4fd;
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+}
+
+/* Export button with selection */
+#getAllBtn.has-selection {
+  background-color: var(--color-primary);
+  color: white;
+}

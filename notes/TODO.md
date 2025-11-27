@@ -53,3 +53,14 @@ The numbering is just show that it's easier to keep track.
    2. Caching via database should also be implemented to reduce API calls and have a more populated database instead of having to retreive data every time.
    3. Pagination should be reworked. Instead of retreiving latest worked documents, documents should be retreived by folders, using tree nodes.
 10. Implement caching (redis?) and a longer term database (sql?)
+11. Enhance UI during pre-scan
+    1. Ability to cancel scan
+    2. Show stats (total folders scanned, total files found, total file types (assembly, part studio, etc.), current scan directory (absolute path, not relative), total time elapsed during scan)
+    3. Since `globaltreenodes/magic` already provides directories in root adding a nice way to visualize parent directory status would be ideal (scanned, scanning, upcoming, ignored, etc.)
+12. Update front page UI
+    1. User info - First Name, Last Name, user / display name (if applicable), email
+    2. Update "Workspace" link that GETs root via `globaltreenodes/magic` to a button that says "Refresh Workspace"
+    3. Modify Workspace section to include workspace name (company, etc.)
+13. Double check time-out policy on authentication via `.sessions.json`. May need to extend considering exports take a while.
+    1. What I do know is the full export caused me to no longer have access. `Access denied`. May be due to rate limit or some other feature.
+       1. Seems to be 24 hours - 1 millisecond (23 hours, 59 minutes, 59.999 seconds), so it's not that.

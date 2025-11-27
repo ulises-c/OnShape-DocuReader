@@ -55,6 +55,9 @@ export class DocumentController {
     };
 
     this._bindDashboardEvents();
+    
+    // Phase 4.7: Subscribe to state changes for export selection
+    this.state.subscribe((state) => this._updateExportButtonState(state));
   }
 
   _bindDashboardEvents() {
@@ -67,6 +70,14 @@ export class DocumentController {
         if (section) {
           section.classList.toggle('collapsed');
         }
+      });
+    }
+
+    // Aggregate BOM export button
+    const getAllBtn = document.getElementById('getAllBtn');
+    if (getAllBtn) {
+      getAllBtn.addEventListener('click', () => {
+        this.exportAggregateBom();
       });
     }
   }
@@ -702,6 +713,198 @@ export class DocumentController {
         button.disabled = false;
       }
     }
+  }
+
+  /**
+   * Phase 4.7: Update export button text based on selection state
+   */
+  _updateExportButtonState(state) {
+    const btn = document.getElementById("getAllBtn");
+    if (!btn) return;
+    
+    const selectionCount = this.state.getExportSelectionCount();
+    
+    if (selectionCount > 0) {
+      btn.textContent = `📦 Export Selected (${selectionCount})`;
+      btn.classList.add('has-selection');
+    } else {
+      btn.textContent = '📦 Get All';
+      btn.classList.remove('has-selection');
+    }
+  }
+
+  /**
+   * Phase 4.7: Handle document selection for export
+   */
+  handleDocumentExportSelect(documentId) {
+    this.state.toggleDocumentSelection(documentId);
+  }
+
+  /**
+   * Phase 4.7: Handle folder selection for export
+   */
+  handleFolderExportSelect(folderId) {
+    this.state.toggleFolderSelection(folderId);
+  }
+
+  /**
+   * Phase 4.7: Clear export selection
+   */
+  clearExportSelection() {
+    this.state.clearExportSelection();
+  }
+
+  /**
+   * Export aggregate BOM from all folders and documents.
+   * Shows pre-scan stats modal before starting full export (Phase 4.5).
+   * Supports partial export with selection (Phase 4.7).
+   */
+  async exportAggregateBom() {
+    const btn = document.getElementById("getAllBtn");
+    const originalText = btn?.textContent || "📦 Get All";
+    
+    // Phase 4.7: Get export scope based on selection
+    const scope = this.state.getExportScope();
+    const isPartial = scope !== null;
+
+    try {
+      // Dynamically import the modal to avoid circular dependencies
+      const { exportStatsModal } = await import("../views/export-stats-modal.js");
+
+      // Show loading state
+      exportStatsModal.showLoading();
+
+      console.log(
+        isPartial
+          ? `[DocumentController] Starting partial pre-scan: ${scope.documentIds?.length || 0} docs, ${scope.folderIds?.length || 0} folders`
+          : "[DocumentController] Starting full pre-scan for aggregate BOM export..."
+      );
+
+      // Fetch directory stats (pre-scan) with scope
+      const stats = await this.documentService.getDirectoryStats(100, scope);
+
+      console.log("[DocumentController] Pre-scan complete:", stats.summary);
+
+      // Show stats modal with confirm/cancel
+      exportStatsModal.show(stats, {
+        isPartial,
+        selectionCount: this.state.getExportSelectionCount(),
+        onConfirm: () => this._startAggregateBomExport(stats, btn, originalText, scope),
+        onCancel: () => {
+          console.log("[DocumentController] Export cancelled by user");
+        }
+      });
+
+    } catch (error) {
+      console.error("[DocumentController] Pre-scan failed:", error);
+      // Show error in modal
+      try {
+        const { exportStatsModal } = await import("../views/export-stats-modal.js");
+        exportStatsModal.showError(error.message || 'Failed to scan workspace');
+      } catch (importError) {
+        // Fallback if modal import fails
+        this._toast(`❌ Scan failed: ${error.message}`);
+      }
+    }
+  }
+
+  /**
+   * Start the full aggregate BOM export after user confirms in pre-scan modal.
+   * Uses SSE streaming for real-time progress updates (Phase 4.6).
+   * @param {Object} stats - Pre-scan stats (for reference)
+   * @param {HTMLElement} btn - The export button element
+   * @param {string} originalText - Original button text to restore
+   * @param {Object} scope - Export scope (null for full, object for partial) (Phase 4.7)
+   */
+  async _startAggregateBomExport(stats, btn, originalText, scope = null) {
+    const workers = 4;  // Could make this configurable in UI
+    const delay = 100;
+    const isPartial = scope?.scope === 'partial';
+    
+    console.log(`[DocumentController] Starting ${isPartial ? 'partial' : 'full'} export of ${stats.estimates?.assembliesFound || 0} assemblies`);
+    console.log(`[DocumentController] Config: workers=${workers}, delay=${delay}ms`);
+    
+    // Import progress modal dynamically
+    const { exportProgressModal } = await import("../views/export-progress-modal.js");
+    
+    // Show progress modal and start export
+    exportProgressModal.show({
+      stats,
+      workers,
+      delay,
+      
+      // Start export function - called by modal
+      startExport: (options) => {
+        return this.documentService.startAggregateBomExport({
+          ...options,
+          scope
+        });
+      },
+      
+      // Handle completion
+      onComplete: (result) => {
+        // Restore button state
+        if (btn) {
+          btn.textContent = originalText;
+          btn.disabled = false;
+        }
+        
+        // Phase 4.7: Clear selection after successful partial export
+        if (isPartial) {
+          this.state.clearExportSelection();
+        }
+        
+        // Download result as JSON
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+        const scopeLabel = isPartial ? 'partial' : 'full';
+        const filename = `aggregate-bom-${scopeLabel}-${timestamp}.json`;
+        this._downloadJson(result, filename);
+        
+        // Show success toast
+        this._toast(
+          `✅ Exported ${result.summary?.assembliesSucceeded || 0} assemblies from ${result.summary?.documentsScanned || 0} documents`
+        );
+      },
+      
+      // Handle cancellation
+      onCancel: () => {
+        // Restore button state
+        if (btn) {
+          btn.textContent = originalText;
+          btn.disabled = false;
+        }
+        this._toast('Export cancelled');
+      },
+      
+      // Handle error
+      onError: (error) => {
+        // Restore button state
+        if (btn) {
+          btn.textContent = originalText;
+          btn.disabled = false;
+        }
+        this._toast(`❌ Export failed: ${error.message}`);
+      }
+    });
+  }
+
+  /**
+   * Download data as JSON file.
+   * @param {Object} data - Data to download
+   * @param {string} filename - Filename for download
+   */
+  _downloadJson(data, filename) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    URL.revokeObjectURL(url);
   }
 
   _toast(message) {

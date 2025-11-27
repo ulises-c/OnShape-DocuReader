@@ -48,5 +48,6 @@ next-env.d.ts
 .aipack/
 /notes/PROMPT.md
 /notes/RESPONSE.md
+/notes/LLM-RESPONSE.md
 .aipack-distiller/
 ako-config.jsonc

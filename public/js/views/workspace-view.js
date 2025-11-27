@@ -26,6 +26,26 @@ export class WorkspaceView extends BaseView {
 
     if (this.gridContainer) {
       this.gridContainer.addEventListener('click', (e) => {
+        // Phase 4.7: Handle export selection checkbox clicks
+        const checkbox = e.target.closest('.export-select-checkbox');
+        if (checkbox) {
+          e.stopPropagation();
+          const item = checkbox.closest('.workspace-item');
+          if (!item) return;
+          
+          const id = item.getAttribute('data-id');
+          const type = item.getAttribute('data-type');
+          
+          if (type === 'folder') {
+            this.controller.handleFolderExportSelect(id);
+          } else if (type === 'document') {
+            this.controller.handleDocumentExportSelect(id);
+          }
+          
+          this._updateSelectionVisuals();
+          return;
+        }
+        
         const item = e.target.closest('.workspace-item');
         if (!item) return;
 
@@ -122,6 +142,11 @@ export class WorkspaceView extends BaseView {
       return;
     }
 
+    // Phase 4.7: Get current export selection state
+    const exportSelection = this.controller.state?.getState?.()?.exportSelection || {};
+    const selectedDocIds = new Set(exportSelection.documentIds || []);
+    const selectedFolderIds = new Set(exportSelection.folderIds || []);
+    
     const html = items.map((item) => {
       // Determine icon and type
       // jsonType can be 'folder' or 'document-summary' or other Onshape types
@@ -129,13 +154,22 @@ export class WorkspaceView extends BaseView {
       const icon = isFolder ? '📁' : '📄';
       const typeClass = isFolder ? 'type-folder' : 'type-doc';
       const dataType = isFolder ? 'folder' : 'document';
+      
+      // Phase 4.7: Check if selected for export
+      const isSelected = isFolder 
+        ? selectedFolderIds.has(item.id)
+        : selectedDocIds.has(item.id);
+      const selectedClass = isSelected ? 'export-selected' : '';
 
       return `
-          <div class="workspace-item ${typeClass}" 
+          <div class="workspace-item ${typeClass} ${selectedClass}" 
                data-id="${escapeHtml(item.id)}" 
                data-name="${escapeHtml(item.name)}" 
                data-type="${dataType}" 
                title="${escapeHtml(item.name)}">
+              <label class="export-select-checkbox" title="Select for export">
+                <input type="checkbox" ${isSelected ? 'checked' : ''} />
+              </label>
               <div class="item-icon">${icon}</div>
               <div class="item-name">${escapeHtml(item.name)}</div>
           </div>
@@ -143,5 +177,29 @@ export class WorkspaceView extends BaseView {
     }).join('');
 
     this.gridContainer.innerHTML = html;
+  }
+
+  /**
+   * Phase 4.7: Update visual selection state for export checkboxes
+   */
+  _updateSelectionVisuals() {
+    if (!this.gridContainer) return;
+    
+    const exportSelection = this.controller.state?.getState?.()?.exportSelection || {};
+    const selectedDocIds = new Set(exportSelection.documentIds || []);
+    const selectedFolderIds = new Set(exportSelection.folderIds || []);
+    
+    this.gridContainer.querySelectorAll('.workspace-item').forEach(item => {
+      const id = item.getAttribute('data-id');
+      const type = item.getAttribute('data-type');
+      const checkbox = item.querySelector('.export-select-checkbox input');
+      
+      const isSelected = type === 'folder'
+        ? selectedFolderIds.has(id)
+        : selectedDocIds.has(id);
+      
+      item.classList.toggle('export-selected', isSelected);
+      if (checkbox) checkbox.checked = isSelected;
+    });
   }
 }

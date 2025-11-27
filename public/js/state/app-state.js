@@ -7,7 +7,12 @@ const defaultState = Object.freeze({
   currentDocument: null,
   currentElement: null,
   currentPart: null,
-  selectedDocuments: []
+  selectedDocuments: [],
+  // Phase 4.7: Export selection state
+  exportSelection: {
+    documentIds: [],
+    folderIds: []
+  }
 });
 
 export class AppState {
@@ -34,6 +39,63 @@ export class AppState {
   replaceState(newState) {
     this._state = Object.freeze({ ...defaultState, ...newState });
     this._emit();
+  }
+
+  // Phase 4.7: Export selection helpers
+  toggleDocumentSelection(documentId) {
+    const current = this._state.exportSelection?.documentIds || [];
+    const newIds = current.includes(documentId)
+      ? current.filter(id => id !== documentId)
+      : [...current, documentId];
+    this.setState({
+      exportSelection: {
+        ...this._state.exportSelection,
+        documentIds: newIds
+      }
+    });
+  }
+
+  toggleFolderSelection(folderId) {
+    const current = this._state.exportSelection?.folderIds || [];
+    const newIds = current.includes(folderId)
+      ? current.filter(id => id !== folderId)
+      : [...current, folderId];
+    this.setState({
+      exportSelection: {
+        ...this._state.exportSelection,
+        folderIds: newIds
+      }
+    });
+  }
+
+  clearExportSelection() {
+    this.setState({
+      exportSelection: {
+        documentIds: [],
+        folderIds: []
+      }
+    });
+  }
+
+  getExportSelectionCount() {
+    const sel = this._state.exportSelection || {};
+    return (sel.documentIds?.length || 0) + (sel.folderIds?.length || 0);
+  }
+
+  hasExportSelection() {
+    return this.getExportSelectionCount() > 0;
+  }
+
+  getExportScope() {
+    if (!this.hasExportSelection()) {
+      return null;
+    }
+    const sel = this._state.exportSelection || {};
+    return {
+      scope: 'partial',
+      documentIds: sel.documentIds || [],
+      folderIds: sel.folderIds || []
+    };
   }
 
   reset() {

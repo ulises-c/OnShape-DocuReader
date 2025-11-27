@@ -35,6 +35,29 @@ export class DocumentService {
     return this.api.getParentInfo(documentId);
   }
 
+  async getAggregateBom(delayMs = 100) {
+    return this.api.getAggregateBom(delayMs);
+  }
+
+  /**
+   * Get workspace directory statistics for pre-export preview.
+   * @param {number} delayMs - Delay between API calls in ms
+   * @param {Object} scope - Optional scope for partial export (Phase 4.7)
+   * @returns {Promise<Object>} Directory stats with folder/document/element counts
+   */
+  async getDirectoryStats(delayMs = 100, scope = null) {
+    return this.api.getDirectoryStats(delayMs, scope);
+  }
+
+  /**
+   * Start aggregate BOM export with progress streaming.
+   * @param {Object} options - Export options and callbacks
+   * @returns {function} Cleanup function to cancel export
+   */
+  startAggregateBomExport(options) {
+    return this.api.startAggregateBomStream(options);
+  }
+
   async getGlobalTreeRootNodes(limit, offset) {
     return this.api.getGlobalTreeNodes(limit, offset);
   }
