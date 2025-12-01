@@ -12,6 +12,8 @@ export interface OnShapeUser {
   email: string;
   company: string;
   image: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 export interface OnShapeDocument {
