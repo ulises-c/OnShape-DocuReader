@@ -33,7 +33,7 @@ context_globs:
   - public/js/app.js
   - public/dashboard.html
   - public/index.html
-  - public/styles.css
+  - /public/css/main.css
 
 ## Only matched file paths included in prompt
 structure_globs:
