@@ -107,9 +107,11 @@ export class ApiClient {
    * @param {string} scope.scope - 'full' or 'partial'
    * @param {string[]} scope.documentIds - Document IDs for partial
    * @param {string[]} scope.folderIds - Folder IDs for partial
+   * @param {Object} filterOptions - Optional filter options
+   * @param {string} filterOptions.prefixFilter - Prefix to filter root folders
    * @returns {Promise<Object>} Directory stats including assembly list
    */
-  async getDirectoryStats(delayMs = 100, scope = null) {
+  async getDirectoryStats(delayMs = 100, scope = null, filterOptions = null) {
     const params = new URLSearchParams({
       delay: String(delayMs)
     });
@@ -123,6 +125,11 @@ export class ApiClient {
       if (scope.folderIds?.length) {
         params.set('folderIds', scope.folderIds.join(','));
       }
+    }
+    
+    // Add prefix filter
+    if (filterOptions?.prefixFilter) {
+      params.set('prefixFilter', filterOptions.prefixFilter);
     }
     
     const res = await fetch(`/api/export/directory-stats?${params.toString()}`);
@@ -139,12 +146,13 @@ export class ApiClient {
    * @param {number} options.workers - Number of parallel workers (1-8)
    * @param {number} options.delay - Delay between API calls in ms
    * @param {Object} options.scope - Optional scope for partial export (Phase 4.7)
+   * @param {string} options.prefixFilter - Optional prefix to filter root folders
    * @param {function} options.onProgress - Callback for progress events
    * @param {function} options.onComplete - Callback when export completes
    * @param {function} options.onError - Callback for errors
    * @returns {function} Cleanup function to close SSE connection
    */
-  startAggregateBomStream({ workers = 4, delay = 100, scope = null, onProgress, onComplete, onError }) {
+  startAggregateBomStream({ workers = 4, delay = 100, scope = null, prefixFilter = null, onProgress, onComplete, onError }) {
     const params = new URLSearchParams();
     params.set('workers', workers.toString());
     params.set('delay', delay.toString());
@@ -158,6 +166,11 @@ export class ApiClient {
       if (scope.folderIds?.length) {
         params.set('folderIds', scope.folderIds.join(','));
       }
+    }
+    
+    // Add prefix filter
+    if (prefixFilter) {
+      params.set('prefixFilter', prefixFilter);
     }
     
     const url = `/api/export/aggregate-bom-stream?${params.toString()}`;

@@ -13,6 +13,7 @@ import { escapeHtml } from "../utils/dom-helpers.js";
 import { ROUTES, pathTo } from "../router/routes.js";
 import { exportStatsModal } from "../views/export-stats-modal.js";
 import { exportProgressModal } from "../views/export-progress-modal.js";
+import { exportFilterModal } from "../views/export-filter-modal.js";
 
 export class DocumentController {
   constructor(
@@ -780,7 +781,7 @@ export class DocumentController {
 
   /**
    * Export aggregate BOM from all folders and documents.
-   * Shows pre-scan stats modal before starting full export (Phase 4.5).
+   * Shows filter modal, then pre-scan stats modal before starting full export.
    * Supports partial export with selection (Phase 4.7).
    */
   async exportAggregateBom() {
@@ -791,10 +792,19 @@ export class DocumentController {
     const scope = this.state.getExportScope();
     const isPartial = scope !== null;
 
-    try {
-      // Dynamically import the modal to avoid circular dependencies
-      // const { exportStatsModal } = await import("../views/export-stats-modal.js");
+    // If not a partial export, show filter modal first
+    let filterOptions = null;
+    if (!isPartial) {
+      filterOptions = await exportFilterModal.prompt();
 
+      // User cancelled the filter modal
+      if (filterOptions === null) {
+        console.log("[DocumentController] Export cancelled at filter stage");
+        return;
+      }
+    }
+
+    try {
       // Show loading state
       exportStatsModal.showLoading();
 
@@ -803,11 +813,15 @@ export class DocumentController {
           ? `[DocumentController] Starting partial pre-scan: ${
               scope.documentIds?.length || 0
             } docs, ${scope.folderIds?.length || 0} folders`
-          : "[DocumentController] Starting full pre-scan for aggregate BOM export..."
+          : `[DocumentController] Starting full pre-scan${
+              filterOptions?.prefixFilter
+                ? ` with prefix filter: "${filterOptions.prefixFilter}"`
+                : ""
+            }...`
       );
 
-      // Fetch directory stats (pre-scan) with scope
-      const stats = await this.documentService.getDirectoryStats(100, scope);
+      // Fetch directory stats (pre-scan) with scope and filter
+      const stats = await this.documentService.getDirectoryStats(100, scope, filterOptions);
 
       console.log("[DocumentController] Pre-scan complete:", stats.summary);
 
@@ -815,22 +829,16 @@ export class DocumentController {
       exportStatsModal.show(stats, {
         isPartial,
         selectionCount: this.state.getExportSelectionCount(),
+        prefixFilter: filterOptions?.prefixFilter,
         onConfirm: () =>
-          this._startAggregateBomExport(stats, btn, originalText, scope),
+          this._startAggregateBomExport(stats, btn, originalText, scope, filterOptions),
         onCancel: () => {
           console.log("[DocumentController] Export cancelled by user");
         },
       });
     } catch (error) {
       console.error("[DocumentController] Pre-scan failed:", error);
-      // Show error in modal
-      try {
-        // const { exportStatsModal } = await import("../views/export-stats-modal.js");
-        exportStatsModal.showError(error.message || "Failed to scan workspace");
-      } catch (importError) {
-        // Fallback if modal import fails
-        this._toast(`❌ Scan failed: ${error.message}`);
-      }
+      exportStatsModal.showError(error.message || "Failed to scan workspace");
     }
   }
 
@@ -841,8 +849,9 @@ export class DocumentController {
    * @param {HTMLElement} btn - The export button element
    * @param {string} originalText - Original button text to restore
    * @param {Object} scope - Export scope (null for full, object for partial) (Phase 4.7)
+   * @param {Object} filterOptions - Filter options including prefixFilter
    */
-  async _startAggregateBomExport(stats, btn, originalText, scope = null) {
+  async _startAggregateBomExport(stats, btn, originalText, scope = null, filterOptions = null) {
     const workers = 4; // Could make this configurable in UI
     const delay = 100;
     const isPartial = scope?.scope === "partial";
@@ -853,11 +862,9 @@ export class DocumentController {
       } export of ${stats.estimates?.assembliesFound || 0} assemblies`
     );
     console.log(
-      `[DocumentController] Config: workers=${workers}, delay=${delay}ms`
+      `[DocumentController] Config: workers=${workers}, delay=${delay}ms`,
+      filterOptions?.prefixFilter ? `, prefixFilter="${filterOptions.prefixFilter}"` : ""
     );
-
-    // Import progress modal dynamically
-    // const { exportProgressModal } = await import("../views/export-progress-modal.js");
 
     // Show progress modal and start export
     exportProgressModal.show({
@@ -870,6 +877,7 @@ export class DocumentController {
         return this.documentService.startAggregateBomExport({
           ...options,
           scope,
+          prefixFilter: filterOptions?.prefixFilter,
         });
       },
 
@@ -891,7 +899,11 @@ export class DocumentController {
           .toISOString()
           .replace(/[:.]/g, "-")
           .slice(0, 19);
-        const scopeLabel = isPartial ? "partial" : "full";
+        const scopeLabel = isPartial 
+          ? "partial" 
+          : filterOptions?.prefixFilter 
+            ? `filtered-${filterOptions.prefixFilter}` 
+            : "full";
         const filename = `aggregate-bom-${scopeLabel}-${timestamp}.json`;
         this._downloadJson(result, filename);
 

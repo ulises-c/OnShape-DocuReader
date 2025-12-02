@@ -401,6 +401,7 @@ router.get(
  *   - scope: 'full' | 'partial' (default: 'full')
  *   - documentIds: Comma-separated document IDs (for partial)
  *   - folderIds: Comma-separated folder IDs (for partial)
+ *   - prefixFilter: Prefix to filter root folders (optional)
  */
 router.get(
   "/export/directory-stats",
@@ -413,6 +414,9 @@ router.get(
       const documentIdsParam = req.query.documentIds as string;
       const folderIdsParam = req.query.folderIds as string;
       
+      // Parse prefix filter
+      const prefixFilter = req.query.prefixFilter as string | undefined;
+      
       const scope = scopeParam === 'partial' 
         ? {
             scope: 'partial' as const,
@@ -422,7 +426,8 @@ router.get(
         : undefined;
 
       console.log("[Export] Starting directory stats pre-scan with delay:", delayMs, "ms",
-        scope ? `(partial: ${scope.documentIds?.length || 0} docs, ${scope.folderIds?.length || 0} folders)` : "(full)");
+        scope ? `(partial: ${scope.documentIds?.length || 0} docs, ${scope.folderIds?.length || 0} folders)` : "(full)",
+        prefixFilter ? `prefixFilter="${prefixFilter}"` : "");
 
       const client = new OnShapeApiClient(
         req.session.accessToken!,
@@ -430,7 +435,7 @@ router.get(
         usageTracker
       );
 
-      const stats = await client.getDirectoryStats({ delayMs, scope });
+      const stats = await client.getDirectoryStats({ delayMs, scope, prefixFilter });
 
       console.log("[Export] Directory stats complete:", stats.summary);
 
@@ -456,6 +461,7 @@ router.get(
  *   - scope: 'full' | 'partial' (default: 'full')
  *   - documentIds: Comma-separated document IDs (for partial)
  *   - folderIds: Comma-separated folder IDs (for partial)
+ *   - prefixFilter: Prefix to filter root folders (optional)
  * 
  * Events emitted:
  *   - connected: Initial connection established
@@ -480,6 +486,9 @@ router.get(
     const scopeParam = req.query.scope as string;
     const documentIdsParam = req.query.documentIds as string;
     const folderIdsParam = req.query.folderIds as string;
+    
+    // Parse prefix filter
+    const prefixFilter = req.query.prefixFilter as string | undefined;
     
     const scope = scopeParam === 'partial' 
       ? {
@@ -521,7 +530,8 @@ router.get(
     sendEvent('connected', { timestamp: new Date().toISOString() });
     
     console.log(`[Export SSE] Starting stream (workers=${workerCount}, delay=${delayMs}ms)`,
-      scope ? `(partial: ${scope.documentIds?.length || 0} docs, ${scope.folderIds?.length || 0} folders)` : "(full)");
+      scope ? `(partial: ${scope.documentIds?.length || 0} docs, ${scope.folderIds?.length || 0} folders)` : "(full)",
+      prefixFilter ? `prefixFilter="${prefixFilter}"` : "");
     
     try {
       const client = new OnShapeApiClient(
@@ -539,7 +549,8 @@ router.get(
           }
         },
         signal: abortController.signal,
-        scope
+        scope,
+        prefixFilter
       });
       
       // Send complete event with full result
@@ -588,7 +599,8 @@ router.get(
   "/export/aggregate-bom",
   async (req: Request, res: Response): Promise<Response> => {
     try {
-      const delayMs = parseInt(String(req.query.delay ?? "100"), 10);
+      // Delay between API calls to avoid rate limits
+      const delayMs = parseInt(String(req.query.delay ?? "150"), 10);
       const workerCount = parseInt(String(req.query.workers ?? "4"), 10);
 
       console.log(`[AggregateBOM] Starting export (workers=${workerCount}, delay=${delayMs}ms)`);

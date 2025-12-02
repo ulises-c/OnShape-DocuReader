@@ -19,8 +19,9 @@ export class ExportStatsModal {
    * @param {Object} options - Callbacks for confirm/cancel
    * @param {boolean} options.isPartial - Whether this is a partial export (Phase 4.7)
    * @param {number} options.selectionCount - Number of selected items (Phase 4.7)
+   * @param {string} options.prefixFilter - Active prefix filter (if any)
    */
-  show(stats, { onConfirm, onCancel, isPartial = false, selectionCount = 0 }) {
+  show(stats, { onConfirm, onCancel, isPartial = false, selectionCount = 0, prefixFilter = null }) {
     this.onConfirm = onConfirm;
     this.onCancel = onCancel;
 
@@ -33,7 +34,7 @@ export class ExportStatsModal {
     this.modalElement.setAttribute('role', 'dialog');
     this.modalElement.setAttribute('aria-modal', 'true');
     this.modalElement.setAttribute('aria-labelledby', 'export-stats-title');
-    this.modalElement.innerHTML = this.renderModalContent(stats, { isPartial, selectionCount });
+    this.modalElement.innerHTML = this.renderModalContent(stats, { isPartial, selectionCount, prefixFilter });
 
     // Add event listeners
     this.modalElement.querySelector('.export-stats-cancel-btn')
@@ -106,7 +107,7 @@ export class ExportStatsModal {
    * @param {Object} context - Context for partial export (Phase 4.7)
    * @returns {string} HTML string
    */
-  renderModalContent(stats, { isPartial = false, selectionCount = 0 } = {}) {
+  renderModalContent(stats, { isPartial = false, selectionCount = 0, prefixFilter = null } = {}) {
     const { summary, elementTypes, estimates } = stats;
 
     // Format estimated time
@@ -129,11 +130,20 @@ export class ExportStatsModal {
     const icon = isPartial ? '📋' : '📊';
     const confirmText = isPartial ? 'Export Selected' : 'Start Export';
 
+    // Filter badge for display
+    const filterBadgeHtml = prefixFilter
+      ? `<div class="export-stats-filter-badge">
+           <span class="export-stats-filter-icon">🔍</span>
+           Filtered: <code>${escapeHtml(prefixFilter)}*</code>
+         </div>`
+      : '';
+
     return `
       <div class="export-stats-modal">
         <div class="export-stats-modal-header">
           <span class="export-stats-modal-icon">${icon}</span>
           <h2 id="export-stats-title">${escapeHtml(title)}</h2>
+          ${filterBadgeHtml}
         </div>
 
         <div class="export-stats-modal-body">

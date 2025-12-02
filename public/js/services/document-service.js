@@ -43,10 +43,11 @@ export class DocumentService {
    * Get workspace directory statistics for pre-export preview.
    * @param {number} delayMs - Delay between API calls in ms
    * @param {Object} scope - Optional scope for partial export (Phase 4.7)
+   * @param {Object} filterOptions - Optional filter options (e.g., { prefixFilter: "600" })
    * @returns {Promise<Object>} Directory stats with folder/document/element counts
    */
-  async getDirectoryStats(delayMs = 100, scope = null) {
-    return this.api.getDirectoryStats(delayMs, scope);
+  async getDirectoryStats(delayMs = 100, scope = null, filterOptions = null) {
+    return this.api.getDirectoryStats(delayMs, scope, filterOptions);
   }
 
   /**

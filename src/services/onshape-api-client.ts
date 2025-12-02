@@ -475,12 +475,14 @@ export class OnShapeApiClient {
    * @param options.onProgress - Optional callback for progress updates (Phase 4.4)
    * @param options.signal - Optional AbortSignal for cancellation
    * @param options.scope - Optional scope for partial export (Phase 4.7)
+   * @param options.prefixFilter - Optional prefix to filter root folders
    */
   async getDirectoryStats(options: { 
     delayMs?: number; 
     onProgress?: (progress: { foldersScanned: number; documentsScanned: number }) => void;
     signal?: AbortSignal;
     scope?: { scope: 'full' | 'partial'; documentIds?: string[]; folderIds?: string[] };
+    prefixFilter?: string;
   } = {}): Promise<DirectoryStats> {
     const startTime = Date.now();
     const delay = options.delayMs ?? 100;
@@ -509,11 +511,13 @@ export class OnShapeApiClient {
     }> = [];
     const visited = new Set<string>();
 
+    const prefixFilter = options.prefixFilter;
     const isPartialExport = options.scope?.scope === 'partial' && 
       ((options.scope.documentIds?.length || 0) > 0 || (options.scope.folderIds?.length || 0) > 0);
 
     console.log("[DirectoryStats] Starting pre-scan with delay:", delay, "ms", 
-      isPartialExport ? `(partial: ${options.scope?.documentIds?.length || 0} docs, ${options.scope?.folderIds?.length || 0} folders)` : "(full)");
+      isPartialExport ? `(partial: ${options.scope?.documentIds?.length || 0} docs, ${options.scope?.folderIds?.length || 0} folders)` : "(full)",
+      prefixFilter ? `prefixFilter="${prefixFilter}"` : "");
 
     // Helper to check if aborted
     const checkAborted = () => {
@@ -555,7 +559,22 @@ export class OnShapeApiClient {
       // FULL EXPORT: Original BFS from root
       try {
         const rootData = await this.getGlobalTreeRootNodes({ limit: 50 });
-        for (const item of rootData.items || []) {
+        let rootItems = rootData.items || [];
+        
+        // Apply prefix filter to root folders only
+        if (prefixFilter) {
+          const originalCount = rootItems.length;
+          rootItems = rootItems.filter((item: any) => {
+            // Only filter folders by prefix, keep documents at root
+            if (item.jsonType === 'folder' || item.resourceType === 'folder') {
+              return item.name?.startsWith(prefixFilter);
+            }
+            return true; // Keep non-folder items (documents at root)
+          });
+          console.log(`[DirectoryStats] Prefix filter "${prefixFilter}" reduced root items: ${originalCount} → ${rootItems.length}`);
+        }
+        
+        for (const item of rootItems) {
           queue.push({
             id: item.id,
             name: item.name || "Unknown",
@@ -756,6 +775,7 @@ export class OnShapeApiClient {
    * @param options.onProgress - Callback for progress events (Phase 4.4)
    * @param options.signal - AbortSignal for cancellation (Phase 4.4)
    * @param options.scope - Optional scope for partial export (Phase 4.7)
+   * @param options.prefixFilter - Optional prefix to filter root folders
    */
   async getAggregateBomWithProgress(
     options: {
@@ -764,6 +784,7 @@ export class OnShapeApiClient {
       onProgress?: (event: ExportProgressEvent) => void;
       signal?: AbortSignal;
       scope?: { scope: 'full' | 'partial'; documentIds?: string[]; folderIds?: string[] };
+      prefixFilter?: string;
     } = {}
   ): Promise<AggregateBomResult> {
     const startTime = Date.now();
@@ -827,6 +848,7 @@ export class OnShapeApiClient {
       delayMs,
       signal,
       scope: options.scope,
+      prefixFilter: options.prefixFilter,
       onProgress: (scanProgress) => {
         if (onProgress) {
           onProgress({
