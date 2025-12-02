@@ -15,7 +15,7 @@ public/
 │   └── utils/ (clipboard, dom, download, format)
 ├── index.html
 ├── dashboard.html
-└── styles.css
+└── css/main.css
 ```
 
 ## Responsibilities

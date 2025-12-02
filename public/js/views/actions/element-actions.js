@@ -4,6 +4,8 @@
 
 import { downloadJson } from '../../utils/file-download.js';
 import { showToast } from '../../utils/toast-notification.js';
+import { downloadCsv } from '../../utils/file-download.js';
+import { bomToCSV } from '../../utils/bomToCSV.js';
 
 export class ElementActions {
   constructor(controller, documentService) {
@@ -48,7 +50,7 @@ export class ElementActions {
         element.id
       );
       
-      const { bomToCSV } = await import('../../utils/bomToCSV.js');
+      // const { bomToCSV } = await import('../../utils/bomToCSV.js');
       const csv = bomToCSV(bom);
       
       if (!csv) {
@@ -56,7 +58,7 @@ export class ElementActions {
         return false;
       }
       
-      const { downloadCsv } = await import('../../utils/file-download.js');
+      // const { downloadCsv } = await import('../../utils/file-download.js');
       downloadCsv(csv, `${element.name || element.id}-BOM.csv`);
       showToast('BOM CSV downloaded');
       return true;

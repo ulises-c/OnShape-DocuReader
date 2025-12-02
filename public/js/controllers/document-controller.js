@@ -11,6 +11,8 @@ import { formatDateWithUser } from "../utils/format-helpers.js";
 import { copyToClipboard } from "../utils/clipboard.js";
 import { escapeHtml } from "../utils/dom-helpers.js";
 import { ROUTES, pathTo } from "../router/routes.js";
+import { exportStatsModal } from "../views/export-stats-modal.js";
+import { exportProgressModal } from "../views/export-progress-modal.js";
 
 export class DocumentController {
   constructor(
@@ -39,23 +41,23 @@ export class DocumentController {
     // Whitelist of element types that are known to support the metadata endpoint
     // Values match Onshape elementType strings (e.g. PARTSTUDIO, ASSEMBLY)
     this._metadataWhitelist = new Set(["PARTSTUDIO", "ASSEMBLY", "BLOB"]);
-    
+
     // Pagination state
     this.pagination = {
       currentPage: 1,
       pageSize: 20,
       totalCount: 0,
-      totalPages: 0
+      totalPages: 0,
     };
 
     // Workspace state
     this.workspaceState = {
       currentFolderId: null,
-      breadcrumbs: [] // Array of {id, name}
+      breadcrumbs: [], // Array of {id, name}
     };
 
     this._bindDashboardEvents();
-    
+
     // Phase 4.7: Subscribe to state changes for export selection
     this.state.subscribe((state) => this._updateExportButtonState(state));
   }
@@ -63,20 +65,20 @@ export class DocumentController {
   _bindDashboardEvents() {
     // We can bind directly because the elements are static in index.html
     // Even if called before app init, the DOM nodes exist.
-    const header = document.getElementById('recentSectionHeader');
+    const header = document.getElementById("recentSectionHeader");
     if (header) {
-      header.addEventListener('click', () => {
-        const section = document.getElementById('recentSection');
+      header.addEventListener("click", () => {
+        const section = document.getElementById("recentSection");
         if (section) {
-          section.classList.toggle('collapsed');
+          section.classList.toggle("collapsed");
         }
       });
     }
 
     // Aggregate BOM export button
-    const getAllBtn = document.getElementById('getAllBtn');
+    const getAllBtn = document.getElementById("getAllBtn");
     if (getAllBtn) {
-      getAllBtn.addEventListener('click', () => {
+      getAllBtn.addEventListener("click", () => {
         this.exportAggregateBom();
       });
     }
@@ -118,17 +120,20 @@ export class DocumentController {
     const pagination = currentState.pagination || null;
 
     // Check if we need to restore a specific page
-    const targetPage = restoredState?.viewSnapshot?.pagination?.currentPage || 
-                      restoredState?.pagination?.currentPage ||
-                      this.pagination.currentPage;
-    const targetPageSize = restoredState?.viewSnapshot?.pagination?.pageSize ||
-                          restoredState?.pagination?.pageSize ||
-                          this.pagination.pageSize;
+    const targetPage =
+      restoredState?.viewSnapshot?.pagination?.currentPage ||
+      restoredState?.pagination?.currentPage ||
+      this.pagination.currentPage;
+    const targetPageSize =
+      restoredState?.viewSnapshot?.pagination?.pageSize ||
+      restoredState?.pagination?.pageSize ||
+      this.pagination.pageSize;
 
     // Load documents if not present or if page/size changed
-    const needsLoad = !docs.length || 
-                     targetPage !== this.pagination.currentPage ||
-                     targetPageSize !== this.pagination.pageSize;
+    const needsLoad =
+      !docs.length ||
+      targetPage !== this.pagination.currentPage ||
+      targetPageSize !== this.pagination.pageSize;
 
     if (needsLoad) {
       await this.loadDocuments(targetPage, targetPageSize);
@@ -139,15 +144,16 @@ export class DocumentController {
 
     // Initialize workspace (loads root folder)
     // Check if we have restored workspace state
-    const restoredWorkspace = restoredState?.viewSnapshot?.workspace || restoredState?.workspace;
+    const restoredWorkspace =
+      restoredState?.viewSnapshot?.workspace || restoredState?.workspace;
     if (restoredWorkspace) {
-       // Restore path if possible, for now just load what was last
-       if (restoredWorkspace.currentFolderId) {
-         this.workspaceState.breadcrumbs = restoredWorkspace.breadcrumbs || [];
-         await this.loadFolder(restoredWorkspace.currentFolderId, false); // don't push breadcrumb
-       } else {
-         await this.loadWorkspaceRoot();
-       }
+      // Restore path if possible, for now just load what was last
+      if (restoredWorkspace.currentFolderId) {
+        this.workspaceState.breadcrumbs = restoredWorkspace.breadcrumbs || [];
+        await this.loadFolder(restoredWorkspace.currentFolderId, false); // don't push breadcrumb
+      } else {
+        await this.loadWorkspaceRoot();
+      }
     } else {
       // Default load root if no state
       if (!this.workspaceState.currentFolderId) {
@@ -195,15 +201,20 @@ export class DocumentController {
   async loadFolder(folderId, updateBreadcrumbs = true, folderName = null) {
     this.workspaceView.showLoading();
     try {
-      const result = await this.documentService.getGlobalTreeFolderContents(folderId);
+      const result = await this.documentService.getGlobalTreeFolderContents(
+        folderId
+      );
       const items = result.items || [];
-      
+
       if (updateBreadcrumbs) {
         // If we're navigating down, add to breadcrumbs
         // Note: ideally the API returns path info. For now we push manual name if provided.
         // If not navigating down (e.g. refresh), we assume breadcrumbs are set.
         if (folderName) {
-            this.workspaceState.breadcrumbs.push({ id: folderId, name: folderName });
+          this.workspaceState.breadcrumbs.push({
+            id: folderId,
+            name: folderName,
+          });
         }
       }
 
@@ -225,10 +236,15 @@ export class DocumentController {
 
   navigateToFolderBreadcrumb(folderId) {
     // Find index of folder in breadcrumbs
-    const index = this.workspaceState.breadcrumbs.findIndex(b => b.id === folderId);
+    const index = this.workspaceState.breadcrumbs.findIndex(
+      (b) => b.id === folderId
+    );
     if (index !== -1) {
       // Slice breadcrumbs up to that index (inclusive)
-      this.workspaceState.breadcrumbs = this.workspaceState.breadcrumbs.slice(0, index + 1);
+      this.workspaceState.breadcrumbs = this.workspaceState.breadcrumbs.slice(
+        0,
+        index + 1
+      );
       this.loadFolder(folderId, false);
     }
   }
@@ -249,14 +265,16 @@ export class DocumentController {
       console.log("[DocumentController.loadDocuments] input", {
         page,
         pageSize,
-        offset
+        offset,
       });
 
       const result = await this.documentService.getAll(pageSize, offset);
 
       const items = Array.isArray(result?.items)
         ? result.items
-        : (Array.isArray(result) ? result : []);
+        : Array.isArray(result)
+        ? result
+        : [];
 
       // If backend does not provide a reliable totalCount, compute a heuristic total so that Next can stay enabled
       let totalCount;
@@ -271,7 +289,7 @@ export class DocumentController {
       console.log("[DocumentController.loadDocuments] api result", {
         itemsLength: items.length,
         totalCount,
-        hasMoreAssumed: items.length === pageSize
+        hasMoreAssumed: items.length === pageSize,
       });
 
       const transformed = items.map((d) => ({
@@ -287,8 +305,14 @@ export class DocumentController {
       };
 
       // Diagnostics for computed pagination state
-      console.log("[DocumentController.loadDocuments] pagination computed", this.pagination);
-      console.log("[DocumentController.loadDocuments] render count", transformed.length);
+      console.log(
+        "[DocumentController.loadDocuments] pagination computed",
+        this.pagination
+      );
+      console.log(
+        "[DocumentController.loadDocuments] render count",
+        transformed.length
+      );
 
       this.state.setState({
         documents: transformed,
@@ -721,15 +745,15 @@ export class DocumentController {
   _updateExportButtonState(state) {
     const btn = document.getElementById("getAllBtn");
     if (!btn) return;
-    
+
     const selectionCount = this.state.getExportSelectionCount();
-    
+
     if (selectionCount > 0) {
       btn.textContent = `📦 Export Selected (${selectionCount})`;
-      btn.classList.add('has-selection');
+      btn.classList.add("has-selection");
     } else {
-      btn.textContent = '📦 Get All';
-      btn.classList.remove('has-selection');
+      btn.textContent = "📦 Get All";
+      btn.classList.remove("has-selection");
     }
   }
 
@@ -762,21 +786,23 @@ export class DocumentController {
   async exportAggregateBom() {
     const btn = document.getElementById("getAllBtn");
     const originalText = btn?.textContent || "📦 Get All";
-    
+
     // Phase 4.7: Get export scope based on selection
     const scope = this.state.getExportScope();
     const isPartial = scope !== null;
 
     try {
       // Dynamically import the modal to avoid circular dependencies
-      const { exportStatsModal } = await import("../views/export-stats-modal.js");
+      // const { exportStatsModal } = await import("../views/export-stats-modal.js");
 
       // Show loading state
       exportStatsModal.showLoading();
 
       console.log(
         isPartial
-          ? `[DocumentController] Starting partial pre-scan: ${scope.documentIds?.length || 0} docs, ${scope.folderIds?.length || 0} folders`
+          ? `[DocumentController] Starting partial pre-scan: ${
+              scope.documentIds?.length || 0
+            } docs, ${scope.folderIds?.length || 0} folders`
           : "[DocumentController] Starting full pre-scan for aggregate BOM export..."
       );
 
@@ -789,18 +815,18 @@ export class DocumentController {
       exportStatsModal.show(stats, {
         isPartial,
         selectionCount: this.state.getExportSelectionCount(),
-        onConfirm: () => this._startAggregateBomExport(stats, btn, originalText, scope),
+        onConfirm: () =>
+          this._startAggregateBomExport(stats, btn, originalText, scope),
         onCancel: () => {
           console.log("[DocumentController] Export cancelled by user");
-        }
+        },
       });
-
     } catch (error) {
       console.error("[DocumentController] Pre-scan failed:", error);
       // Show error in modal
       try {
-        const { exportStatsModal } = await import("../views/export-stats-modal.js");
-        exportStatsModal.showError(error.message || 'Failed to scan workspace');
+        // const { exportStatsModal } = await import("../views/export-stats-modal.js");
+        exportStatsModal.showError(error.message || "Failed to scan workspace");
       } catch (importError) {
         // Fallback if modal import fails
         this._toast(`❌ Scan failed: ${error.message}`);
@@ -817,30 +843,36 @@ export class DocumentController {
    * @param {Object} scope - Export scope (null for full, object for partial) (Phase 4.7)
    */
   async _startAggregateBomExport(stats, btn, originalText, scope = null) {
-    const workers = 4;  // Could make this configurable in UI
+    const workers = 4; // Could make this configurable in UI
     const delay = 100;
-    const isPartial = scope?.scope === 'partial';
-    
-    console.log(`[DocumentController] Starting ${isPartial ? 'partial' : 'full'} export of ${stats.estimates?.assembliesFound || 0} assemblies`);
-    console.log(`[DocumentController] Config: workers=${workers}, delay=${delay}ms`);
-    
+    const isPartial = scope?.scope === "partial";
+
+    console.log(
+      `[DocumentController] Starting ${
+        isPartial ? "partial" : "full"
+      } export of ${stats.estimates?.assembliesFound || 0} assemblies`
+    );
+    console.log(
+      `[DocumentController] Config: workers=${workers}, delay=${delay}ms`
+    );
+
     // Import progress modal dynamically
-    const { exportProgressModal } = await import("../views/export-progress-modal.js");
-    
+    // const { exportProgressModal } = await import("../views/export-progress-modal.js");
+
     // Show progress modal and start export
     exportProgressModal.show({
       stats,
       workers,
       delay,
-      
+
       // Start export function - called by modal
       startExport: (options) => {
         return this.documentService.startAggregateBomExport({
           ...options,
-          scope
+          scope,
         });
       },
-      
+
       // Handle completion
       onComplete: (result) => {
         // Restore button state
@@ -848,24 +880,29 @@ export class DocumentController {
           btn.textContent = originalText;
           btn.disabled = false;
         }
-        
+
         // Phase 4.7: Clear selection after successful partial export
         if (isPartial) {
           this.state.clearExportSelection();
         }
-        
+
         // Download result as JSON
-        const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-        const scopeLabel = isPartial ? 'partial' : 'full';
+        const timestamp = new Date()
+          .toISOString()
+          .replace(/[:.]/g, "-")
+          .slice(0, 19);
+        const scopeLabel = isPartial ? "partial" : "full";
         const filename = `aggregate-bom-${scopeLabel}-${timestamp}.json`;
         this._downloadJson(result, filename);
-        
+
         // Show success toast
         this._toast(
-          `✅ Exported ${result.summary?.assembliesSucceeded || 0} assemblies from ${result.summary?.documentsScanned || 0} documents`
+          `✅ Exported ${
+            result.summary?.assembliesSucceeded || 0
+          } assemblies from ${result.summary?.documentsScanned || 0} documents`
         );
       },
-      
+
       // Handle cancellation
       onCancel: () => {
         // Restore button state
@@ -873,9 +910,9 @@ export class DocumentController {
           btn.textContent = originalText;
           btn.disabled = false;
         }
-        this._toast('Export cancelled');
+        this._toast("Export cancelled");
       },
-      
+
       // Handle error
       onError: (error) => {
         // Restore button state
@@ -884,7 +921,7 @@ export class DocumentController {
           btn.disabled = false;
         }
         this._toast(`❌ Export failed: ${error.message}`);
-      }
+      },
     });
   }
 
@@ -894,16 +931,18 @@ export class DocumentController {
    * @param {string} filename - Filename for download
    */
   _downloadJson(data, filename) {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
+
+    const a = document.createElement("a");
     a.href = url;
     a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    
+
     URL.revokeObjectURL(url);
   }
 

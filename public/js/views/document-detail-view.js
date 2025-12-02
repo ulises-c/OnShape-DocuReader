@@ -10,6 +10,8 @@ import {
 import { renderElementsList } from "./helpers/element-list-renderer.js";
 import { DocumentActions } from "./actions/document-actions.js";
 import { ElementActions } from "./actions/element-actions.js";
+import { showToast } from "../utils/toast-notification.js";
+import { ROUTES } from "../router/routes.js";
 
 export class DocumentDetailView extends BaseView {
   constructor(containerSelector, controller, thumbnailService) {
@@ -142,7 +144,7 @@ export class DocumentDetailView extends BaseView {
 
     const doc = this.controller.state.getState().currentDocument;
     if (!doc?.defaultWorkspace?.id) {
-      const { showToast } = await import("../utils/toast-notification.js");
+      // const { showToast } = await import("../utils/toast-notification.js");
       showToast("No workspace available");
       return;
     }
@@ -167,7 +169,9 @@ export class DocumentDetailView extends BaseView {
   _bindBackButton() {
     const backBtn = document.getElementById("backBtn");
     if (!backBtn) {
-      console.warn("[DocumentDetailView] Back button (#backBtn) not found in DOM");
+      console.warn(
+        "[DocumentDetailView] Back button (#backBtn) not found in DOM"
+      );
       return;
     }
 
@@ -180,16 +184,17 @@ export class DocumentDetailView extends BaseView {
 
       try {
         // Capture current state before navigating
-        const currentState = typeof this.captureState === "function" 
-          ? this.captureState() 
-          : null;
+        const currentState =
+          typeof this.captureState === "function" ? this.captureState() : null;
 
         // Navigate back to document list
         if (this.controller?.router) {
-          const { ROUTES } = await import("../router/routes.js");
+          // const { ROUTES } = await import("../router/routes.js");
           this.controller.router.navigate(ROUTES.DOCUMENT_LIST, currentState);
         } else {
-          console.warn("[DocumentDetailView] Router not available, falling back to direct navigation");
+          console.warn(
+            "[DocumentDetailView] Router not available, falling back to direct navigation"
+          );
           this.controller?.showList?.(currentState);
         }
       } catch (err) {

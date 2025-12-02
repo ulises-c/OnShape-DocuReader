@@ -104,8 +104,8 @@ OnShape-DocuReader/
 ├── public/
 │   ├── index.html                # Main web interface
 │   ├── dashboard.html            # OAuth success page
-│   ├── styles.css                # Styling
-│   └── app.js                    # Frontend JavaScript
+│   ├── /css/main.ss              # Styling
+│   └── /js/app.js                # Frontend JavaScript
 ├── examples/
 │   ├── basic-usage.md            # Usage examples and API documentation
 │   ├── example_onshape_docs/     # Example OnShape document structures

@@ -1,5 +1,6 @@
 import { BaseView } from './base-view.js';
 import { escapeHtml } from '../utils/dom-helpers.js';
+import { ROUTES, pathTo } from "../router/routes.js";
 
 export class ElementDetailView extends BaseView {
   constructor(containerSelector, controller) {
@@ -137,7 +138,7 @@ export class ElementDetailView extends BaseView {
         }
 
         if (this.controller?.router) {
-          const { ROUTES, pathTo } = await import("../router/routes.js");
+          // const { ROUTES, pathTo } = await import("../router/routes.js");
           const path = pathTo(ROUTES.DOCUMENT_DETAIL, { id: doc.id });
           this.controller.router.navigate(path, currentState);
         } else {
