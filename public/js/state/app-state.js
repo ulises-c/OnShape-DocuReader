@@ -41,7 +41,7 @@ export class AppState {
     this._emit();
   }
 
-  // Phase 4.7: Export selection helpers
+  // Export selection helpers
   toggleDocumentSelection(documentId) {
     const current = this._state.exportSelection?.documentIds || [];
     const newIds = current.includes(documentId)

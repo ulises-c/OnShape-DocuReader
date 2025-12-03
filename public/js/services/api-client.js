@@ -103,7 +103,7 @@ export class ApiClient {
   /**
    * Get directory statistics (pre-scan without fetching BOMs).
    * @param {number} delayMs - Delay between API calls in ms
-   * @param {Object} scope - Optional scope for partial export (Phase 4.7)
+   * @param {Object} scope - Optional scope for partial export
    * @param {string} scope.scope - 'full' or 'partial'
    * @param {string[]} scope.documentIds - Document IDs for partial
    * @param {string[]} scope.folderIds - Folder IDs for partial
@@ -145,7 +145,7 @@ export class ApiClient {
    * @param {Object} options - Export options
    * @param {number} options.workers - Number of parallel workers (1-8)
    * @param {number} options.delay - Delay between API calls in ms
-   * @param {Object} options.scope - Optional scope for partial export (Phase 4.7)
+   * @param {Object} options.scope - Optional scope for partial export
    * @param {string} options.prefixFilter - Optional prefix to filter root folders
    * @param {function} options.onProgress - Callback for progress events
    * @param {function} options.onComplete - Callback when export completes

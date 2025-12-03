@@ -59,7 +59,7 @@ export class DocumentController {
 
     this._bindDashboardEvents();
 
-    // Phase 4.7: Subscribe to state changes for export selection
+    // Subscribe to state changes for export selection
     this.state.subscribe((state) => this._updateExportButtonState(state));
   }
 
@@ -360,8 +360,8 @@ export class DocumentController {
       btn.disabled = selected.length === 0;
       btn.textContent =
         selected.length > 0
-          ? `📋 Get Selected (${selected.length})`
-          : "📋 Get Selected";
+          ? `Get Selected (${selected.length})`
+          : "Get Selected";
     }
   }
 
@@ -740,9 +740,7 @@ export class DocumentController {
     }
   }
 
-  /**
-   * Phase 4.7: Update export button text based on selection state
-   */
+  // Update export button text based on selection state
   _updateExportButtonState(state) {
     const btn = document.getElementById("getAllBtn");
     if (!btn) return;
@@ -750,31 +748,25 @@ export class DocumentController {
     const selectionCount = this.state.getExportSelectionCount();
 
     if (selectionCount > 0) {
-      btn.textContent = `📦 Export Selected (${selectionCount})`;
+      btn.textContent = `Export Selected (${selectionCount})`;
       btn.classList.add("has-selection");
     } else {
-      btn.textContent = "📦 Get All";
+      btn.textContent = "Get All";
       btn.classList.remove("has-selection");
     }
   }
 
-  /**
-   * Phase 4.7: Handle document selection for export
-   */
+  // Handle document selection for export
   handleDocumentExportSelect(documentId) {
     this.state.toggleDocumentSelection(documentId);
   }
 
-  /**
-   * Phase 4.7: Handle folder selection for export
-   */
+  // Handle folder selection for export
   handleFolderExportSelect(folderId) {
     this.state.toggleFolderSelection(folderId);
   }
 
-  /**
-   * Phase 4.7: Clear export selection
-   */
+  // Clear export selection
   clearExportSelection() {
     this.state.clearExportSelection();
   }
@@ -782,13 +774,13 @@ export class DocumentController {
   /**
    * Export aggregate BOM from all folders and documents.
    * Shows filter modal, then pre-scan stats modal before starting full export.
-   * Supports partial export with selection (Phase 4.7).
+   * Supports partial export with selection
    */
   async exportAggregateBom() {
     const btn = document.getElementById("getAllBtn");
-    const originalText = btn?.textContent || "📦 Get All";
+    const originalText = btn?.textContent || "Get All";
 
-    // Phase 4.7: Get export scope based on selection
+    // Get export scope based on selection
     const scope = this.state.getExportScope();
     const isPartial = scope !== null;
 
@@ -821,7 +813,11 @@ export class DocumentController {
       );
 
       // Fetch directory stats (pre-scan) with scope and filter
-      const stats = await this.documentService.getDirectoryStats(100, scope, filterOptions);
+      const stats = await this.documentService.getDirectoryStats(
+        100,
+        scope,
+        filterOptions
+      );
 
       console.log("[DocumentController] Pre-scan complete:", stats.summary);
 
@@ -831,7 +827,13 @@ export class DocumentController {
         selectionCount: this.state.getExportSelectionCount(),
         prefixFilter: filterOptions?.prefixFilter,
         onConfirm: () =>
-          this._startAggregateBomExport(stats, btn, originalText, scope, filterOptions),
+          this._startAggregateBomExport(
+            stats,
+            btn,
+            originalText,
+            scope,
+            filterOptions
+          ),
         onCancel: () => {
           console.log("[DocumentController] Export cancelled by user");
         },
@@ -844,14 +846,20 @@ export class DocumentController {
 
   /**
    * Start the full aggregate BOM export after user confirms in pre-scan modal.
-   * Uses SSE streaming for real-time progress updates (Phase 4.6).
+   * Uses SSE streaming for real-time progress updates.
    * @param {Object} stats - Pre-scan stats (for reference)
    * @param {HTMLElement} btn - The export button element
    * @param {string} originalText - Original button text to restore
-   * @param {Object} scope - Export scope (null for full, object for partial) (Phase 4.7)
+   * @param {Object} scope - Export scope (null for full, object for partial)
    * @param {Object} filterOptions - Filter options including prefixFilter
    */
-  async _startAggregateBomExport(stats, btn, originalText, scope = null, filterOptions = null) {
+  async _startAggregateBomExport(
+    stats,
+    btn,
+    originalText,
+    scope = null,
+    filterOptions = null
+  ) {
     const workers = 4; // Could make this configurable in UI
     const delay = 100;
     const isPartial = scope?.scope === "partial";
@@ -863,7 +871,9 @@ export class DocumentController {
     );
     console.log(
       `[DocumentController] Config: workers=${workers}, delay=${delay}ms`,
-      filterOptions?.prefixFilter ? `, prefixFilter="${filterOptions.prefixFilter}"` : ""
+      filterOptions?.prefixFilter
+        ? `, prefixFilter="${filterOptions.prefixFilter}"`
+        : ""
     );
 
     // Show progress modal and start export
@@ -889,7 +899,7 @@ export class DocumentController {
           btn.disabled = false;
         }
 
-        // Phase 4.7: Clear selection after successful partial export
+        // Clear selection after successful partial export
         if (isPartial) {
           this.state.clearExportSelection();
         }
@@ -899,11 +909,11 @@ export class DocumentController {
           .toISOString()
           .replace(/[:.]/g, "-")
           .slice(0, 19);
-        const scopeLabel = isPartial 
-          ? "partial" 
-          : filterOptions?.prefixFilter 
-            ? `filtered-${filterOptions.prefixFilter}` 
-            : "full";
+        const scopeLabel = isPartial
+          ? "partial"
+          : filterOptions?.prefixFilter
+          ? `filtered-${filterOptions.prefixFilter}`
+          : "full";
         const filename = `aggregate-bom-${scopeLabel}-${timestamp}.json`;
         this._downloadJson(result, filename);
 

@@ -33,7 +33,7 @@ export interface AssemblyReference {
   folderPath: string[];
 }
 
-/** Result of fetching a single assembly's BOM (Phase 4.3) */
+/** Result of fetching a single assembly's BOM */
 export interface AssemblyBomFetchResult {
   source: {
     documentId: string;

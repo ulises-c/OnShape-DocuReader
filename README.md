@@ -1,4 +1,4 @@
-# 🔧 OnShape DocuReader
+# OnShape DocuReader
 
 A web application built with TypeScript and Express.js that uses OAuth 2.0 to securely access and browse OnShape documents through the OnShape API.
 
