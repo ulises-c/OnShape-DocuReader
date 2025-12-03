@@ -10,7 +10,7 @@ OnShape DocuReader is a secure web application that authenticates against the On
 - Document listing with pagination, search, selection, and thumbnail previews.
 - Detail views for documents, elements, assemblies, parts, metadata, and raw JSON.
 - Aggregate export workflows: single document, selected documents, “Get All,” CSV/BOM conversion, ZIP packaging, and mass exporters.
-- Progress tracking via modals, logs, and (Phase 4.4 onward) SSE streaming.
+- Progress tracking via modals, logs, and SSE streaming.
 - API usage tracking groundwork (usage DB, cost calculator, usage tracker service).
 - Notes directory containing architecture, instructions, API reference, prompts, TODO, and response logs.
 
@@ -82,11 +82,11 @@ Express Server (src/)
 
 4. **Exports**
 
-   - **Aggregate BOM (Phase 4.x):**
+   - **Aggregate BOM:**
      ```
      Controller → DocumentService.getAggregateBom(delay, workers) → /api/export/aggregate-bom → OnShapeApiClient BFS + parallel BOM fetch → JSON download
      ```
-   - **Streaming (Phase 4.4 target):**
+   - **Streaming:**
      ```
      Frontend EventSource → /api/export/aggregate-bom-stream → SSEEmitter(progress events) → UI progress bar
      ```
@@ -127,7 +127,7 @@ Express Server (src/)
 
 ## Future Roadmap (from architecture notes & prompts)
 
-- Complete Phase 4.4 SSE streaming for aggregate BOM progress (progress events, ETA, abort handling).
+- Complete SSE streaming for aggregate BOM progress (progress events, ETA, abort handling).
 - Improve caching, rate limiting, and real-time progress monitoring on backend.
 - Frontend enhancements: navigation system, hierarchy visualization, progressive loading, better document tiles.
 - Developer experience upgrades: debugging tools, documentation, testing infrastructure.
