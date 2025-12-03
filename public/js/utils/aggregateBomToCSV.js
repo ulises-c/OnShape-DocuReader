@@ -1,11 +1,11 @@
 /**
- * Convert aggregate BOM export result to a flattened CSV.
- * Adds source columns (Document, Folder Path, Assembly) to each BOM row.
+ * Convert aggregate BOM export result to flattened CSV.
+ * Adds source metadata columns and handles multi-assembly header merging.
  * 
  * @param {Object} aggregateResult - Result from aggregate BOM export
  * @param {Object} options - Conversion options
  * @param {boolean} options.filterPrtAsm - Only include PRT/ASM part numbers
- * @returns {string} CSV string with all BOM rows flattened
+ * @returns {string} CSV string with all rows flattened
  */
 export function aggregateBomToCSV(aggregateResult, options = {}) {
   if (!aggregateResult?.assemblies?.length) {
@@ -14,7 +14,7 @@ export function aggregateBomToCSV(aggregateResult, options = {}) {
 
   const { filterPrtAsm = false } = options;
   
-  // Pattern for PRT/ASM filtering - matches PRT-xxx, ASM-xxx, PRT_xxx, ASM_xxx, PRTxxx, ASMxxx
+  // Pattern for PRT/ASM filtering
   const prtAsmPattern = /^(PRT|ASM)[-_]?\w*/i;
 
   // Collect all unique BOM headers across all assemblies
@@ -23,16 +23,18 @@ export function aggregateBomToCSV(aggregateResult, options = {}) {
   for (const assembly of aggregateResult.assemblies) {
     if (assembly.bom?.headers) {
       for (const header of assembly.bom.headers) {
-        const headerId = typeof header === 'string' ? header : header.id;
-        const headerName = typeof header === 'string' ? header : (header.name || header.id);
-        if (!headerMap.has(headerId)) {
+        // Handle both object headers and string headers
+        const headerId = typeof header === 'object' ? header.id : header;
+        const headerName = typeof header === 'object' ? (header.name || header.id) : header;
+        
+        if (headerId && !headerMap.has(headerId)) {
           headerMap.set(headerId, headerName);
         }
       }
     }
   }
 
-  // Build complete header row: source columns + all BOM columns
+  // Build complete header row
   const sourceHeaders = ['Document', 'Folder Path', 'Assembly'];
   const bomHeaderIds = Array.from(headerMap.keys());
   const bomHeaderNames = bomHeaderIds.map(id => headerMap.get(id));
@@ -47,8 +49,8 @@ export function aggregateBomToCSV(aggregateResult, options = {}) {
       if (lowerName.includes('part number') || 
           lowerName === 'partnumber' ||
           lowerId.includes('partnumber') ||
-          lowerName === 'part_number' ||
-          lowerId === 'part_number') {
+          lowerName === 'part no' ||
+          lowerName === 'part no.') {
         partNumberHeaderId = id;
         break;
       }
@@ -58,13 +60,13 @@ export function aggregateBomToCSV(aggregateResult, options = {}) {
   const csvRows = [];
   csvRows.push(allHeaders.map(escapeCsvField).join(','));
 
-  // Process each assembly's BOM rows
+  // Process each assembly
   for (const assembly of aggregateResult.assemblies) {
     if (!assembly.bom?.rows?.length) continue;
 
     const docName = assembly.source?.documentName || '';
-    const folderPath = Array.isArray(assembly.source?.folderPath) 
-      ? assembly.source.folderPath.join(' / ') 
+    const folderPath = Array.isArray(assembly.source?.folderPath)
+      ? assembly.source.folderPath.join(' / ')
       : (assembly.source?.folderPath || '');
     const assemblyName = assembly.assembly?.name || '';
 
@@ -86,7 +88,7 @@ export function aggregateBomToCSV(aggregateResult, options = {}) {
           val = row.headerIdToValue[hid];
           // If value is array, join with semicolon
           if (Array.isArray(val)) val = val.join(';');
-          // If value is object, JSON stringify
+          // If value is object, JSON.stringify
           if (val && typeof val === 'object') val = JSON.stringify(val);
         }
         return escapeCsvField(String(val ?? ''));
@@ -101,8 +103,9 @@ export function aggregateBomToCSV(aggregateResult, options = {}) {
 
 /**
  * Escape a field for CSV format.
- * @param {string} field - Field value to escape
- * @returns {string} Escaped field safe for CSV
+ * Wraps in quotes and escapes internal quotes if needed.
+ * @param {string} field - Field value
+ * @returns {string} Escaped field
  */
 function escapeCsvField(field) {
   const str = String(field ?? '');

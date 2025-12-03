@@ -919,8 +919,8 @@ export class DocumentController {
           ? `filtered-${filterOptions.prefixFilter}`
           : "full";
 
-        // Get format preferences (default to JSON only for partial exports)
-        const formats = filterOptions?.formats || { json: true, csv: false };
+        // Get format preferences (default to both JSON and CSV for full exports, JSON only for partial)
+        const formats = filterOptions?.formats || (isPartial ? { json: true, csv: false } : { json: true, csv: true });
         const rowFilters = filterOptions?.rowFilters || {};
 
         let downloadCount = 0;
@@ -945,6 +945,8 @@ export class DocumentController {
             this._downloadCsv(csv, csvFilename);
             downloadCount++;
             formatNames.push("CSV");
+          } else {
+            console.warn('[DocumentController] CSV conversion returned empty result');
           }
         }
 

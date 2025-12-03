@@ -19,7 +19,14 @@ export class ExportStatsModal {
       startTime: null,
       elapsedInterval: null,
       rootFolders: [],
-      checkpoint: null
+      checkpoint: null,
+      elementCounts: {
+        ASSEMBLY: 0,
+        PARTSTUDIO: 0,
+        DRAWING: 0,
+        BLOB: 0,
+        OTHER: 0
+      }
     };
   }
 
@@ -280,6 +287,15 @@ export class ExportStatsModal {
     // Check for existing checkpoint
     const checkpoint = this._loadCheckpoint();
     
+    // Reset element counts
+    this.scanState.elementCounts = {
+      ASSEMBLY: 0,
+      PARTSTUDIO: 0,
+      DRAWING: 0,
+      BLOB: 0,
+      OTHER: 0
+    };
+    
     this.modalElement = document.createElement('div');
     this.modalElement.className = 'export-stats-modal-overlay';
     this.modalElement.setAttribute('role', 'dialog');
@@ -395,6 +411,35 @@ export class ExportStatsModal {
   updateScanStat(stat, value) {
     const el = this.modalElement?.querySelector(`[data-stat="${stat}"]`);
     if (el) el.textContent = String(value);
+    
+    // Track element counts internally for checkpoint saving
+    if (['assemblies', 'partstudios', 'drawings', 'blobs'].includes(stat)) {
+      const key = stat === 'assemblies' ? 'ASSEMBLY' : 
+                  stat === 'partstudios' ? 'PARTSTUDIO' :
+                  stat === 'drawings' ? 'DRAWING' : 'BLOB';
+      this.scanState.elementCounts[key] = parseInt(value) || 0;
+    }
+  }
+
+  /**
+   * Update multiple scan stats from element counts object.
+   * @param {Object} elementCounts - Object with element type counts
+   */
+  updateElementCounts(elementCounts) {
+    if (!elementCounts) return;
+    
+    if (typeof elementCounts.ASSEMBLY === 'number') {
+      this.updateScanStat('assemblies', elementCounts.ASSEMBLY);
+    }
+    if (typeof elementCounts.PARTSTUDIO === 'number') {
+      this.updateScanStat('partstudios', elementCounts.PARTSTUDIO);
+    }
+    if (typeof elementCounts.DRAWING === 'number') {
+      this.updateScanStat('drawings', elementCounts.DRAWING);
+    }
+    if (typeof elementCounts.BLOB === 'number') {
+      this.updateScanStat('blobs', elementCounts.BLOB);
+    }
   }
 
   /**
@@ -501,11 +546,13 @@ export class ExportStatsModal {
       rootFolders: this.scanState.rootFolders,
       partialStats: {
         foldersScanned: parseInt(this.modalElement?.querySelector('[data-stat="folders"]')?.textContent || '0'),
-        documentsScanned: parseInt(this.modalElement?.querySelector('[data-stat="documents"]')?.textContent || '0')
+        documentsScanned: parseInt(this.modalElement?.querySelector('[data-stat="documents"]')?.textContent || '0'),
+        elementCounts: { ...this.scanState.elementCounts }
       }
     };
     try {
       sessionStorage.setItem('exportScanCheckpoint', JSON.stringify(checkpoint));
+      console.log('[ExportStatsModal] Checkpoint saved:', checkpoint.partialStats);
     } catch (e) {
       console.warn('Failed to save scan checkpoint:', e);
     }

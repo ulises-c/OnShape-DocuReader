@@ -135,6 +135,13 @@
   color: #333;
 }
 
+.export-filter-section-formats,
+.export-filter-section-rowfilter {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e0e0e0;
+}
+
 .export-filter-checkboxes {
   display: flex;
   flex-direction: column;
@@ -146,6 +153,7 @@
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
+  padding: 0.25rem 0;
 }
 
 .export-filter-checkbox input[type="checkbox"] {
@@ -153,28 +161,31 @@
   height: 18px;
   cursor: pointer;
   accent-color: #3b82f6;
+  flex-shrink: 0;
 }
 
 .export-filter-checkbox span {
   color: #555;
   font-size: 0.95rem;
+  line-height: 1.4;
 }
 
 .export-filter-help {
-  margin: 0.5rem 0 0 1.5rem;
+  margin: 0.5rem 0 0 1.75rem;
   font-size: 0.85rem;
   color: #777;
   font-style: italic;
+  line-height: 1.4;
 }
 
 .export-filter-error {
   display: none;
   margin-top: 0.5rem;
-  padding: 0.5rem;
-  background: #fee;
-  border: 1px solid #fcc;
+  padding: 0.5rem 0.75rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
   border-radius: 4px;
-  color: #c00;
+  color: #dc2626;
   font-size: 0.9rem;
 }
 

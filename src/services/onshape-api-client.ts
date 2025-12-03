@@ -523,6 +523,7 @@ export class OnShapeApiClient {
       ((options.scope.documentIds?.length || 0) > 0 || (options.scope.folderIds?.length || 0) > 0);
 
     // Root folder status tracking for visualization
+    // Initialize with all four possible status values for proper typing
     const rootFolderStatuses: Map<string, RootFolderStatus> = new Map();
     const rootFolderDocCounts: Map<string, number> = new Map();
 
@@ -585,16 +586,17 @@ export class OnShapeApiClient {
         const rootData = await this.getGlobalTreeRootNodes({ limit: 50 });
         let rootItems = rootData.items || [];
         
-        // Initialize root folder statuses
+        // Initialize root folder statuses with explicit typing
         for (const item of rootItems) {
           if (item.jsonType === 'folder' || item.resourceType === 'folder') {
             const isFiltered = prefixFilter && !item.name?.startsWith(prefixFilter);
-            rootFolderStatuses.set(item.id, {
+            const initialStatus: RootFolderStatus = {
               id: item.id,
               name: item.name || 'Unknown',
               status: isFiltered ? 'ignored' : 'upcoming',
               documentCount: 0
-            });
+            };
+            rootFolderStatuses.set(item.id, initialStatus);
             rootFolderDocCounts.set(item.id, 0);
           }
         }
@@ -764,13 +766,13 @@ export class OnShapeApiClient {
       }
     }
 
-    // Mark all remaining root folders as scanned
+    // Mark all remaining root folders as scanned (except ignored ones)
     for (const [id, status] of rootFolderStatuses) {
+      // Only update non-ignored folders that are still scanning or upcoming
       if (status.status === 'scanning' || status.status === 'upcoming') {
-        if (status.status !== 'ignored') {
-          status.status = 'scanned';
-        }
+        status.status = 'scanned';
       }
+      // 'ignored' folders remain as 'ignored', no change needed
     }
 
     // Emit final progress

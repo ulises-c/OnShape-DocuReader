@@ -934,3 +934,60 @@
     gap: 0.5rem;
   }
 }
+
+/* ================================
+   Enhanced Element Count Display
+   ================================ */
+
+.scan-live-stats .scan-stat-row[data-type="element"] {
+  padding-left: 0.5rem;
+  border-left: 2px solid #e0e0e0;
+  margin-left: 0.25rem;
+}
+
+.scan-live-stats .scan-stat-row[data-type="element"] .scan-stat-value {
+  color: #0066cc;
+  font-weight: 600;
+}
+
+/* Highlight assembly count as primary metric */
+.scan-live-stats .scan-stat-row[data-stat-key="assemblies"] .scan-stat-value {
+  color: #2563eb;
+  font-size: 1.1em;
+}
+
+/* Path display improvements */
+.scan-stat-path {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed #e0e0e0;
+}
+
+.scan-stat-path .scan-stat-value {
+  font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+  font-size: 0.8rem;
+  background: #f0f4f8;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  max-width: 100%;
+  display: inline-block;
+}
+
+/* Root folder list scrollbar styling */
+.scan-root-folders-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scan-root-folders-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.scan-root-folders-list::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.scan-root-folders-list::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}

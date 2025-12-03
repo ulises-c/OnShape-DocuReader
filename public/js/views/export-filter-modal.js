@@ -153,7 +153,7 @@ export class ExportFilterModal {
             </div>
           </div>
 
-          <div class="export-filter-section">
+          <div class="export-filter-section export-filter-section-formats">
             <label class="export-filter-section-label">Export Formats</label>
             <div class="export-filter-checkboxes">
               <label class="export-filter-checkbox">
@@ -168,8 +168,8 @@ export class ExportFilterModal {
             <div class="export-filter-error" id="formatError"></div>
           </div>
 
-          <div class="export-filter-section">
-            <label class="export-filter-section-label">Row Filtering</label>
+          <div class="export-filter-section export-filter-section-rowfilter">
+            <label class="export-filter-section-label">Row Filtering (CSV only)</label>
             <label class="export-filter-checkbox">
               <input type="checkbox" name="filterPrtAsm">
               <span>Only include parts with PRT/ASM prefix in Part Number</span>
