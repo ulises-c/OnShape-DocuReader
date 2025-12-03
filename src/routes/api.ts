@@ -511,6 +511,16 @@ router.get(
       try {
         res.write(`event: ${event}\n`);
         res.write(`data: ${JSON.stringify(data)}\n\n`);
+        
+        // Log progress events to backend console for debugging
+        if (event === 'progress' && data.phase) {
+          if (data.phase === 'scanning' && data.scan) {
+            console.log(`[Export SSE] 📁 Scanning: ${data.scan.foldersScanned} folders, ${data.scan.documentsScanned} docs`);
+          } else if (data.phase === 'fetching' && data.fetch) {
+            const pct = data.fetch.total > 0 ? Math.round((data.fetch.current / data.fetch.total) * 100) : 0;
+            console.log(`[Export SSE] 🏗️ Fetching: [${pct}%] ${data.fetch.current}/${data.fetch.total} - ${data.fetch.currentAssembly || ''}`);
+          }
+        }
       } catch (e) {
         closed = true;
       }
@@ -529,9 +539,21 @@ router.get(
     // Send connected event
     sendEvent('connected', { timestamp: new Date().toISOString() });
     
-    console.log(`[Export SSE] Starting stream (workers=${workerCount}, delay=${delayMs}ms)`,
-      scope ? `(partial: ${scope.documentIds?.length || 0} docs, ${scope.folderIds?.length || 0} folders)` : "(full)",
-      prefixFilter ? `prefixFilter="${prefixFilter}"` : "");
+    console.log("");
+    console.log("╔════════════════════════════════════════════════════════════════════════╗");
+    console.log("║  [Export SSE] Starting aggregate BOM stream                            ║");
+    console.log("╚════════════════════════════════════════════════════════════════════════╝");
+    console.log(`[Export SSE]   Workers: ${workerCount}`);
+    console.log(`[Export SSE]   Delay: ${delayMs}ms`);
+    console.log(`[Export SSE]   Scope: ${scope ? 'partial' : 'full'}`);
+    if (scope) {
+      console.log(`[Export SSE]   Documents: ${scope.documentIds?.length || 0}`);
+      console.log(`[Export SSE]   Folders: ${scope.folderIds?.length || 0}`);
+    }
+    if (prefixFilter) {
+      console.log(`[Export SSE]   Prefix filter: "${prefixFilter}"`);
+    }
+    console.log("──────────────────────────────────────────────────────────────────────────");
     
     try {
       const client = new OnShapeApiClient(

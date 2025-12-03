@@ -186,98 +186,54 @@ export class ExportProgressModal {
   }
   
   /**
-   * Log progress to browser console with detailed information.
+   * Log progress to browser console (reduced verbosity, summaries only).
+   * Detailed logging happens on the backend.
    */
   logProgress(event) {
     const { phase, scan, fetch, timing, error } = event;
-    const prefix = '[AggregateBOM]';
+    const prefix = '[ExportProgress]';
+    
+    // Only log phase transitions and errors to reduce console clutter
+    // Backend handles detailed per-item logging
     
     switch (phase) {
       case 'initializing':
-        console.log(`${prefix} ════════════════════════════════════════`);
         console.log(`${prefix} 🚀 Starting export...`);
-        console.log(`${prefix} ════════════════════════════════════════`);
         break;
         
       case 'scanning':
-        if (scan) {
-          // Log current path if available
-          const pathStr = scan.currentPath?.length > 0 
-            ? scan.currentPath.join(' / ') 
-            : '/';
-          
+        // Only log periodically (every 10 folders) to reduce noise
+        if (scan && scan.foldersScanned % 10 === 0 && scan.foldersScanned > 0) {
           console.log(
-            `${prefix} 📁 Scanning: ${scan.foldersScanned} folders, ` +
-            `${scan.documentsScanned} documents | Path: ${pathStr}`
+            `${prefix} 📁 Scan progress: ${scan.foldersScanned} folders, ` +
+            `${scan.documentsScanned} docs, ${scan.elementCounts?.ASSEMBLY || 0} assemblies`
           );
-          
-          // Log element counts if available
-          if (scan.elementCounts) {
-            const { ASSEMBLY, PARTSTUDIO, DRAWING, BLOB, OTHER } = scan.elementCounts;
-            console.log(
-              `${prefix}    Elements: 🏗️ ${ASSEMBLY} assemblies, ` +
-              `🔧 ${PARTSTUDIO} part studios, 📐 ${DRAWING} drawings, ` +
-              `📦 ${BLOB} blobs, 📄 ${OTHER} other`
-            );
-          }
-          
-          // Log root folder status changes
-          if (scan.rootFolders) {
-            const scanning = scan.rootFolders.filter(f => f.status === 'scanning');
-            const scanned = scan.rootFolders.filter(f => f.status === 'scanned');
-            if (scanning.length > 0) {
-              console.log(
-                `${prefix}    Root folders: ${scanned.length} scanned, ` +
-                `${scanning.length} scanning (${scanning.map(f => f.name).join(', ')})`
-              );
-            }
-          }
         }
         break;
         
       case 'fetching':
-        if (fetch) {
-          const pct = fetch.total > 0 ? Math.round((fetch.current / fetch.total) * 100) : 0;
-          const path = fetch.currentPath?.length > 0 
-            ? fetch.currentPath.join('/') + '/'
-            : '';
-          
-          // Use different log levels based on success/failure
-          const status = fetch.failed > 0 
-            ? `✓${fetch.succeeded} ✗${fetch.failed}` 
-            : `✓${fetch.succeeded}`;
-          
-          console.log(
-            `${prefix} 🏗️ [${pct}%] ${fetch.current}/${fetch.total} (${status}): ` +
-            `${path}${fetch.currentAssembly || ''}`
-          );
-          
-          if (timing && timing.avgFetchMs > 0) {
-            const etaSec = Math.ceil(timing.estimatedRemainingMs / 1000);
-            const etaStr = etaSec >= 60 
-              ? `${Math.floor(etaSec / 60)}m ${etaSec % 60}s`
-              : `${etaSec}s`;
+        // Only log at 25% intervals to reduce noise
+        if (fetch && fetch.total > 0) {
+          const pct = Math.round((fetch.current / fetch.total) * 100);
+          if (pct % 25 === 0 && fetch.current > 0) {
             console.log(
-              `${prefix}    ⏱️ Elapsed: ${Math.floor(timing.elapsedMs / 1000)}s | ` +
-              `Avg: ${timing.avgFetchMs}ms | ETA: ~${etaStr}`
+              `${prefix} 🏗️ Fetch progress: ${pct}% (${fetch.current}/${fetch.total}), ` +
+              `✅${fetch.succeeded} ❌${fetch.failed}`
             );
           }
         }
         break;
         
       case 'complete':
-        console.log(`${prefix} ════════════════════════════════════════`);
-        console.log(`${prefix} ✅ Export Complete`);
-        console.log(`${prefix} ════════════════════════════════════════`);
+        console.log(`${prefix} ✅ Export complete!`);
         break;
         
       case 'error':
-        console.error(`${prefix} ════════════════════════════════════════`);
-        console.error(`${prefix} ❌ Export Failed`);
-        console.error(`${prefix} ════════════════════════════════════════`);
+        console.error(`${prefix} ❌ Export failed`);
         break;
     }
     
+    // Always log per-assembly errors
     if (error) {
       console.warn(
         `${prefix} ⚠️ Error on "${error.assembly || 'unknown'}": ${error.message}`

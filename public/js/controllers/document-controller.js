@@ -865,22 +865,11 @@ export class DocumentController {
     const delay = 100;
     const isPartial = scope?.scope === "partial";
 
-    console.log("[DocumentController] ════════════════════════════════════════");
-    console.log("[DocumentController] Starting Aggregate BOM Export");
-    console.log(`[DocumentController]   Scope: ${isPartial ? "partial" : "full"}`);
-    console.log(`[DocumentController]   Assemblies: ${stats.estimates?.assembliesFound || 0}`);
-    console.log(`[DocumentController]   Workers: ${workers}`);
-    console.log(`[DocumentController]   Delay: ${delay}ms`);
-    if (filterOptions?.prefixFilter) {
-      console.log(`[DocumentController]   Prefix Filter: "${filterOptions.prefixFilter}"`);
-    }
-    if (filterOptions?.formats) {
-      console.log(`[DocumentController]   Formats: JSON=${filterOptions.formats.json}, CSV=${filterOptions.formats.csv}`);
-    }
-    if (filterOptions?.rowFilters?.prtAsmOnly) {
-      console.log(`[DocumentController]   Row Filter: PRT/ASM only`);
-    }
-    console.log("[DocumentController] ════════════════════════════════════════");
+    console.log(
+      `[DocumentController] Starting ${isPartial ? "partial" : "full"} export: ` +
+      `${stats.estimates?.assembliesFound || 0} assemblies, ${workers} workers, ${delay}ms delay` +
+      (filterOptions?.prefixFilter ? `, filter="${filterOptions.prefixFilter}"` : "")
+    );
 
     // Show progress modal and start export
     exportProgressModal.show({
