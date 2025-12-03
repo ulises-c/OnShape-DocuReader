@@ -147,12 +147,14 @@ export class ApiClient {
    * @param {number} options.delay - Delay between API calls in ms
    * @param {Object} options.scope - Optional scope for partial export
    * @param {string} options.prefixFilter - Optional prefix to filter root folders
+   * @param {Object} options.formats - Format selection { json: boolean, csv: boolean }
+   * @param {Object} options.rowFilters - Row filter options { prtAsmOnly: boolean }
    * @param {function} options.onProgress - Callback for progress events
    * @param {function} options.onComplete - Callback when export completes
    * @param {function} options.onError - Callback for errors
    * @returns {function} Cleanup function to close SSE connection
    */
-  startAggregateBomStream({ workers = 4, delay = 100, scope = null, prefixFilter = null, onProgress, onComplete, onError }) {
+  startAggregateBomStream({ workers = 4, delay = 100, scope = null, prefixFilter = null, formats = null, rowFilters = null, onProgress, onComplete, onError }) {
     const params = new URLSearchParams();
     params.set('workers', workers.toString());
     params.set('delay', delay.toString());

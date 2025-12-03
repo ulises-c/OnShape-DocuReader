@@ -152,6 +152,33 @@ export class ExportFilterModal {
               </ul>
             </div>
           </div>
+
+          <div class="export-filter-section">
+            <label class="export-filter-section-label">Export Formats</label>
+            <div class="export-filter-checkboxes">
+              <label class="export-filter-checkbox">
+                <input type="checkbox" name="formatJson" checked>
+                <span>JSON (full metadata, nested structure)</span>
+              </label>
+              <label class="export-filter-checkbox">
+                <input type="checkbox" name="formatCsv" checked>
+                <span>CSV (flattened for Excel/Sheets)</span>
+              </label>
+            </div>
+            <div class="export-filter-error" id="formatError"></div>
+          </div>
+
+          <div class="export-filter-section">
+            <label class="export-filter-section-label">Row Filtering</label>
+            <label class="export-filter-checkbox">
+              <input type="checkbox" name="filterPrtAsm">
+              <span>Only include parts with PRT/ASM prefix in Part Number</span>
+            </label>
+            <p class="export-filter-help">
+              Filters BOM rows where Part Number matches patterns like: 
+              PRT-12345, ASM-WIDGET, PRT_ABC123
+            </p>
+          </div>
         </div>
 
         <div class="export-filter-modal-footer">
@@ -166,15 +193,36 @@ export class ExportFilterModal {
    * Handle confirm button click.
    */
   _handleConfirm() {
-    const input = this.modalElement?.querySelector('#exportPrefixFilter');
-    const prefix = input?.value?.trim() || '';
+    const prefixInput = this.modalElement?.querySelector('#exportPrefixFilter');
+    const formatJsonCheck = this.modalElement?.querySelector('input[name="formatJson"]');
+    const formatCsvCheck = this.modalElement?.querySelector('input[name="formatCsv"]');
+    const filterPrtAsmCheck = this.modalElement?.querySelector('input[name="filterPrtAsm"]');
+    
+    const prefixFilter = prefixInput?.value?.trim() || null;
+    
+    const formats = {
+      json: formatJsonCheck?.checked ?? true,
+      csv: formatCsvCheck?.checked ?? true
+    };
+    
+    // Validate at least one format selected
+    if (!formats.json && !formats.csv) {
+      const errorEl = this.modalElement?.querySelector('#formatError');
+      if (errorEl) {
+        errorEl.textContent = 'Please select at least one export format';
+        errorEl.style.display = 'block';
+      }
+      return;
+    }
+    
+    const rowFilters = {
+      prtAsmOnly: filterPrtAsmCheck?.checked ?? false
+    };
     
     this.hide();
     
     if (this._resolvePromise) {
-      this._resolvePromise({
-        prefixFilter: prefix || null
-      });
+      this._resolvePromise({ prefixFilter, formats, rowFilters });
       this._resolvePromise = null;
     }
   }

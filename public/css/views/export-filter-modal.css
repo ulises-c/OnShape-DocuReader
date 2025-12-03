@@ -127,6 +127,57 @@
   color: #1f2937;
 }
 
+/* Format Selection Section */
+.export-filter-section-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.export-filter-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.export-filter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.export-filter-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #3b82f6;
+}
+
+.export-filter-checkbox span {
+  color: #555;
+  font-size: 0.95rem;
+}
+
+.export-filter-help {
+  margin: 0.5rem 0 0 1.5rem;
+  font-size: 0.85rem;
+  color: #777;
+  font-style: italic;
+}
+
+.export-filter-error {
+  display: none;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #fee;
+  border: 1px solid #fcc;
+  border-radius: 4px;
+  color: #c00;
+  font-size: 0.9rem;
+}
+
 .export-filter-modal-footer {
   display: flex;
   justify-content: flex-end;

@@ -4,7 +4,7 @@ import pLimit from "p-limit";
 import { oauthConfig } from "../config/oauth.ts";
 import { EventEmitter } from "events";
 import { ApiUsageTracker } from "./api-usage-tracker.ts";
-import type { DirectoryStats, AssemblyReference, ExportMetadata, AssemblyBomFetchResult, AggregateBomResult, ExportProgressEvent } from "../types/onshape.ts";
+import type { DirectoryStats, AssemblyReference, ExportMetadata, AssemblyBomFetchResult, AggregateBomResult, ExportProgressEvent, RootFolderStatus } from "../types/onshape.ts";
 
 export interface OnShapeUser {
   id: string;
@@ -472,14 +472,20 @@ export class OnShapeApiClient {
    * Returns assembly list for subsequent parallel BOM fetching.
    * 
    * @param options.delayMs - Delay between API calls (default: 100)
-   * @param options.onProgress - Optional callback for progress updates
+   * @param options.onProgress - Optional callback for enhanced progress updates
    * @param options.signal - Optional AbortSignal for cancellation
    * @param options.scope - Optional scope for partial export
    * @param options.prefixFilter - Optional prefix to filter root folders
    */
   async getDirectoryStats(options: { 
     delayMs?: number; 
-    onProgress?: (progress: { foldersScanned: number; documentsScanned: number }) => void;
+    onProgress?: (progress: { 
+      foldersScanned: number; 
+      documentsScanned: number;
+      currentPath?: string[];
+      elementCounts?: { ASSEMBLY: number; PARTSTUDIO: number; DRAWING: number; BLOB: number; OTHER: number };
+      rootFolders?: RootFolderStatus[];
+    }) => void;
     signal?: AbortSignal;
     scope?: { scope: 'full' | 'partial'; documentIds?: string[]; folderIds?: string[] };
     prefixFilter?: string;
@@ -501,19 +507,24 @@ export class OnShapeApiClient {
     };
     const assemblies: AssemblyReference[] = [];
 
-    // BFS queue: { id, name, type, depth, path }
+    // BFS queue: { id, name, type, depth, path, rootFolderId }
     const queue: Array<{
       id: string;
       name: string;
       type: string;
       depth: number;
       path: string[];
+      rootFolderId?: string;
     }> = [];
     const visited = new Set<string>();
 
     const prefixFilter = options.prefixFilter;
     const isPartialExport = options.scope?.scope === 'partial' && 
       ((options.scope.documentIds?.length || 0) > 0 || (options.scope.folderIds?.length || 0) > 0);
+
+    // Root folder status tracking for visualization
+    const rootFolderStatuses: Map<string, RootFolderStatus> = new Map();
+    const rootFolderDocCounts: Map<string, number> = new Map();
 
     console.log("[DirectoryStats] Starting pre-scan with delay:", delay, "ms", 
       isPartialExport ? `(partial: ${options.scope?.documentIds?.length || 0} docs, ${options.scope?.folderIds?.length || 0} folders)` : "(full)",
@@ -523,6 +534,19 @@ export class OnShapeApiClient {
     const checkAborted = () => {
       if (options.signal?.aborted) {
         throw new Error('Export cancelled');
+      }
+    };
+
+    // Helper to emit enhanced progress
+    const emitProgress = (currentPath: string[] = []) => {
+      if (options.onProgress) {
+        options.onProgress({ 
+          foldersScanned: totalFolders, 
+          documentsScanned: totalDocuments,
+          currentPath,
+          elementCounts: { ...elementCounts },
+          rootFolders: Array.from(rootFolderStatuses.values())
+        });
       }
     };
 
@@ -561,6 +585,20 @@ export class OnShapeApiClient {
         const rootData = await this.getGlobalTreeRootNodes({ limit: 50 });
         let rootItems = rootData.items || [];
         
+        // Initialize root folder statuses
+        for (const item of rootItems) {
+          if (item.jsonType === 'folder' || item.resourceType === 'folder') {
+            const isFiltered = prefixFilter && !item.name?.startsWith(prefixFilter);
+            rootFolderStatuses.set(item.id, {
+              id: item.id,
+              name: item.name || 'Unknown',
+              status: isFiltered ? 'ignored' : 'upcoming',
+              documentCount: 0
+            });
+            rootFolderDocCounts.set(item.id, 0);
+          }
+        }
+        
         // Apply prefix filter to root folders only
         if (prefixFilter) {
           const originalCount = rootItems.length;
@@ -575,14 +613,20 @@ export class OnShapeApiClient {
         }
         
         for (const item of rootItems) {
+          const isFolder = item.jsonType === 'folder' || item.resourceType === 'folder';
           queue.push({
             id: item.id,
             name: item.name || "Unknown",
             type: item.jsonType || item.resourceType || "unknown",
             depth: 0,
             path: [],
+            rootFolderId: isFolder ? item.id : undefined,
           });
         }
+        
+        // Emit initial progress with root folders
+        emitProgress([]);
+        
       } catch (err: any) {
         console.error("[DirectoryStats] Failed to fetch root nodes:", err.message);
       }
@@ -616,10 +660,18 @@ export class OnShapeApiClient {
         // Track level counts for widest level calculation
         levelCounts.set(current.depth, (levelCounts.get(current.depth) || 0) + 1);
 
-        // Emit scan progress
-        if (options.onProgress) {
-          options.onProgress({ foldersScanned: totalFolders, documentsScanned: totalDocuments });
+        // Update root folder status to scanning if this is a root folder
+        const rootId = current.rootFolderId || current.id;
+        if (current.depth === 0 && rootFolderStatuses.has(current.id)) {
+          const status = rootFolderStatuses.get(current.id)!;
+          status.status = 'scanning';
         }
+
+        // Build current path for display
+        const currentPath = [...current.path, current.name];
+
+        // Emit enhanced scan progress
+        emitProgress(currentPath);
 
         try {
           const folderData = await this.getGlobalTreeFolderContents(current.id, { limit: 50 });
@@ -630,7 +682,8 @@ export class OnShapeApiClient {
                 name: child.name || "Unknown",
                 type: child.jsonType || child.resourceType || "unknown",
                 depth: current.depth + 1,
-                path: [...current.path, current.name],
+                path: currentPath,
+                rootFolderId: current.rootFolderId || (current.depth === 0 ? current.id : undefined),
               });
             }
           }
@@ -645,10 +698,20 @@ export class OnShapeApiClient {
         console.log("[DirectoryStats] Processing document:", current.name);
         totalDocuments++;
 
-        // Emit scan progress
-        if (options.onProgress) {
-          options.onProgress({ foldersScanned: totalFolders, documentsScanned: totalDocuments });
+        // Track document count per root folder
+        if (current.rootFolderId && rootFolderDocCounts.has(current.rootFolderId)) {
+          rootFolderDocCounts.set(current.rootFolderId, rootFolderDocCounts.get(current.rootFolderId)! + 1);
+          const status = rootFolderStatuses.get(current.rootFolderId);
+          if (status) {
+            status.documentCount = rootFolderDocCounts.get(current.rootFolderId)!;
+          }
         }
+
+        // Build current path for display
+        const currentPath = [...current.path, current.name];
+
+        // Emit enhanced scan progress
+        emitProgress(currentPath);
 
         try {
           // Fetch document details
@@ -700,6 +763,18 @@ export class OnShapeApiClient {
         }
       }
     }
+
+    // Mark all remaining root folders as scanned
+    for (const [id, status] of rootFolderStatuses) {
+      if (status.status === 'scanning' || status.status === 'upcoming') {
+        if (status.status !== 'ignored') {
+          status.status = 'scanned';
+        }
+      }
+    }
+
+    // Emit final progress
+    emitProgress([]);
 
     // Find widest level
     let widestLevel = { depth: 0, count: 0 };

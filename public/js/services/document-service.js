@@ -53,6 +53,10 @@ export class DocumentService {
   /**
    * Start aggregate BOM export with progress streaming.
    * @param {Object} options - Export options and callbacks
+   * @param {Object} options.scope - Optional scope for partial export
+   * @param {string} options.prefixFilter - Optional prefix to filter root folders
+   * @param {Object} options.formats - Format selection { json: boolean, csv: boolean }
+   * @param {Object} options.rowFilters - Row filter options { prtAsmOnly: boolean }
    * @returns {function} Cleanup function to cancel export
    */
   startAggregateBomExport(options) {

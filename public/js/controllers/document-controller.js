@@ -14,6 +14,7 @@ import { ROUTES, pathTo } from "../router/routes.js";
 import { exportStatsModal } from "../views/export-stats-modal.js";
 import { exportProgressModal } from "../views/export-progress-modal.js";
 import { exportFilterModal } from "../views/export-filter-modal.js";
+import { aggregateBomToCSV } from "../utils/aggregateBomToCSV.js";
 
 export class DocumentController {
   constructor(
@@ -904,7 +905,10 @@ export class DocumentController {
           this.state.clearExportSelection();
         }
 
-        // Download result as JSON
+        // Clear checkpoint on successful completion
+        exportStatsModal.clearCheckpointOnSuccess();
+
+        // Download result based on format selection
         const timestamp = new Date()
           .toISOString()
           .replace(/[:.]/g, "-")
@@ -914,14 +918,45 @@ export class DocumentController {
           : filterOptions?.prefixFilter
           ? `filtered-${filterOptions.prefixFilter}`
           : "full";
-        const filename = `aggregate-bom-${scopeLabel}-${timestamp}.json`;
-        this._downloadJson(result, filename);
+
+        // Get format preferences (default to JSON only for partial exports)
+        const formats = filterOptions?.formats || { json: true, csv: false };
+        const rowFilters = filterOptions?.rowFilters || {};
+
+        let downloadCount = 0;
+        const formatNames = [];
+
+        // Download JSON if selected
+        if (formats.json) {
+          const jsonFilename = `aggregate-bom-${scopeLabel}-${timestamp}.json`;
+          this._downloadJson(result, jsonFilename);
+          downloadCount++;
+          formatNames.push("JSON");
+        }
+
+        // Download CSV if selected
+        if (formats.csv) {
+          const csv = aggregateBomToCSV(result, {
+            filterPrtAsm: rowFilters.prtAsmOnly || false,
+          });
+
+          if (csv) {
+            const csvFilename = `aggregate-bom-${scopeLabel}-${timestamp}.csv`;
+            this._downloadCsv(csv, csvFilename);
+            downloadCount++;
+            formatNames.push("CSV");
+          }
+        }
+
+        // Build success message
+        const rowFilterNote = rowFilters.prtAsmOnly ? " (PRT/ASM filtered)" : "";
+        const formatText = formatNames.length > 0 ? ` as ${formatNames.join(" + ")}` : "";
 
         // Show success toast
         this._toast(
           `✅ Exported ${
             result.summary?.assembliesSucceeded || 0
-          } assemblies from ${result.summary?.documentsScanned || 0} documents`
+          } assemblies from ${result.summary?.documentsScanned || 0} documents${formatText}${rowFilterNote}`
         );
       },
 
@@ -956,6 +991,25 @@ export class DocumentController {
     const blob = new Blob([JSON.stringify(data, null, 2)], {
       type: "application/json",
     });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Download string as CSV file.
+   * @param {string} csvString - CSV content
+   * @param {string} filename - Filename for download
+   */
+  _downloadCsv(csvString, filename) {
+    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement("a");

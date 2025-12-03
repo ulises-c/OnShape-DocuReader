@@ -138,6 +138,14 @@ export interface AggregateBomResult {
 /** Progress event phases */
 export type ExportPhase = 'initializing' | 'scanning' | 'fetching' | 'complete' | 'error';
 
+/** Root folder status for pre-scan visualization */
+export interface RootFolderStatus {
+  id: string;
+  name: string;
+  status: 'scanned' | 'scanning' | 'upcoming' | 'ignored';
+  documentCount: number;
+}
+
 /** Progress event sent via SSE */
 export interface ExportProgressEvent {
   phase: ExportPhase;
@@ -146,6 +154,18 @@ export interface ExportProgressEvent {
   scan?: {
     foldersScanned: number;
     documentsScanned: number;
+    /** Current absolute path as array of folder names */
+    currentPath?: string[];
+    /** Element type breakdown */
+    elementCounts?: {
+      ASSEMBLY: number;
+      PARTSTUDIO: number;
+      DRAWING: number;
+      BLOB: number;
+      OTHER: number;
+    };
+    /** Root folder statuses for visualization */
+    rootFolders?: RootFolderStatus[];
   };
   
   /** BOM fetch progress (phase: 'fetching') */

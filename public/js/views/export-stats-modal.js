@@ -1,6 +1,7 @@
 /**
  * Modal view for displaying pre-scan export statistics.
  * Shows before starting full aggregate BOM export.
+ * Enhanced with live stats, root folder visualization, and cancel/resume capability.
  */
 
 import { escapeHtml } from '../utils/dom-helpers.js';
@@ -11,6 +12,15 @@ export class ExportStatsModal {
     this.onConfirm = null;
     this.onCancel = null;
     this._boundKeyHandler = null;
+    this._onCancelScan = null;
+    
+    // Scan state tracking for live updates
+    this.scanState = {
+      startTime: null,
+      elapsedInterval: null,
+      rootFolders: [],
+      checkpoint: null
+    };
   }
 
   /**
@@ -65,6 +75,12 @@ export class ExportStatsModal {
    * Hide and remove the modal.
    */
   hide() {
+    // Stop elapsed timer if running
+    if (this.scanState.elapsedInterval) {
+      clearInterval(this.scanState.elapsedInterval);
+      this.scanState.elapsedInterval = null;
+    }
+    
     if (this._boundKeyHandler) {
       document.removeEventListener('keydown', this._boundKeyHandler);
       this._boundKeyHandler = null;
@@ -73,6 +89,16 @@ export class ExportStatsModal {
       this.modalElement.remove();
       this.modalElement = null;
     }
+    
+    // Clear checkpoint on successful completion (when hide is called without cancel)
+    // Only clear if we completed normally (not cancelled)
+  }
+
+  /**
+   * Clear checkpoint after successful export completion.
+   */
+  clearCheckpointOnSuccess() {
+    this._clearCheckpoint();
   }
 
   /**
@@ -245,27 +271,276 @@ export class ExportStatsModal {
 
   /**
    * Show loading state while pre-scan is running.
+   * Enhanced with live stats display.
    */
   showLoading() {
     // Remove existing modal if present
     this.hide();
-
+    
+    // Check for existing checkpoint
+    const checkpoint = this._loadCheckpoint();
+    
     this.modalElement = document.createElement('div');
     this.modalElement.className = 'export-stats-modal-overlay';
     this.modalElement.setAttribute('role', 'dialog');
     this.modalElement.setAttribute('aria-modal', 'true');
     this.modalElement.setAttribute('aria-label', 'Scanning workspace');
-    this.modalElement.innerHTML = `
-      <div class="export-stats-modal export-stats-modal-loading">
-        <div class="export-stats-loading-content">
-          <div class="export-stats-spinner"></div>
-          <p>Scanning workspace...</p>
-          <p class="export-stats-loading-detail">This may take a minute for large workspaces</p>
+    this.modalElement.innerHTML = this._renderScanningContent(checkpoint);
+    
+    // Bind cancel button
+    this.modalElement.querySelector('.export-stats-cancel-btn')
+      ?.addEventListener('click', () => this._handleScanCancel());
+    
+    // Bind clear checkpoint button if present
+    this.modalElement.querySelector('.scan-resume-clear-btn')
+      ?.addEventListener('click', () => {
+        this._clearCheckpoint();
+        const notice = this.modalElement?.querySelector('.scan-resume-notice');
+        if (notice) notice.style.display = 'none';
+      });
+    
+    // Start elapsed timer
+    this.scanState.startTime = Date.now();
+    this.scanState.elapsedInterval = setInterval(() => this._updateElapsed(), 1000);
+    
+    document.body.appendChild(this.modalElement);
+  }
+
+  /**
+   * Render scanning modal content with live stats.
+   * @param {Object|null} checkpoint - Existing checkpoint if resuming
+   * @returns {string} HTML string
+   */
+  _renderScanningContent(checkpoint) {
+    const resumeNotice = checkpoint ? `
+      <div class="scan-resume-notice">
+        <span>📌 Resuming from checkpoint: ${checkpoint.partialStats?.foldersScanned || 0} folders scanned</span>
+        <button class="scan-resume-clear-btn" type="button">Start Fresh</button>
+      </div>
+    ` : '';
+    
+    return `
+      <div class="export-stats-modal export-stats-modal-scanning">
+        <div class="export-stats-modal-header">
+          <span class="export-stats-modal-icon">🔍</span>
+          <h2>Scanning Workspace</h2>
+        </div>
+        
+        <div class="export-stats-modal-body">
+          ${resumeNotice}
+          
+          <div class="scan-live-stats">
+            <div class="scan-stat-row">
+              <span class="scan-stat-icon">📁</span>
+              <span class="scan-stat-label">Folders Scanned:</span>
+              <span class="scan-stat-value" data-stat="folders">0</span>
+            </div>
+            <div class="scan-stat-row">
+              <span class="scan-stat-icon">📄</span>
+              <span class="scan-stat-label">Documents Found:</span>
+              <span class="scan-stat-value" data-stat="documents">0</span>
+            </div>
+            <div class="scan-stat-row">
+              <span class="scan-stat-icon">🏗️</span>
+              <span class="scan-stat-label">Assemblies:</span>
+              <span class="scan-stat-value" data-stat="assemblies">0</span>
+            </div>
+            <div class="scan-stat-row">
+              <span class="scan-stat-icon">🔧</span>
+              <span class="scan-stat-label">Part Studios:</span>
+              <span class="scan-stat-value" data-stat="partstudios">0</span>
+            </div>
+            <div class="scan-stat-row">
+              <span class="scan-stat-icon">📐</span>
+              <span class="scan-stat-label">Drawings:</span>
+              <span class="scan-stat-value" data-stat="drawings">0</span>
+            </div>
+            <div class="scan-stat-row">
+              <span class="scan-stat-icon">📦</span>
+              <span class="scan-stat-label">Blobs:</span>
+              <span class="scan-stat-value" data-stat="blobs">0</span>
+            </div>
+            <div class="scan-stat-row scan-stat-path">
+              <span class="scan-stat-icon">📍</span>
+              <span class="scan-stat-label">Current Path:</span>
+              <span class="scan-stat-value" data-stat="currentPath">/</span>
+            </div>
+            <div class="scan-stat-row">
+              <span class="scan-stat-icon">⏱️</span>
+              <span class="scan-stat-label">Elapsed:</span>
+              <span class="scan-stat-value" data-stat="elapsed">0:00</span>
+            </div>
+          </div>
+          
+          <div class="scan-root-folders">
+            <h4>Root Folders</h4>
+            <div class="scan-root-folders-list" data-container="rootFolders">
+              <div class="scan-root-folder-placeholder">Loading folders...</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="export-stats-modal-footer">
+          <button class="export-stats-cancel-btn" type="button">Cancel Scan</button>
         </div>
       </div>
     `;
+  }
 
-    document.body.appendChild(this.modalElement);
+  /**
+   * Update a scan statistic value.
+   * @param {string} stat - Stat key (folders, documents, assemblies, etc.)
+   * @param {string|number} value - New value
+   */
+  updateScanStat(stat, value) {
+    const el = this.modalElement?.querySelector(`[data-stat="${stat}"]`);
+    if (el) el.textContent = String(value);
+  }
+
+  /**
+   * Update root folders display.
+   * @param {Array} folders - Array of folder objects with id, name, status, documentCount
+   */
+  updateRootFolders(folders) {
+    this.scanState.rootFolders = folders;
+    const container = this.modalElement?.querySelector('[data-container="rootFolders"]');
+    if (!container) return;
+    
+    if (!folders || folders.length === 0) {
+      container.innerHTML = '<div class="scan-root-folder-placeholder">No root folders found</div>';
+      return;
+    }
+    
+    container.innerHTML = folders.map(folder => `
+      <div class="scan-root-folder ${escapeHtml(folder.status || 'upcoming')}">
+        <span class="scan-root-folder-icon">${this._getStatusIcon(folder.status)}</span>
+        <span class="scan-root-folder-name">${escapeHtml(folder.name || 'Unknown')}</span>
+        <span class="scan-root-folder-info">${escapeHtml(this._getStatusText(folder))}</span>
+      </div>
+    `).join('');
+  }
+
+  /**
+   * Get status icon for root folder.
+   * @param {string} status - Folder status
+   * @returns {string} Emoji icon
+   */
+  _getStatusIcon(status) {
+    switch (status) {
+      case 'scanned': return '✅';
+      case 'scanning': return '🔄';
+      case 'upcoming': return '⏳';
+      case 'ignored': return '🚫';
+      default: return '❓';
+    }
+  }
+
+  /**
+   * Get status text for root folder.
+   * @param {Object} folder - Folder object
+   * @returns {string} Status description
+   */
+  _getStatusText(folder) {
+    switch (folder.status) {
+      case 'scanned': return `${folder.documentCount || 0} docs`;
+      case 'scanning': return 'scanning...';
+      case 'upcoming': return 'queued';
+      case 'ignored': return 'filtered out';
+      default: return '';
+    }
+  }
+
+  /**
+   * Update elapsed time display.
+   */
+  _updateElapsed() {
+    if (!this.scanState.startTime) return;
+    const elapsed = Math.floor((Date.now() - this.scanState.startTime) / 1000);
+    const mins = Math.floor(elapsed / 60);
+    const secs = elapsed % 60;
+    this.updateScanStat('elapsed', `${mins}:${secs.toString().padStart(2, '0')}`);
+  }
+
+  /**
+   * Handle scan cancel button click.
+   */
+  _handleScanCancel() {
+    // Stop elapsed timer
+    if (this.scanState.elapsedInterval) {
+      clearInterval(this.scanState.elapsedInterval);
+      this.scanState.elapsedInterval = null;
+    }
+    
+    // Signal cancellation to controller
+    if (this._onCancelScan) {
+      this._onCancelScan();
+    }
+    
+    // Prompt for checkpoint save if we have progress
+    const foldersScanned = parseInt(this.modalElement?.querySelector('[data-stat="folders"]')?.textContent || '0');
+    if (foldersScanned > 0 && this.scanState.rootFolders.length > 0) {
+      const saveCheckpoint = confirm('Save progress to resume later?');
+      if (saveCheckpoint) {
+        this._saveCheckpoint();
+      }
+    }
+    
+    this.hide();
+    
+    if (this.onCancel) {
+      this.onCancel();
+    }
+  }
+
+  /**
+   * Save scan checkpoint to sessionStorage.
+   */
+  _saveCheckpoint() {
+    const checkpoint = {
+      timestamp: new Date().toISOString(),
+      rootFolders: this.scanState.rootFolders,
+      partialStats: {
+        foldersScanned: parseInt(this.modalElement?.querySelector('[data-stat="folders"]')?.textContent || '0'),
+        documentsScanned: parseInt(this.modalElement?.querySelector('[data-stat="documents"]')?.textContent || '0')
+      }
+    };
+    try {
+      sessionStorage.setItem('exportScanCheckpoint', JSON.stringify(checkpoint));
+    } catch (e) {
+      console.warn('Failed to save scan checkpoint:', e);
+    }
+  }
+
+  /**
+   * Load scan checkpoint from sessionStorage.
+   * @returns {Object|null} Checkpoint data or null
+   */
+  _loadCheckpoint() {
+    try {
+      const data = sessionStorage.getItem('exportScanCheckpoint');
+      return data ? JSON.parse(data) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Clear scan checkpoint from sessionStorage.
+   */
+  _clearCheckpoint() {
+    try {
+      sessionStorage.removeItem('exportScanCheckpoint');
+    } catch (e) {
+      console.warn('Failed to clear scan checkpoint:', e);
+    }
+  }
+
+  /**
+   * Set cancel callback for scan phase.
+   * @param {function} callback - Called when user cancels scan
+   */
+  setOnCancelScan(callback) {
+    this._onCancelScan = callback;
   }
 
   /**

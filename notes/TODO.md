@@ -54,7 +54,8 @@ The numbering is just show that it's easier to keep track.
 9.  Implement caching (redis?) and a longer term database (sql?)
 10. Enhance UI during pre-scan
     1. Ability to cancel scan
-    2. Show stats (total folders scanned, total files found, total file types (assembly, part studio, etc.), current scan directory (absolute path, not relative), total time elapsed during scan)
+       1. If partially scanned and canceled ability to continue from last data point
+    2. Show live/current stats (total folders scanned, total files found, total file types (assembly, part studio, etc.), current scan directory (absolute path, not relative), total time elapsed during scan)
     3. Since `globaltreenodes/magic` already provides directories in root adding a nice way to visualize parent directory status would be ideal (scanned, scanning, upcoming, ignored, etc.)
 11. Update front page UI
     1. User info - First Name, Last Name, user / display name (if applicable), email
