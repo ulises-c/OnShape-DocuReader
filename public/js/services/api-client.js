@@ -179,12 +179,47 @@ export class ApiClient {
     const eventSource = new EventSource(url);
     
     eventSource.addEventListener('connected', (e) => {
-      console.log('[Export SSE] Connected:', JSON.parse(e.data));
+      try {
+        const data = JSON.parse(e.data);
+        console.log('[Export SSE] ════════════════════════════════════════');
+        console.log('[Export SSE] Connected to export stream');
+        console.log(`[Export SSE]   Timestamp: ${data.timestamp}`);
+        console.log(`[Export SSE]   Workers: ${workers}, Delay: ${delay}ms`);
+        if (scope?.scope === 'partial') {
+          console.log(`[Export SSE]   Scope: partial (${scope.documentIds?.length || 0} docs, ${scope.folderIds?.length || 0} folders)`);
+        } else {
+          console.log('[Export SSE]   Scope: full');
+        }
+        if (prefixFilter) {
+          console.log(`[Export SSE]   Prefix Filter: "${prefixFilter}"`);
+        }
+        console.log('[Export SSE] ════════════════════════════════════════');
+      } catch (err) {
+        console.log('[Export SSE] Connected (could not parse data)');
+      }
     });
     
     eventSource.addEventListener('progress', (e) => {
       try {
         const data = JSON.parse(e.data);
+        // Log phase transitions
+        if (data.phase === 'scanning' && data.scan) {
+          const pathStr = data.scan.currentPath?.length > 0 
+            ? data.scan.currentPath.join(' / ') 
+            : '/';
+          console.log(
+            `[Export SSE] 📁 Scan: ${data.scan.foldersScanned || 0} folders, ` +
+            `${data.scan.documentsScanned || 0} docs | ${pathStr}`
+          );
+        } else if (data.phase === 'fetching' && data.fetch) {
+          const pct = data.fetch.total > 0 
+            ? Math.round((data.fetch.current / data.fetch.total) * 100) 
+            : 0;
+          console.log(
+            `[Export SSE] 🏗️ Fetch: [${pct}%] ${data.fetch.current}/${data.fetch.total} - ` +
+            `${data.fetch.currentAssembly || ''}`
+          );
+        }
         if (onProgress) onProgress(data);
       } catch (err) {
         console.error('[Export SSE] Failed to parse progress:', err);
@@ -194,6 +229,11 @@ export class ApiClient {
     eventSource.addEventListener('complete', (e) => {
       try {
         const data = JSON.parse(e.data);
+        console.log('[Export SSE] ════════════════════════════════════════');
+        console.log('[Export SSE] Export stream complete');
+        console.log(`[Export SSE]   Assemblies: ${data.result?.summary?.assembliesSucceeded || 0}/${data.result?.summary?.assembliesFound || 0}`);
+        console.log(`[Export SSE]   BOM Rows: ${data.result?.summary?.totalBomRows || 0}`);
+        console.log('[Export SSE] ════════════════════════════════════════');
         eventSource.close();
         if (onComplete) onComplete(data.result);
       } catch (err) {

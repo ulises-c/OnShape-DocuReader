@@ -186,7 +186,7 @@ export class ExportProgressModal {
   }
   
   /**
-   * Log progress to browser console.
+   * Log progress to browser console with detailed information.
    */
   logProgress(event) {
     const { phase, scan, fetch, timing, error } = event;
@@ -194,34 +194,87 @@ export class ExportProgressModal {
     
     switch (phase) {
       case 'initializing':
+        console.log(`${prefix} ════════════════════════════════════════`);
         console.log(`${prefix} 🚀 Starting export...`);
+        console.log(`${prefix} ════════════════════════════════════════`);
         break;
         
       case 'scanning':
         if (scan) {
+          // Log current path if available
+          const pathStr = scan.currentPath?.length > 0 
+            ? scan.currentPath.join(' / ') 
+            : '/';
+          
           console.log(
             `${prefix} 📁 Scanning: ${scan.foldersScanned} folders, ` +
-            `${scan.documentsScanned} documents`
+            `${scan.documentsScanned} documents | Path: ${pathStr}`
           );
+          
+          // Log element counts if available
+          if (scan.elementCounts) {
+            const { ASSEMBLY, PARTSTUDIO, DRAWING, BLOB, OTHER } = scan.elementCounts;
+            console.log(
+              `${prefix}    Elements: 🏗️ ${ASSEMBLY} assemblies, ` +
+              `🔧 ${PARTSTUDIO} part studios, 📐 ${DRAWING} drawings, ` +
+              `📦 ${BLOB} blobs, 📄 ${OTHER} other`
+            );
+          }
+          
+          // Log root folder status changes
+          if (scan.rootFolders) {
+            const scanning = scan.rootFolders.filter(f => f.status === 'scanning');
+            const scanned = scan.rootFolders.filter(f => f.status === 'scanned');
+            if (scanning.length > 0) {
+              console.log(
+                `${prefix}    Root folders: ${scanned.length} scanned, ` +
+                `${scanning.length} scanning (${scanning.map(f => f.name).join(', ')})`
+              );
+            }
+          }
         }
         break;
         
       case 'fetching':
         if (fetch) {
           const pct = fetch.total > 0 ? Math.round((fetch.current / fetch.total) * 100) : 0;
-          const path = fetch.currentPath?.join('/') || '';
+          const path = fetch.currentPath?.length > 0 
+            ? fetch.currentPath.join('/') + '/'
+            : '';
+          
+          // Use different log levels based on success/failure
+          const status = fetch.failed > 0 
+            ? `✓${fetch.succeeded} ✗${fetch.failed}` 
+            : `✓${fetch.succeeded}`;
+          
           console.log(
-            `${prefix} 🏗️ [${pct}%] ${fetch.current}/${fetch.total}: ` +
-            `${path}/${fetch.currentAssembly || ''}`
+            `${prefix} 🏗️ [${pct}%] ${fetch.current}/${fetch.total} (${status}): ` +
+            `${path}${fetch.currentAssembly || ''}`
           );
           
-          if (timing) {
-            const etaMin = Math.ceil(timing.estimatedRemainingMs / 60000);
+          if (timing && timing.avgFetchMs > 0) {
+            const etaSec = Math.ceil(timing.estimatedRemainingMs / 1000);
+            const etaStr = etaSec >= 60 
+              ? `${Math.floor(etaSec / 60)}m ${etaSec % 60}s`
+              : `${etaSec}s`;
             console.log(
-              `${prefix}    ⏱️ Avg: ${timing.avgFetchMs}ms, ETA: ~${etaMin} min`
+              `${prefix}    ⏱️ Elapsed: ${Math.floor(timing.elapsedMs / 1000)}s | ` +
+              `Avg: ${timing.avgFetchMs}ms | ETA: ~${etaStr}`
             );
           }
         }
+        break;
+        
+      case 'complete':
+        console.log(`${prefix} ════════════════════════════════════════`);
+        console.log(`${prefix} ✅ Export Complete`);
+        console.log(`${prefix} ════════════════════════════════════════`);
+        break;
+        
+      case 'error':
+        console.error(`${prefix} ════════════════════════════════════════`);
+        console.error(`${prefix} ❌ Export Failed`);
+        console.error(`${prefix} ════════════════════════════════════════`);
         break;
     }
     

@@ -419,6 +419,11 @@ export class ExportStatsModal {
                   stat === 'drawings' ? 'DRAWING' : 'BLOB';
       this.scanState.elementCounts[key] = parseInt(value) || 0;
     }
+    
+    // Log significant stats to console for debugging visibility
+    if (['folders', 'documents', 'assemblies'].includes(stat)) {
+      console.log(`[ExportStatsModal] ${stat}: ${value}`);
+    }
   }
 
   /**
@@ -454,6 +459,17 @@ export class ExportStatsModal {
     if (!folders || folders.length === 0) {
       container.innerHTML = '<div class="scan-root-folder-placeholder">No root folders found</div>';
       return;
+    }
+    
+    // Log status changes to console with more detail
+    const scanning = folders.filter(f => f.status === 'scanning');
+    const scanned = folders.filter(f => f.status === 'scanned');
+    const upcoming = folders.filter(f => f.status === 'upcoming');
+    const ignored = folders.filter(f => f.status === 'ignored');
+    
+    console.log(`[ExportStatsModal] Root folders: ${scanned.length} scanned, ${scanning.length} scanning, ${upcoming.length} upcoming, ${ignored.length} ignored`);
+    if (scanning.length > 0) {
+      console.log(`[ExportStatsModal]   Currently scanning: ${scanning.map(f => f.name).join(', ')}`);
     }
     
     container.innerHTML = folders.map(folder => `

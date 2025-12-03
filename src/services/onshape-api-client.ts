@@ -527,9 +527,20 @@ export class OnShapeApiClient {
     const rootFolderStatuses: Map<string, RootFolderStatus> = new Map();
     const rootFolderDocCounts: Map<string, number> = new Map();
 
-    console.log("[DirectoryStats] Starting pre-scan with delay:", delay, "ms", 
-      isPartialExport ? `(partial: ${options.scope?.documentIds?.length || 0} docs, ${options.scope?.folderIds?.length || 0} folders)` : "(full)",
-      prefixFilter ? `prefixFilter="${prefixFilter}"` : "");
+    console.log("");
+    console.log("[DirectoryStats] ════════════════════════════════════════════════════════");
+    console.log("[DirectoryStats] STARTING PRE-SCAN");
+    console.log("[DirectoryStats] ════════════════════════════════════════════════════════");
+    console.log(`[DirectoryStats]   Delay between calls: ${delay}ms`);
+    console.log(`[DirectoryStats]   Export scope: ${isPartialExport ? 'PARTIAL' : 'FULL'}`);
+    if (isPartialExport) {
+      console.log(`[DirectoryStats]   Selected documents: ${options.scope?.documentIds?.length || 0}`);
+      console.log(`[DirectoryStats]   Selected folders: ${options.scope?.folderIds?.length || 0}`);
+    }
+    if (prefixFilter) {
+      console.log(`[DirectoryStats]   Prefix filter: "${prefixFilter}"`);
+    }
+    console.log("[DirectoryStats] ────────────────────────────────────────────────────────");
 
     // Helper to check if aborted
     const checkAborted = () => {
@@ -656,8 +667,9 @@ export class OnShapeApiClient {
 
       // Handle folders
       if (itemType === "folder") {
-        console.log("[DirectoryStats] Scanning folder:", current.name);
         totalFolders++;
+        const pathStr = current.path.length > 0 ? current.path.join('/') + '/' : '/';
+        console.log(`[DirectoryStats] 📁 [${totalFolders}] Folder: ${pathStr}${current.name}`);
 
         // Track level counts for widest level calculation
         levelCounts.set(current.depth, (levelCounts.get(current.depth) || 0) + 1);
@@ -697,8 +709,9 @@ export class OnShapeApiClient {
 
       // Handle documents
       if (itemType === "document-summary" || itemType === "document") {
-        console.log("[DirectoryStats] Processing document:", current.name);
         totalDocuments++;
+        const pathStr = current.path.length > 0 ? current.path.join('/') + '/' : '/';
+        console.log(`[DirectoryStats] 📄 [${totalDocuments}] Document: ${pathStr}${current.name}`);
 
         // Track document count per root folder
         if (current.rootFolderId && rootFolderDocCounts.has(current.rootFolderId)) {
@@ -806,7 +819,21 @@ export class OnShapeApiClient {
       assemblies,
     };
 
-    console.log("[DirectoryStats] Pre-scan complete:", result.summary);
+    console.log("[DirectoryStats] ────────────────────────────────────────────────────────");
+    console.log("[DirectoryStats] PRE-SCAN COMPLETE");
+    console.log("[DirectoryStats] ════════════════════════════════════════════════════════");
+    console.log(`[DirectoryStats]   Duration: ${(scanDurationMs / 1000).toFixed(1)} seconds`);
+    console.log(`[DirectoryStats]   Folders scanned: ${totalFolders}`);
+    console.log(`[DirectoryStats]   Documents found: ${totalDocuments}`);
+    console.log(`[DirectoryStats]   Max depth: ${maxDepth}`);
+    console.log(`[DirectoryStats]   ────────────────────────────────────`);
+    console.log(`[DirectoryStats]   ASSEMBLIES: ${assemblies.length} (will export BOM)`);
+    console.log(`[DirectoryStats]   Part Studios: ${elementCounts.PARTSTUDIO}`);
+    console.log(`[DirectoryStats]   Drawings: ${elementCounts.DRAWING}`);
+    console.log(`[DirectoryStats]   Blobs: ${elementCounts.BLOB}`);
+    console.log(`[DirectoryStats]   Other: ${elementCounts.OTHER}`);
+    console.log("[DirectoryStats] ════════════════════════════════════════════════════════");
+    console.log("");
     return result;
   }
 
@@ -909,7 +936,18 @@ export class OnShapeApiClient {
     checkAborted();
 
     // Phase 1: Pre-scan to get assembly list with progress
-    console.log(`[AggregateBOM] Starting pre-scan with ${workers} workers...`);
+    console.log("");
+    console.log("[AggregateBOM] ════════════════════════════════════════════════════════════");
+    console.log("[AggregateBOM] STARTING AGGREGATE BOM EXPORT");
+    console.log("[AggregateBOM] ════════════════════════════════════════════════════════════");
+    console.log(`[AggregateBOM]   Parallel workers: ${workers}`);
+    console.log(`[AggregateBOM]   Delay between calls: ${delayMs}ms`);
+    console.log(`[AggregateBOM]   Export scope: ${isPartialExport ? 'PARTIAL' : 'FULL'}`);
+    if (options.prefixFilter) {
+      console.log(`[AggregateBOM]   Prefix filter: "${options.prefixFilter}"`);
+    }
+    console.log("[AggregateBOM] ────────────────────────────────────────────────────────────");
+    console.log("[AggregateBOM] PHASE 1: Pre-scan (discovering assemblies)...");
     
     // Emit scanning phase start
     if (onProgress) {
@@ -938,12 +976,18 @@ export class OnShapeApiClient {
       }
     });
     
-    console.log(`[AggregateBOM] Pre-scan complete: ${stats.assemblies.length} assemblies found`);
+    console.log("[AggregateBOM] ────────────────────────────────────────────────────────────");
+    console.log(`[AggregateBOM] PHASE 1 COMPLETE: Found ${stats.assemblies.length} assemblies`);
+    console.log(`[AggregateBOM]   Folders scanned: ${stats.summary.totalFolders}`);
+    console.log(`[AggregateBOM]   Documents scanned: ${stats.summary.totalDocuments}`);
+    console.log("[AggregateBOM] ────────────────────────────────────────────────────────────");
 
     checkAborted();
 
     // Phase 2: Parallel BOM fetching with progress
-    console.log(`[AggregateBOM] Fetching BOMs with ${workers} workers, delay=${delayMs}ms...`);
+    console.log("[AggregateBOM] PHASE 2: Fetching BOMs (parallel with rate limiting)...");
+    console.log(`[AggregateBOM]   Using ${workers} parallel workers, ${delayMs}ms delay`);
+    console.log("[AggregateBOM] ────────────────────────────────────────────────────────────");
     
     const limit = pLimit(workers);
     let completedCount = 0;
@@ -1104,13 +1148,17 @@ export class OnShapeApiClient {
 
     const exportDurationMs = Date.now() - startTime;
 
-    console.log('[AggregateBOM] ════════════════════════════════════════');
-    console.log('[AggregateBOM] Export Complete');
-    console.log(`[AggregateBOM]   Duration: ${(exportDurationMs / 1000).toFixed(1)}s`);
-    console.log(`[AggregateBOM]   Workers: ${workers}`);
-    console.log(`[AggregateBOM]   Assemblies: ${succeededCount}/${results.length} succeeded`);
-    console.log(`[AggregateBOM]   BOM Rows: ${totalBomRows}`);
-    console.log('[AggregateBOM] ════════════════════════════════════════');
+    console.log('[AggregateBOM] ────────────────────────────────────────────────────────────');
+    console.log('[AggregateBOM] EXPORT COMPLETE');
+    console.log('[AggregateBOM] ════════════════════════════════════════════════════════════');
+    console.log(`[AggregateBOM]   Total duration: ${(exportDurationMs / 1000).toFixed(1)} seconds`);
+    console.log(`[AggregateBOM]   Workers used: ${workers}`);
+    console.log(`[AggregateBOM]   Assemblies processed: ${results.length}`);
+    console.log(`[AggregateBOM]   Assemblies succeeded: ${succeededCount}`);
+    console.log(`[AggregateBOM]   Assemblies failed: ${failedCount}`);
+    console.log(`[AggregateBOM]   Total BOM rows: ${totalBomRows}`);
+    console.log('[AggregateBOM] ════════════════════════════════════════════════════════════');
+    console.log('');
 
     return {
       metadata: {
