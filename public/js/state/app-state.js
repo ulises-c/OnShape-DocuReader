@@ -8,7 +8,7 @@ const defaultState = Object.freeze({
   currentElement: null,
   currentPart: null,
   selectedDocuments: [],
-  // Phase 4.7: Export selection state
+  // Export selection state
   exportSelection: {
     documentIds: [],
     folderIds: []

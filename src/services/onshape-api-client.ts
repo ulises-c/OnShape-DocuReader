@@ -472,9 +472,9 @@ export class OnShapeApiClient {
    * Returns assembly list for subsequent parallel BOM fetching.
    * 
    * @param options.delayMs - Delay between API calls (default: 100)
-   * @param options.onProgress - Optional callback for progress updates (Phase 4.4)
+   * @param options.onProgress - Optional callback for progress updates
    * @param options.signal - Optional AbortSignal for cancellation
-   * @param options.scope - Optional scope for partial export (Phase 4.7)
+   * @param options.scope - Optional scope for partial export
    * @param options.prefixFilter - Optional prefix to filter root folders
    */
   async getDirectoryStats(options: { 
@@ -526,7 +526,7 @@ export class OnShapeApiClient {
       }
     };
 
-    // 1. Seed queue based on scope (Phase 4.7)
+    // 1. Seed queue based on scope
     if (isPartialExport) {
       // PARTIAL EXPORT: Process only specified items
       
@@ -768,13 +768,13 @@ export class OnShapeApiClient {
 
   /**
    * Export aggregate BOM data for all assemblies with progress callbacks for SSE streaming.
-   * Uses parallel fetching with controlled concurrency (Phase 4.3/4.4).
+   * Uses parallel fetching with controlled concurrency.
    * 
    * @param options.delayMs - Delay between API calls (per worker)
    * @param options.workerCount - Number of concurrent workers (1-8)
-   * @param options.onProgress - Callback for progress events (Phase 4.4)
-   * @param options.signal - AbortSignal for cancellation (Phase 4.4)
-   * @param options.scope - Optional scope for partial export (Phase 4.7)
+   * @param options.onProgress - Callback for progress events
+   * @param options.signal - AbortSignal for cancellation
+   * @param options.scope - Optional scope for partial export
    * @param options.prefixFilter - Optional prefix to filter root folders
    */
   async getAggregateBomWithProgress(
@@ -795,7 +795,7 @@ export class OnShapeApiClient {
     // Clamp worker count to safe range (1-8)
     const workers = Math.max(1, Math.min(8, options.workerCount ?? 4));
     
-    // Check if partial export (Phase 4.7)
+    // Check if partial export
     const isPartialExport = options.scope?.scope === 'partial' && 
       ((options.scope.documentIds?.length || 0) > 0 || (options.scope.folderIds?.length || 0) > 0);
 
@@ -1070,7 +1070,7 @@ export class OnShapeApiClient {
 
   /**
    * Export aggregate BOM data for all assemblies in the workspace.
-   * Uses parallel fetching with controlled concurrency (Phase 4.3).
+   * Uses parallel fetching with controlled concurrency.
    * 
    * @param delayMs - Delay between API calls (per worker)
    * @param workerCount - Number of concurrent workers (1-8)

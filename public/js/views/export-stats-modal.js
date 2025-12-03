@@ -17,8 +17,8 @@ export class ExportStatsModal {
    * Show the export stats modal.
    * @param {Object} stats - Directory stats from API
    * @param {Object} options - Callbacks for confirm/cancel
-   * @param {boolean} options.isPartial - Whether this is a partial export (Phase 4.7)
-   * @param {number} options.selectionCount - Number of selected items (Phase 4.7)
+   * @param {boolean} options.isPartial - Whether this is a partial export
+   * @param {number} options.selectionCount - Number of selected items
    * @param {string} options.prefixFilter - Active prefix filter (if any)
    */
   show(stats, { onConfirm, onCancel, isPartial = false, selectionCount = 0, prefixFilter = null }) {
@@ -104,7 +104,7 @@ export class ExportStatsModal {
   /**
    * Render modal HTML content.
    * @param {Object} stats - Directory stats
-   * @param {Object} context - Context for partial export (Phase 4.7)
+   * @param {Object} context - Context for partial export
    * @returns {string} HTML string
    */
   renderModalContent(stats, { isPartial = false, selectionCount = 0, prefixFilter = null } = {}) {
@@ -123,7 +123,7 @@ export class ExportStatsModal {
       ? (stats.scanDurationMs / 1000).toFixed(1) 
       : '?';
 
-    // Phase 4.7: Title and icon based on scope
+    // Title and icon based on scope
     const title = isPartial
       ? `Selected Items Scan (${selectionCount} items)`
       : 'Workspace Scan Complete';

@@ -409,7 +409,7 @@ router.get(
     try {
       const delayMs = parseInt(String(req.query.delay ?? "100"), 10);
       
-      // Parse scope parameters (Phase 4.7)
+      // Parse scope parameters
       const scopeParam = req.query.scope as string;
       const documentIdsParam = req.query.documentIds as string;
       const folderIdsParam = req.query.folderIds as string;
@@ -453,7 +453,7 @@ router.get(
 /**
  * GET /api/export/aggregate-bom-stream
  * 
- * Stream aggregate BOM export with real-time progress via SSE (Phase 4.4).
+ * Stream aggregate BOM export with real-time progress via SSE.
  * 
  * Query params:
  *   - delay: Delay between API calls in ms (default: 100)
@@ -482,7 +482,7 @@ router.get(
     const delayMs = parseInt(String(req.query.delay ?? "100"), 10);
     const workerCount = parseInt(String(req.query.workers ?? "4"), 10);
     
-    // Parse scope parameters (Phase 4.7)
+    // Parse scope parameters
     const scopeParam = req.query.scope as string;
     const documentIdsParam = req.query.documentIds as string;
     const folderIdsParam = req.query.folderIds as string;
@@ -589,7 +589,7 @@ router.get(
  * GET /api/export/aggregate-bom
  * 
  * Export aggregate BOM data for all assemblies.
- * Uses parallel fetching with controlled concurrency (Phase 4.3).
+ * Uses parallel fetching with controlled concurrency.
  * 
  * Query params:
  *   - delay: Delay between API calls in ms (default: 100)

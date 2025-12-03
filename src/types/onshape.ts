@@ -80,11 +80,11 @@ export interface DirectoryStats {
     estimatedBomApiCalls: number;
     estimatedTimeMinutes: number; // based on 500ms average per BOM fetch
   };
-  /** Assembly list for Phase 4.3 parallel processing */
+  /** Assembly list for parallel processing */
   assemblies: AssemblyReference[];
 }
 
-/** Parameters for scoped directory stats / export (Phase 4.7) */
+/** Parameters for scoped directory stats / export */
 export interface ExportScopeParams {
   /** Export scope: 'full' for entire workspace, 'partial' for selected items */
   scope: 'full' | 'partial';
@@ -104,7 +104,7 @@ export interface ExportMetadata {
   exportDurationMs: number;
   /** Configuration used for this export */
   exportConfig: {
-    /** Number of parallel workers (for Phase 4.3) */
+    /** Number of parallel workers (for ) */
     workerCount: number;
     /** Delay between API calls in ms */
     delayMs: number;
@@ -114,12 +114,12 @@ export interface ExportMetadata {
     selectedFolders?: string[];
     /** Selected document IDs (if partial export) */
     selectedDocuments?: string[];
-    /** Total selected items count (Phase 4.7) */
+    /** Total selected items count */
     selectedItemCount?: number;
   };
 }
 
-/** Aggregate BOM export result (Phase 4.3 with parallel fetching) */
+/** Aggregate BOM export result ( with parallel fetching) */
 export interface AggregateBomResult {
   /** Export metadata */
   metadata: ExportMetadata;
@@ -135,10 +135,10 @@ export interface AggregateBomResult {
   assemblies: AssemblyBomFetchResult[];
 }
 
-/** Progress event phases (Phase 4.4) */
+/** Progress event phases */
 export type ExportPhase = 'initializing' | 'scanning' | 'fetching' | 'complete' | 'error';
 
-/** Progress event sent via SSE (Phase 4.4) */
+/** Progress event sent via SSE */
 export interface ExportProgressEvent {
   phase: ExportPhase;
   
@@ -175,7 +175,7 @@ export interface ExportProgressEvent {
   timestamp: string;
 }
 
-/** Final result sent when export completes (Phase 4.4) */
+/** Final result sent when export completes */
 export interface ExportCompleteEvent {
   phase: 'complete';
   result: AggregateBomResult;

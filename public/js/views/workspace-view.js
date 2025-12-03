@@ -26,7 +26,7 @@ export class WorkspaceView extends BaseView {
 
     if (this.gridContainer) {
       this.gridContainer.addEventListener('click', (e) => {
-        // Phase 4.7: Handle export selection checkbox clicks
+        // Handle export selection checkbox clicks
         const checkbox = e.target.closest('.export-select-checkbox');
         if (checkbox) {
           e.stopPropagation();
@@ -142,7 +142,7 @@ export class WorkspaceView extends BaseView {
       return;
     }
 
-    // Phase 4.7: Get current export selection state
+    // Get current export selection state
     const exportSelection = this.controller.state?.getState?.()?.exportSelection || {};
     const selectedDocIds = new Set(exportSelection.documentIds || []);
     const selectedFolderIds = new Set(exportSelection.folderIds || []);
@@ -155,7 +155,7 @@ export class WorkspaceView extends BaseView {
       const typeClass = isFolder ? 'type-folder' : 'type-doc';
       const dataType = isFolder ? 'folder' : 'document';
       
-      // Phase 4.7: Check if selected for export
+      // Check if selected for export
       const isSelected = isFolder 
         ? selectedFolderIds.has(item.id)
         : selectedDocIds.has(item.id);
@@ -180,7 +180,7 @@ export class WorkspaceView extends BaseView {
   }
 
   /**
-   * Phase 4.7: Update visual selection state for export checkboxes
+   * Update visual selection state for export checkboxes
    */
   _updateSelectionVisuals() {
     if (!this.gridContainer) return;

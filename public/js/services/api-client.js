@@ -116,7 +116,7 @@ export class ApiClient {
       delay: String(delayMs)
     });
     
-    // Phase 4.7: Add scope parameters
+    // Add scope parameters
     if (scope?.scope === 'partial') {
       params.set('scope', 'partial');
       if (scope.documentIds?.length) {
@@ -157,7 +157,7 @@ export class ApiClient {
     params.set('workers', workers.toString());
     params.set('delay', delay.toString());
     
-    // Phase 4.7: Add scope parameters
+    //  Add scope parameters
     if (scope?.scope === 'partial') {
       params.set('scope', 'partial');
       if (scope.documentIds?.length) {
