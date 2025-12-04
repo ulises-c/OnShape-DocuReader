@@ -296,10 +296,20 @@ export function updateProgress(progress) {
  * @param {Object} progress - Final progress data
  */
 function showCompletionStats(progress) {
-  const { bomRows, thumbnailsDownloaded, thumbnailsFailed, zipSizeBytes, elapsedMs } = progress;
+  const { bomRows, thumbnailsDownloaded, thumbnailsFailed, thumbnailsSkipped, zipSizeBytes, elapsedMs } = progress;
   
   updateElement('stat-bom-rows', String(bomRows || 0));
-  updateElement('stat-thumbnails', `${thumbnailsDownloaded || 0} downloaded${thumbnailsFailed ? `, ${thumbnailsFailed} failed` : ''}`);
+  
+  // Build thumbnails status string
+  let thumbnailStatus = `${thumbnailsDownloaded || 0} downloaded`;
+  if (thumbnailsFailed) {
+    thumbnailStatus += `, ${thumbnailsFailed} failed`;
+  }
+  if (thumbnailsSkipped) {
+    thumbnailStatus += `, ${thumbnailsSkipped} skipped`;
+  }
+  updateElement('stat-thumbnails', thumbnailStatus);
+  
   updateElement('stat-zip-size', formatBytes(zipSizeBytes || 0));
   updateElement('stat-duration', formatDuration(elapsedMs || 0));
   

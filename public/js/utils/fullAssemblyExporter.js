@@ -20,6 +20,7 @@ import JSZip from "jszip";
 const MAX_FILENAME_LENGTH = 100;
 const THUMBNAIL_SIZE = "300x300";
 const CONCURRENT_THUMBNAIL_LIMIT = 3;
+const DEFAULT_THUMBNAIL_DELAY_MS = 100; // Rate limiting delay between thumbnail fetches
 
 // Characters not allowed in filenames (Windows + Unix)
 const INVALID_FILENAME_CHARS = /[<>:"/\\|?*\x00-\x1F]/g;
@@ -40,6 +41,19 @@ export const ExportPhase = {
   COMPLETE: "complete",
   ERROR: "error",
 };
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
+/**
+ * Delay execution for rate limiting
+ * @param {number} ms - Milliseconds to delay
+ * @returns {Promise<void>}
+ */
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 // ============================================================================
 // Filename Utilities
@@ -170,15 +184,28 @@ export function parseBomRow(row, headerMap, index) {
     row.itemSource?.elementType === "ASSEMBLY";
 
   // Extract thumbnail URL info from itemSource (based on real BOM structure)
+  // Also check relatedOccurrences as fallback for older BOM formats
   let thumbnailInfo = null;
+  
   if (row.itemSource) {
     const src = row.itemSource;
     thumbnailInfo = {
       documentId: src.documentId,
-      workspaceId: src.wvmId,
+      workspaceId: src.wvmId, // wvmId is the workspace ID in BOM response
       elementId: src.elementId,
       partId: src.partId || null,
     };
+  } else if (row.relatedOccurrences?.length > 0) {
+    // Fallback to relatedOccurrences if itemSource not available
+    const occ = row.relatedOccurrences[0];
+    if (typeof occ === 'object') {
+      thumbnailInfo = {
+        documentId: occ.documentId,
+        workspaceId: occ.workspaceId,
+        elementId: occ.elementId,
+        partId: occ.partId || null,
+      };
+    }
   }
 
   return {
@@ -223,72 +250,117 @@ export function buildThumbnailUrl(info, size = THUMBNAIL_SIZE) {
 }
 
 /**
- * Fetch a thumbnail via the proxy endpoint.
+ * Fetch a thumbnail via the proxy endpoint with retry logic.
  *
  * @param {string} thumbnailUrl - OnShape thumbnail URL
+ * @param {number} retries - Number of retries on failure (default: 2)
+ * @param {number} retryDelayMs - Delay between retries (default: 500)
  * @returns {Promise<Blob|null>} Thumbnail blob or null on failure
  */
-async function fetchThumbnailBlob(thumbnailUrl) {
+async function fetchThumbnailBlob(thumbnailUrl, retries = 2, retryDelayMs = 500) {
   if (!thumbnailUrl) return null;
 
   const proxyUrl = `/api/thumbnail-proxy?url=${encodeURIComponent(
     thumbnailUrl
   )}`;
 
-  try {
-    const response = await fetch(proxyUrl);
-    if (!response.ok) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(proxyUrl);
+      
+      if (response.ok) {
+        return await response.blob();
+      }
+      
+      // Handle rate limiting (429) or server errors (5xx)
+      if (response.status === 429 || response.status >= 500) {
+        if (attempt < retries) {
+          console.warn(
+            `[FullExtract] Thumbnail fetch retry ${attempt + 1}/${retries} (${response.status}): ${thumbnailUrl}`
+          );
+          await delay(retryDelayMs * (attempt + 1)); // Exponential backoff
+          continue;
+        }
+      }
+      
       console.warn(
         `[FullExtract] Thumbnail fetch failed (${response.status}): ${thumbnailUrl}`
       );
       return null;
+    } catch (err) {
+      if (attempt < retries) {
+        console.warn(`[FullExtract] Thumbnail fetch error, retrying: ${err.message}`);
+        await delay(retryDelayMs * (attempt + 1));
+        continue;
+      }
+      console.warn(`[FullExtract] Thumbnail fetch error: ${err.message}`);
+      return null;
     }
-    return await response.blob();
-  } catch (err) {
-    console.warn(`[FullExtract] Thumbnail fetch error: ${err.message}`);
-    return null;
   }
+  
+  return null;
 }
 
 /**
- * Fetch thumbnails with concurrency limit.
+ * Fetch thumbnails with concurrency limit and rate limiting.
  *
  * @param {Array} items - Array of {url, filename} objects
  * @param {number} concurrency - Max concurrent fetches
  * @param {Function} onProgress - Progress callback (current, total, item)
+ * @param {number} delayMs - Delay between fetches in ms (rate limiting)
  * @returns {Promise<Array>} Array of {filename, blob} results
  */
-async function fetchThumbnailsWithLimit(items, concurrency, onProgress) {
+async function fetchThumbnailsWithLimit(items, concurrency, onProgress, delayMs = DEFAULT_THUMBNAIL_DELAY_MS) {
   const results = [];
   const queue = [...items];
   let completed = 0;
+  let activeWorkers = 0;
+  const maxWorkers = Math.min(concurrency, items.length);
 
-  async function worker() {
-    while (queue.length > 0) {
-      const item = queue.shift();
-      if (!item) break;
+  // Create a promise that resolves when all workers complete
+  return new Promise((resolve) => {
+    async function worker() {
+      activeWorkers++;
+      
+      while (queue.length > 0) {
+        const item = queue.shift();
+        if (!item) break;
 
-      const blob = await fetchThumbnailBlob(item.url);
-      completed++;
+        // Rate limiting delay before each fetch
+        if (delayMs > 0) {
+          await delay(delayMs);
+        }
 
-      if (onProgress) {
-        onProgress(completed, items.length, item);
+        const blob = await fetchThumbnailBlob(item.url);
+        completed++;
+
+        if (onProgress) {
+          onProgress(completed, items.length, item);
+        }
+
+        if (blob) {
+          results.push({ filename: item.filename, blob });
+        }
       }
-
-      if (blob) {
-        results.push({ filename: item.filename, blob });
+      
+      activeWorkers--;
+      
+      // Check if all workers are done
+      if (activeWorkers === 0) {
+        resolve(results);
       }
     }
-  }
 
-  // Start workers
-  const workers = [];
-  for (let i = 0; i < Math.min(concurrency, items.length); i++) {
-    workers.push(worker());
-  }
-
-  await Promise.all(workers);
-  return results;
+    // Start workers
+    for (let i = 0; i < maxWorkers; i++) {
+      worker();
+    }
+    
+    // Handle empty items array
+    if (items.length === 0) {
+      resolve(results);
+    }
+  });
 }
 
 // ============================================================================
@@ -302,7 +374,7 @@ async function fetchThumbnailsWithLimit(items, concurrency, onProgress) {
  */
 async function loadJSZip() {
   // JSZip is bundled via npm and imported at the top of this file.
-  // Kept async so existing call sites (await loadJSZip()) don’t need to change.
+  // Kept async so existing call sites (await loadJSZip()) don't need to change.
   return JSZip;
 }
 
@@ -319,11 +391,18 @@ async function loadJSZip() {
  * @param {string} options.workspaceId - OnShape workspace ID
  * @param {Object} options.documentService - DocumentService instance
  * @param {Function} options.onProgress - Progress callback
+ * @param {number} options.thumbnailDelayMs - Delay between thumbnail fetches (default: 100)
  * @returns {Promise<void>}
  */
 export async function fullAssemblyExtract(options) {
-  const { element, documentId, workspaceId, documentService, onProgress } =
-    options;
+  const { 
+    element, 
+    documentId, 
+    workspaceId, 
+    documentService, 
+    onProgress,
+    thumbnailDelayMs = DEFAULT_THUMBNAIL_DELAY_MS
+  } = options;
 
   const assemblyName = sanitizeForFilename(element.name || element.id, 50);
   const startTime = Date.now();
@@ -360,7 +439,7 @@ export async function fullAssemblyExtract(options) {
       throw new Error("No BOM data available for this assembly");
     }
 
-    console.log(`[FullExtract] BOM fetched: ${bom.rows.length} rows`);
+    console.log(`[FullExtract] BOM fetched: ${bom.rows.length} rows, ${bom.headers?.length || 0} headers`);
 
     // Phase: Convert to CSV
     reportProgress(ExportPhase.CONVERTING_CSV, { bomRows: bom.rows.length });
@@ -383,6 +462,8 @@ export async function fullAssemblyExtract(options) {
     const thumbnailsFolder = zip.folder("thumbnails");
 
     const thumbnailItems = [];
+    let skippedNoInfo = 0;
+    
     for (let i = 0; i < bom.rows.length; i++) {
       const row = bom.rows[i];
       const parsed = parseBomRow(row, headerMap, i);
@@ -391,14 +472,17 @@ export async function fullAssemblyExtract(options) {
 
       if (url) {
         thumbnailItems.push({ url, filename, parsed });
+      } else {
+        skippedNoInfo++;
+        console.log(`[FullExtract] Row ${i + 1}: No thumbnail info for "${parsed.name}"`);
       }
     }
 
     console.log(
-      `[FullExtract] Prepared ${thumbnailItems.length} thumbnail requests`
+      `[FullExtract] Prepared ${thumbnailItems.length} thumbnail requests (${skippedNoInfo} skipped - no info)`
     );
 
-    // Phase: Fetch thumbnails
+    // Phase: Fetch thumbnails with rate limiting
     reportProgress(ExportPhase.FETCHING_THUMBNAILS, {
       totalThumbnails: thumbnailItems.length,
       currentThumbnail: 0,
@@ -413,7 +497,8 @@ export async function fullAssemblyExtract(options) {
           currentThumbnail: current,
           currentItem: item.filename,
         });
-      }
+      },
+      thumbnailDelayMs // Pass rate limiting delay
     );
 
     console.log(
@@ -447,6 +532,7 @@ export async function fullAssemblyExtract(options) {
       bomRows: bom.rows.length,
       thumbnailsDownloaded: thumbnailResults.length,
       thumbnailsFailed: thumbnailItems.length - thumbnailResults.length,
+      thumbnailsSkipped: skippedNoInfo,
       zipSizeBytes: zipBlob.size,
     });
 
