@@ -4,6 +4,9 @@
  * @param {Object} bomJson - BOM JSON object from Onshape API
  * @returns {string} CSV string
  */
+
+// TODO: Check for edge cases, e.g. commas, quotes in values
+
 export function bomToCSV(bomJson) {
   if (
     !bomJson ||
