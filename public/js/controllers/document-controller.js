@@ -15,6 +15,8 @@ import { exportStatsModal } from "../views/export-stats-modal.js";
 import { exportProgressModal } from "../views/export-progress-modal.js";
 import { exportFilterModal } from "../views/export-filter-modal.js";
 import { aggregateBomToCSV } from "../utils/aggregateBomToCSV.js";
+import { showToast } from "../utils/toast-notification.js";
+import { downloadJson, downloadCsv } from "../utils/file-download.js";
 
 export class DocumentController {
   constructor(
@@ -86,13 +88,13 @@ export class DocumentController {
     }
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Navigation Methods
+  // ─────────────────────────────────────────────────────────────────────────────
+
   navigateToDocument(documentId) {
     try {
-      const listSnap =
-        (typeof this.listView?.captureState === "function" &&
-          this.listView.captureState()) ||
-        (this.historyState?.captureState?.("documentList") ?? null);
-
+      const listSnap = this._captureViewState(this.listView, "documentList");
       if (this.router) {
         const path = pathTo(ROUTES.DOCUMENT_DETAIL, { id: documentId });
         this.router.navigate(path, listSnap);
@@ -109,9 +111,7 @@ export class DocumentController {
 
   async showDocument(documentId, restoredState) {
     await this.viewDocument(documentId);
-    if (restoredState && typeof this.detailView?.restoreState === "function") {
-      this.detailView.restoreState(restoredState.viewSnapshot || restoredState);
-    }
+    this._restoreViewState(this.detailView, restoredState);
   }
 
   async showList(restoredState) {
@@ -145,44 +145,27 @@ export class DocumentController {
     }
 
     // Initialize workspace (loads root folder)
-    // Check if we have restored workspace state
-    const restoredWorkspace =
-      restoredState?.viewSnapshot?.workspace || restoredState?.workspace;
-    if (restoredWorkspace) {
-      // Restore path if possible, for now just load what was last
-      if (restoredWorkspace.currentFolderId) {
-        this.workspaceState.breadcrumbs = restoredWorkspace.breadcrumbs || [];
-        await this.loadFolder(restoredWorkspace.currentFolderId, false); // don't push breadcrumb
-      } else {
-        await this.loadWorkspaceRoot();
-      }
-    } else {
-      // Default load root if no state
-      if (!this.workspaceState.currentFolderId) {
-        await this.loadWorkspaceRoot();
-      } else {
-        // Refresh current folder
-        await this.loadFolder(this.workspaceState.currentFolderId, false);
-      }
-    }
+    await this._initializeWorkspace(restoredState);
 
     // Restore state after render completes
-    if (restoredState && typeof this.listView?.restoreState === "function") {
-      if (typeof requestAnimationFrame === "function") {
-        requestAnimationFrame(() =>
-          this.listView.restoreState(
-            restoredState.viewSnapshot || restoredState
-          )
-        );
-      } else {
-        setTimeout(
-          () =>
-            this.listView.restoreState(
-              restoredState.viewSnapshot || restoredState
-            ),
-          0
-        );
-      }
+    this._restoreViewStateDeferred(this.listView, restoredState);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Workspace Methods
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  async _initializeWorkspace(restoredState) {
+    const restoredWorkspace =
+      restoredState?.viewSnapshot?.workspace || restoredState?.workspace;
+    
+    if (restoredWorkspace?.currentFolderId) {
+      this.workspaceState.breadcrumbs = restoredWorkspace.breadcrumbs || [];
+      await this.loadFolder(restoredWorkspace.currentFolderId, false);
+    } else if (!this.workspaceState.currentFolderId) {
+      await this.loadWorkspaceRoot();
+    } else {
+      await this.loadFolder(this.workspaceState.currentFolderId, false);
     }
   }
 
@@ -208,16 +191,11 @@ export class DocumentController {
       );
       const items = result.items || [];
 
-      if (updateBreadcrumbs) {
-        // If we're navigating down, add to breadcrumbs
-        // Note: ideally the API returns path info. For now we push manual name if provided.
-        // If not navigating down (e.g. refresh), we assume breadcrumbs are set.
-        if (folderName) {
-          this.workspaceState.breadcrumbs.push({
-            id: folderId,
-            name: folderName,
-          });
-        }
+      if (updateBreadcrumbs && folderName) {
+        this.workspaceState.breadcrumbs.push({
+          id: folderId,
+          name: folderName,
+        });
       }
 
       this.workspaceState.currentFolderId = folderId;
@@ -251,6 +229,10 @@ export class DocumentController {
     }
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Document Loading & Pagination
+  // ─────────────────────────────────────────────────────────────────────────────
+
   async loadDocuments(page = 1, pageSize = this.pagination.pageSize) {
     const loadingEl = document.getElementById("loading");
     const errorEl = document.getElementById("error");
@@ -279,13 +261,7 @@ export class DocumentController {
         : [];
 
       // If backend does not provide a reliable totalCount, compute a heuristic total so that Next can stay enabled
-      let totalCount;
-      if (typeof result?.totalCount === "number" && result.totalCount >= 0) {
-        totalCount = result.totalCount;
-      } else {
-        const hasMore = items.length === pageSize;
-        totalCount = offset + items.length + (hasMore ? 1 : 0);
-      }
+      const totalCount = this._computeTotalCount(result, items, offset, pageSize);
 
       // More diagnostics
       console.log("[DocumentController.loadDocuments] api result", {
@@ -326,11 +302,16 @@ export class DocumentController {
     } catch (error) {
       console.error("Error loading documents:", error);
       if (loadingEl) loadingEl.style.display = "none";
-      if (errorEl) {
-        errorEl.textContent = "Failed to load documents: " + error.message;
-        errorEl.style.display = "block";
-      }
+      this._showError(`Failed to load documents: ${error.message}`);
     }
+  }
+
+  _computeTotalCount(result, items, offset, pageSize) {
+    if (typeof result?.totalCount === "number" && result.totalCount >= 0) {
+      return result.totalCount;
+    }
+    const hasMore = items.length === pageSize;
+    return offset + items.length + (hasMore ? 1 : 0);
   }
 
   async changePage(page) {
@@ -379,6 +360,10 @@ export class DocumentController {
     this.listView.render(filtered);
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Document Detail View Methods
+  // ─────────────────────────────────────────────────────────────────────────────
+
   async viewDocument(documentId) {
     console.log("viewDocument called with documentId:", documentId);
     try {
@@ -405,40 +390,37 @@ export class DocumentController {
       this.detailView.render(doc, elements);
       this.navigation.navigateTo("documentDetail");
 
-      const container = document.getElementById("documentElements");
-      container?.addEventListener(
-        "click",
-        (e) => {
-          const elNode = e.target.closest(".element-item");
-          if (!elNode) return;
-          const elementId = elNode.getAttribute("data-element-id");
-          if (elementId) {
-            console.log("Element clicked:", elementId);
-            if (this.router) {
-              const snap =
-                (typeof this.detailView?.captureState === "function" &&
-                  this.detailView.captureState()) ||
-                (this.historyState?.captureState?.("documentDetail") ?? null);
-              const path = pathTo(ROUTES.ELEMENT_DETAIL, {
-                docId: doc.id,
-                elementId,
-              });
-              this.router.navigate(path, snap);
-            } else {
-              this.viewElement(elementId);
-            }
-          }
-        },
-        { once: true }
-      );
+      this._bindElementClickHandler(doc);
     } catch (e) {
       console.error("Error viewing document:", e);
-      const errEl = document.getElementById("error");
-      if (errEl) {
-        errEl.textContent = "Failed to load document details: " + e.message;
-        errEl.style.display = "block";
-      }
+      this._showError(`Failed to load document details: ${e.message}`);
     }
+  }
+
+  _bindElementClickHandler(doc) {
+    const container = document.getElementById("documentElements");
+    container?.addEventListener(
+      "click",
+      (e) => {
+        const elNode = e.target.closest(".element-item");
+        if (!elNode) return;
+        const elementId = elNode.getAttribute("data-element-id");
+        if (elementId) {
+          console.log("Element clicked:", elementId);
+          if (this.router) {
+            const snap = this._captureViewState(this.detailView, "documentDetail");
+            const path = pathTo(ROUTES.ELEMENT_DETAIL, {
+              docId: doc.id,
+              elementId,
+            });
+            this.router.navigate(path, snap);
+          } else {
+            this.viewElement(elementId);
+          }
+        }
+      },
+      { once: true }
+    );
   }
 
   async loadHierarchy(documentId) {
@@ -450,22 +432,7 @@ export class DocumentController {
 
     try {
       const info = await this.documentService.getParentInfo(documentId);
-      let html = "";
-      if (info?.items?.length) {
-        html =
-          '<div style="margin-bottom: 0.5rem;"><strong>Document Hierarchy:</strong></div>';
-        info.items.forEach((item, index) => {
-          const indent = "&nbsp;".repeat(index * 4);
-          html += `<div style="font-family: monospace; font-size: 0.9rem; margin: 0.25rem 0;">
-            ${indent}${index > 0 ? "↳ " : ""}${escapeHtml(item.name || item.id)}
-            <span style="color: #666; font-size: 0.8rem;">(${
-              item.resourceType || "unknown"
-            })</span>
-          </div>`;
-        });
-      } else {
-        html = '<div style="color:#666;">No parent hierarchy available</div>';
-      }
+      const html = this._renderHierarchyHtml(info);
       this.detailView.updateHierarchy(documentId, html);
     } catch (e) {
       console.error("Error loading parent hierarchy:", e);
@@ -474,6 +441,24 @@ export class DocumentController {
         '<div style="color:#e74c3c;">Failed to load parent hierarchy</div>'
       );
     }
+  }
+
+  _renderHierarchyHtml(info) {
+    if (!info?.items?.length) {
+      return '<div style="color:#666;">No parent hierarchy available</div>';
+    }
+    
+    let html = '<div style="margin-bottom: 0.5rem;"><strong>Document Hierarchy:</strong></div>';
+    info.items.forEach((item, index) => {
+      const indent = "&nbsp;".repeat(index * 4);
+      html += `<div style="font-family: monospace; font-size: 0.9rem; margin: 0.25rem 0;">
+        ${indent}${index > 0 ? "↳ " : ""}${escapeHtml(item.name || item.id)}
+        <span style="color: #666; font-size: 0.8rem;">(${
+          item.resourceType || "unknown"
+        })</span>
+      </div>`;
+    });
+    return html;
   }
 
   async copyElementJson(element) {
@@ -509,14 +494,14 @@ export class DocumentController {
     }
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Element Detail View Methods
+  // ─────────────────────────────────────────────────────────────────────────────
+
   async viewElement(elementId) {
     const doc = this.state.getState().currentDocument;
     if (!doc?.defaultWorkspace?.id) {
-      const err = document.getElementById("error");
-      if (err) {
-        err.textContent = "No document or workspace available";
-        err.style.display = "block";
-      }
+      this._showError("No document or workspace available");
       return;
     }
 
@@ -527,43 +512,11 @@ export class DocumentController {
       );
       const currentElement = elements.find((el) => el.id === elementId);
       if (!currentElement) {
-        const err = document.getElementById("error");
-        if (err) {
-          err.textContent = "Element not found";
-          err.style.display = "block";
-        }
+        this._showError("Element not found");
         return;
       }
 
-      const shouldFetchMetadataForView = this._metadataWhitelist.has(
-        String(currentElement.elementType || currentElement.type).toUpperCase()
-      );
-      const [parts, assemblies, metadata] = await Promise.allSettled([
-        this.documentService.getParts(
-          doc.id,
-          doc.defaultWorkspace.id,
-          elementId
-        ),
-        this.documentService.getAssemblies(
-          doc.id,
-          doc.defaultWorkspace.id,
-          elementId
-        ),
-        // Only fetch metadata when the element type is in the whitelist
-        shouldFetchMetadataForView
-          ? this.documentService.getElementMetadata(
-              doc.id,
-              doc.defaultWorkspace.id,
-              elementId
-            )
-          : Promise.resolve({}),
-      ]);
-
-      currentElement.parts = parts.status === "fulfilled" ? parts.value : [];
-      currentElement.assemblies =
-        assemblies.status === "fulfilled" ? assemblies.value : [];
-      currentElement.metadata =
-        metadata.status === "fulfilled" ? metadata.value : {};
+      await this._loadElementDetails(doc, currentElement, elementId);
 
       this.state.setState({ currentElement, currentPart: null });
       const title = document.getElementById("elementTitle");
@@ -573,12 +526,40 @@ export class DocumentController {
       this.navigation.navigateTo("elementDetail");
     } catch (e) {
       console.error("Error viewing element:", e);
-      const err = document.getElementById("error");
-      if (err) {
-        err.textContent = "Failed to load element details: " + e.message;
-        err.style.display = "block";
-      }
+      this._showError(`Failed to load element details: ${e.message}`);
     }
+  }
+
+  async _loadElementDetails(doc, currentElement, elementId) {
+    const shouldFetchMetadataForView = this._metadataWhitelist.has(
+      String(currentElement.elementType || currentElement.type).toUpperCase()
+    );
+    const [parts, assemblies, metadata] = await Promise.allSettled([
+      this.documentService.getParts(
+        doc.id,
+        doc.defaultWorkspace.id,
+        elementId
+      ),
+      this.documentService.getAssemblies(
+        doc.id,
+        doc.defaultWorkspace.id,
+        elementId
+      ),
+      // Only fetch metadata when the element type is in the whitelist
+      shouldFetchMetadataForView
+        ? this.documentService.getElementMetadata(
+            doc.id,
+            doc.defaultWorkspace.id,
+            elementId
+          )
+        : Promise.resolve({}),
+    ]);
+
+    currentElement.parts = parts.status === "fulfilled" ? parts.value : [];
+    currentElement.assemblies =
+      assemblies.status === "fulfilled" ? assemblies.value : [];
+    currentElement.metadata =
+      metadata.status === "fulfilled" ? metadata.value : {};
   }
 
   async showElement(params, restoredState) {
@@ -592,35 +573,26 @@ export class DocumentController {
     }
 
     await this.viewElement(elementId);
-
-    if (restoredState && typeof this.elementView?.restoreState === "function") {
-      this.elementView.restoreState(
-        restoredState.viewSnapshot || restoredState
-      );
-    }
+    this._restoreViewState(this.elementView, restoredState);
   }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Part Detail View Methods
+  // ─────────────────────────────────────────────────────────────────────────────
 
   async viewPart(partId) {
     const st = this.state.getState();
     const doc = st.currentDocument;
     const el = st.currentElement;
     if (!doc || !el) {
-      const err = document.getElementById("error");
-      if (err) {
-        err.textContent = "No document or element available";
-        err.style.display = "block";
-      }
+      this._showError("No document or element available");
       return;
     }
 
     try {
       const part = el.parts.find((p) => p.partId === partId);
       if (!part) {
-        const err = document.getElementById("error");
-        if (err) {
-          err.textContent = "Part not found";
-          err.style.display = "block";
-        }
+        this._showError("Part not found");
         return;
       }
 
@@ -635,10 +607,7 @@ export class DocumentController {
       this.state.setState({ currentPart: part });
 
       if (this.router) {
-        const snap =
-          (typeof this.elementView?.captureState === "function" &&
-            this.elementView.captureState()) ||
-          (this.historyState?.captureState?.("elementDetail") ?? null);
+        const snap = this._captureViewState(this.elementView, "elementDetail");
         const path = pathTo(ROUTES.PART_DETAIL, {
           docId: doc.id,
           elementId: el.id,
@@ -652,11 +621,7 @@ export class DocumentController {
       this.partView.render(part);
     } catch (e) {
       console.error("Error viewing part:", e);
-      const err = document.getElementById("error");
-      if (err) {
-        err.textContent = "Failed to load part details: " + e.message;
-        err.style.display = "block";
-      }
+      this._showError(`Failed to load part details: ${e.message}`);
     }
   }
 
@@ -677,21 +642,18 @@ export class DocumentController {
     }
 
     await this.viewPart(partId);
-
-    if (restoredState && typeof this.partView?.restoreState === "function") {
-      this.partView.restoreState(restoredState.viewSnapshot || restoredState);
-    }
+    this._restoreViewState(this.partView, restoredState);
   }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Comprehensive Document Export
+  // ─────────────────────────────────────────────────────────────────────────────
 
   async getComprehensiveDocument() {
     console.log("Get Document button clicked");
     const doc = this.state.getState().currentDocument;
     if (!doc) {
-      const err = document.getElementById("error");
-      if (err) {
-        err.textContent = "No document selected";
-        err.style.display = "block";
-      }
+      this._showError("No document selected");
       return;
     }
 
@@ -711,28 +673,13 @@ export class DocumentController {
         includeMetadata: "true",
       });
 
-      const a = document.createElement("a");
-      const json = JSON.stringify(data, null, 2);
-      const blob = new Blob([json], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      a.href = url;
-      a.download = `${doc.name.replace(/[^a-z0-9]/gi, "_")}_comprehensive.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const filename = `${doc.name.replace(/[^a-z0-9]/gi, "_")}_comprehensive.json`;
+      downloadJson(data, filename);
 
-      this._toast(
-        `Successfully downloaded comprehensive data for "${doc.name}"`
-      );
+      showToast(`Successfully downloaded comprehensive data for "${doc.name}"`);
     } catch (e) {
       console.error("Error getting comprehensive document:", e);
-      const err = document.getElementById("error");
-      if (err) {
-        err.textContent =
-          "Failed to get comprehensive document data: " + e.message;
-        err.style.display = "block";
-      }
+      this._showError(`Failed to get comprehensive document data: ${e.message}`);
     } finally {
       if (button) {
         button.textContent = originalText || "📦 Get Document";
@@ -740,6 +687,10 @@ export class DocumentController {
       }
     }
   }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Export Selection State
+  // ─────────────────────────────────────────────────────────────────────────────
 
   // Update export button text based on selection state
   _updateExportButtonState(state) {
@@ -771,6 +722,10 @@ export class DocumentController {
   clearExportSelection() {
     this.state.clearExportSelection();
   }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Aggregate BOM Export
+  // ─────────────────────────────────────────────────────────────────────────────
 
   /**
    * Export aggregate BOM from all folders and documents.
@@ -888,146 +843,131 @@ export class DocumentController {
 
       // Handle completion
       onComplete: (result) => {
-        // Restore button state
-        if (btn) {
-          btn.textContent = originalText;
-          btn.disabled = false;
-        }
-
-        // Clear selection after successful partial export
-        if (isPartial) {
-          this.state.clearExportSelection();
-        }
-
-        // Clear checkpoint on successful completion
-        exportStatsModal.clearCheckpointOnSuccess();
-
-        // Download result based on format selection
-        const timestamp = new Date()
-          .toISOString()
-          .replace(/[:.]/g, "-")
-          .slice(0, 19);
-        const scopeLabel = isPartial
-          ? "partial"
-          : filterOptions?.prefixFilter
-          ? `filtered-${filterOptions.prefixFilter}`
-          : "full";
-
-        // Get format preferences (default to both JSON and CSV for full exports, JSON only for partial)
-        const formats = filterOptions?.formats || (isPartial ? { json: true, csv: false } : { json: true, csv: true });
-        const rowFilters = filterOptions?.rowFilters || {};
-
-        let downloadCount = 0;
-        const formatNames = [];
-
-        // Download JSON if selected
-        if (formats.json) {
-          const jsonFilename = `aggregate-bom-${scopeLabel}-${timestamp}.json`;
-          this._downloadJson(result, jsonFilename);
-          downloadCount++;
-          formatNames.push("JSON");
-        }
-
-        // Download CSV if selected
-        if (formats.csv) {
-          const csv = aggregateBomToCSV(result, {
-            filterPrtAsm: rowFilters.prtAsmOnly || false,
-          });
-
-          if (csv) {
-            const csvFilename = `aggregate-bom-${scopeLabel}-${timestamp}.csv`;
-            this._downloadCsv(csv, csvFilename);
-            downloadCount++;
-            formatNames.push("CSV");
-          } else {
-            console.warn('[DocumentController] CSV conversion returned empty result');
-          }
-        }
-
-        // Build success message
-        const rowFilterNote = rowFilters.prtAsmOnly ? " (PRT/ASM filtered)" : "";
-        const formatText = formatNames.length > 0 ? ` as ${formatNames.join(" + ")}` : "";
-
-        // Show success toast
-        this._toast(
-          `✅ Exported ${
-            result.summary?.assembliesSucceeded || 0
-          } assemblies from ${result.summary?.documentsScanned || 0} documents${formatText}${rowFilterNote}`
-        );
+        this._handleExportComplete(result, btn, originalText, isPartial, filterOptions);
       },
 
       // Handle cancellation
       onCancel: () => {
-        // Restore button state
-        if (btn) {
-          btn.textContent = originalText;
-          btn.disabled = false;
-        }
-        this._toast("Export cancelled");
+        this._restoreExportButton(btn, originalText);
+        showToast("Export cancelled");
       },
 
       // Handle error
       onError: (error) => {
-        // Restore button state
-        if (btn) {
-          btn.textContent = originalText;
-          btn.disabled = false;
-        }
-        this._toast(`❌ Export failed: ${error.message}`);
+        this._restoreExportButton(btn, originalText);
+        showToast(`❌ Export failed: ${error.message}`);
       },
     });
   }
 
-  /**
-   * Download data as JSON file.
-   * @param {Object} data - Data to download
-   * @param {string} filename - Filename for download
-   */
-  _downloadJson(data, filename) {
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
+  _handleExportComplete(result, btn, originalText, isPartial, filterOptions) {
+    // Restore button state
+    this._restoreExportButton(btn, originalText);
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    // Clear selection after successful partial export
+    if (isPartial) {
+      this.state.clearExportSelection();
+    }
 
-    URL.revokeObjectURL(url);
+    // Clear checkpoint on successful completion
+    exportStatsModal.clearCheckpointOnSuccess();
+
+    // Download result based on format selection
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, "-")
+      .slice(0, 19);
+    const scopeLabel = isPartial
+      ? "partial"
+      : filterOptions?.prefixFilter
+      ? `filtered-${filterOptions.prefixFilter}`
+      : "full";
+
+    // Get format preferences (default to both JSON and CSV for full exports, JSON only for partial)
+    const formats = filterOptions?.formats || (isPartial ? { json: true, csv: false } : { json: true, csv: true });
+    const rowFilters = filterOptions?.rowFilters || {};
+
+    const downloadedFormats = this._downloadExportResults(result, scopeLabel, timestamp, formats, rowFilters);
+
+    // Build success message
+    const rowFilterNote = rowFilters.prtAsmOnly ? " (PRT/ASM filtered)" : "";
+    const formatText = downloadedFormats.length > 0 ? ` as ${downloadedFormats.join(" + ")}` : "";
+
+    // Show success toast
+    showToast(
+      `✅ Exported ${
+        result.summary?.assembliesSucceeded || 0
+      } assemblies from ${result.summary?.documentsScanned || 0} documents${formatText}${rowFilterNote}`
+    );
   }
 
-  /**
-   * Download string as CSV file.
-   * @param {string} csvString - CSV content
-   * @param {string} filename - Filename for download
-   */
-  _downloadCsv(csvString, filename) {
-    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
+  _downloadExportResults(result, scopeLabel, timestamp, formats, rowFilters) {
+    const downloadedFormats = [];
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    // Download JSON if selected
+    if (formats.json) {
+      const jsonFilename = `aggregate-bom-${scopeLabel}-${timestamp}.json`;
+      downloadJson(result, jsonFilename);
+      downloadedFormats.push("JSON");
+    }
 
-    URL.revokeObjectURL(url);
+    // Download CSV if selected
+    if (formats.csv) {
+      const csv = aggregateBomToCSV(result, {
+        filterPrtAsm: rowFilters.prtAsmOnly || false,
+      });
+
+      if (csv) {
+        const csvFilename = `aggregate-bom-${scopeLabel}-${timestamp}.csv`;
+        downloadCsv(csv, csvFilename);
+        downloadedFormats.push("CSV");
+      } else {
+        console.warn('[DocumentController] CSV conversion returned empty result');
+      }
+    }
+
+    return downloadedFormats;
   }
 
-  _toast(message) {
-    const div = document.createElement("div");
-    div.className = "success-message";
-    div.textContent = message;
-    div.style.cssText = `
-      background-color:#d4edda;border:1px solid #c3e6cb;color:#155724;
-      padding:12px 20px;border-radius:5px;margin:10px 0;position:fixed;top:20px;right:20px;z-index:1000;
-      box-shadow:0 2px 10px rgba(0,0,0,0.1);animation:slideIn 0.3s ease-out;
-    `;
-    document.body.appendChild(div);
-    setTimeout(() => div.remove(), 4000);
+  _restoreExportButton(btn, originalText) {
+    if (btn) {
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Utility Methods
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  _showError(message) {
+    const err = document.getElementById("error");
+    if (err) {
+      err.textContent = message;
+      err.style.display = "block";
+    }
+  }
+
+  _captureViewState(view, viewType) {
+    return (typeof view?.captureState === "function" && view.captureState()) ||
+      (this.historyState?.captureState?.(viewType) ?? null);
+  }
+
+  _restoreViewState(view, restoredState) {
+    if (restoredState && typeof view?.restoreState === "function") {
+      view.restoreState(restoredState.viewSnapshot || restoredState);
+    }
+  }
+
+  _restoreViewStateDeferred(view, restoredState) {
+    if (!restoredState || typeof view?.restoreState !== "function") return;
+    
+    const restore = () => view.restoreState(restoredState.viewSnapshot || restoredState);
+    
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(restore);
+    } else {
+      setTimeout(restore, 0);
+    }
   }
 }
