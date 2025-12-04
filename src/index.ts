@@ -54,7 +54,15 @@ app.use(
   })
 );
 
-app.use(morgan("dev"));
+// Morgan middleware with explicit stdout to ensure logs appear in console
+app.use(morgan("dev", {
+  stream: {
+    write: (message: string) => {
+      // Remove trailing newline that morgan adds
+      console.log(message.trim());
+    }
+  }
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

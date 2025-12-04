@@ -21,6 +21,7 @@ router.use(requireAuth);
 
 router.get("/user", async (req: Request, res: Response): Promise<Response> => {
   try {
+    process.stdout.write("[API] GET /api/user\n");
     const client = new OnShapeApiClient(
       req.session.accessToken!,
       req.session.userId,
@@ -40,6 +41,8 @@ router.get(
     try {
       const limit = parseInt(String(req.query.limit || "20"), 10);
       const offset = parseInt(String(req.query.offset || "0"), 10);
+      
+      process.stdout.write(`[API] GET /api/documents (limit=${limit}, offset=${offset})\n`);
       
       const client = new OnShapeApiClient(
         req.session.accessToken!,
@@ -425,9 +428,14 @@ router.get(
           }
         : undefined;
 
-      console.log("[Export] Starting directory stats pre-scan with delay:", delayMs, "ms",
-        scope ? `(partial: ${scope.documentIds?.length || 0} docs, ${scope.folderIds?.length || 0} folders)` : "(full)",
-        prefixFilter ? `prefixFilter="${prefixFilter}"` : "");
+      process.stdout.write(`\n[Export] ════════════════════════════════════════════════════════════════\n`);
+      process.stdout.write(`[Export] Starting directory stats pre-scan\n`);
+      process.stdout.write(`[Export]   Delay: ${delayMs}ms\n`);
+      process.stdout.write(`[Export]   Scope: ${scope ? `partial (${scope.documentIds?.length || 0} docs, ${scope.folderIds?.length || 0} folders)` : 'full'}\n`);
+      if (prefixFilter) {
+        process.stdout.write(`[Export]   Prefix filter: "${prefixFilter}"\n`);
+      }
+      process.stdout.write(`[Export] ════════════════════════════════════════════════════════════════\n`);
 
       const client = new OnShapeApiClient(
         req.session.accessToken!,
@@ -437,7 +445,10 @@ router.get(
 
       const stats = await client.getDirectoryStats({ delayMs, scope, prefixFilter });
 
-      console.log("[Export] Directory stats complete:", stats.summary);
+      process.stdout.write(`[Export] Directory stats complete:\n`);
+      process.stdout.write(`[Export]   Folders: ${stats.summary.totalFolders}\n`);
+      process.stdout.write(`[Export]   Documents: ${stats.summary.totalDocuments}\n`);
+      process.stdout.write(`[Export]   Assemblies: ${stats.estimates.assembliesFound}\n`);
 
       return res.json(stats);
     } catch (error: any) {
@@ -512,13 +523,13 @@ router.get(
         res.write(`event: ${event}\n`);
         res.write(`data: ${JSON.stringify(data)}\n\n`);
         
-        // Log progress events to backend console for debugging
+        // Log progress events to backend console for debugging (immediate flush)
         if (event === 'progress' && data.phase) {
           if (data.phase === 'scanning' && data.scan) {
-            console.log(`[Export SSE] 📁 Scanning: ${data.scan.foldersScanned} folders, ${data.scan.documentsScanned} docs`);
+            process.stdout.write(`[Export SSE] 📁 Scanning: ${data.scan.foldersScanned} folders, ${data.scan.documentsScanned} docs\n`);
           } else if (data.phase === 'fetching' && data.fetch) {
             const pct = data.fetch.total > 0 ? Math.round((data.fetch.current / data.fetch.total) * 100) : 0;
-            console.log(`[Export SSE] 🏗️ Fetching: [${pct}%] ${data.fetch.current}/${data.fetch.total} - ${data.fetch.currentAssembly || ''}`);
+            process.stdout.write(`[Export SSE] 🏗️ Fetching: [${pct}%] ${data.fetch.current}/${data.fetch.total} - ${data.fetch.currentAssembly || ''}\n`);
           }
         }
       } catch (e) {
@@ -539,21 +550,21 @@ router.get(
     // Send connected event
     sendEvent('connected', { timestamp: new Date().toISOString() });
     
-    console.log("");
-    console.log("╔════════════════════════════════════════════════════════════════════════╗");
-    console.log("║  [Export SSE] Starting aggregate BOM stream                            ║");
-    console.log("╚════════════════════════════════════════════════════════════════════════╝");
-    console.log(`[Export SSE]   Workers: ${workerCount}`);
-    console.log(`[Export SSE]   Delay: ${delayMs}ms`);
-    console.log(`[Export SSE]   Scope: ${scope ? 'partial' : 'full'}`);
+    process.stdout.write("\n");
+    process.stdout.write("╔════════════════════════════════════════════════════════════════════════╗\n");
+    process.stdout.write("║  [Export SSE] Starting aggregate BOM stream                            ║\n");
+    process.stdout.write("╚════════════════════════════════════════════════════════════════════════╝\n");
+    process.stdout.write(`[Export SSE]   Workers: ${workerCount}\n`);
+    process.stdout.write(`[Export SSE]   Delay: ${delayMs}ms\n`);
+    process.stdout.write(`[Export SSE]   Scope: ${scope ? 'partial' : 'full'}\n`);
     if (scope) {
-      console.log(`[Export SSE]   Documents: ${scope.documentIds?.length || 0}`);
-      console.log(`[Export SSE]   Folders: ${scope.folderIds?.length || 0}`);
+      process.stdout.write(`[Export SSE]   Documents: ${scope.documentIds?.length || 0}\n`);
+      process.stdout.write(`[Export SSE]   Folders: ${scope.folderIds?.length || 0}\n`);
     }
     if (prefixFilter) {
-      console.log(`[Export SSE]   Prefix filter: "${prefixFilter}"`);
+      process.stdout.write(`[Export SSE]   Prefix filter: "${prefixFilter}"\n`);
     }
-    console.log("──────────────────────────────────────────────────────────────────────────");
+    process.stdout.write("──────────────────────────────────────────────────────────────────────────\n");
     
     try {
       const client = new OnShapeApiClient(
@@ -588,9 +599,9 @@ router.get(
       const message = error instanceof Error ? error.message : 'Unknown error';
       
       if (message === 'Export cancelled') {
-        console.log('[Export SSE] Export cancelled by client');
+        process.stdout.write('[Export SSE] Export cancelled by client\n');
       } else {
-        console.error('[Export SSE] Export error:', error);
+        process.stdout.write(`[Export SSE] Export error: ${message}\n`);
         if (!closed) {
           sendEvent('error', {
             phase: 'error',

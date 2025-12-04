@@ -181,16 +181,39 @@ export class ApiClient {
     eventSource.addEventListener('connected', (e) => {
       try {
         const data = JSON.parse(e.data);
+        console.log(`[Export SSE] ══════════════════════════════════════`);
         console.log(`[Export SSE] Connected at ${data.timestamp}`);
+        console.log(`[Export SSE] ══════════════════════════════════════`);
       } catch (err) {
         console.log('[Export SSE] Connected');
       }
     });
     
+    // Track progress for periodic logging (reduce console clutter)
+    let lastLoggedFolders = 0;
+    let lastLoggedAssemblies = 0;
+    
     eventSource.addEventListener('progress', (e) => {
       try {
         const data = JSON.parse(e.data);
-        // Pass progress to handler without logging (backend logs details)
+        
+        // Log progress periodically to frontend console (every 5 folders during scan, every 5 assemblies during fetch)
+        if (data.phase === 'scanning' && data.scan) {
+          const folders = data.scan.foldersScanned || 0;
+          if (folders >= lastLoggedFolders + 5 || folders === 0) {
+            console.log(`[Export] 📁 Scanning: ${folders} folders, ${data.scan.documentsScanned || 0} docs, ${data.scan.elementCounts?.ASSEMBLY || 0} assemblies`);
+            lastLoggedFolders = folders;
+          }
+        } else if (data.phase === 'fetching' && data.fetch) {
+          const current = data.fetch.current || 0;
+          if (current >= lastLoggedAssemblies + 5 || current === 0) {
+            const pct = data.fetch.total > 0 ? Math.round((current / data.fetch.total) * 100) : 0;
+            console.log(`[Export] 🏗️ Fetching: ${pct}% (${current}/${data.fetch.total})`);
+            lastLoggedAssemblies = current;
+          }
+        }
+        
+        // Pass progress to handler
         if (onProgress) onProgress(data);
       } catch (err) {
         console.error('[Export SSE] Failed to parse progress:', err);
@@ -201,7 +224,11 @@ export class ApiClient {
       try {
         const data = JSON.parse(e.data);
         const summary = data.result?.summary;
-        console.log(`[Export SSE] ✅ Complete: ${summary?.assembliesSucceeded || 0}/${summary?.assembliesFound || 0} assemblies, ${summary?.totalBomRows || 0} BOM rows`);
+        console.log(`[Export SSE] ══════════════════════════════════════`);
+        console.log(`[Export SSE] ✅ Complete!`);
+        console.log(`[Export SSE]   Assemblies: ${summary?.assembliesSucceeded || 0}/${summary?.assembliesFound || 0}`);
+        console.log(`[Export SSE]   BOM Rows: ${summary?.totalBomRows || 0}`);
+        console.log(`[Export SSE] ══════════════════════════════════════`);
         eventSource.close();
         if (onComplete) onComplete(data.result);
       } catch (err) {

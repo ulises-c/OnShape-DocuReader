@@ -157,6 +157,12 @@ export class ExportProgressModal {
     if (phase === 'scanning' && scan) {
       this.updateCount('folders', scan.foldersScanned);
       this.updateCount('documents', scan.documentsScanned);
+      
+      // Also update element counts during scan if available
+      if (scan.elementCounts) {
+        const assemblyCount = scan.elementCounts.ASSEMBLY || 0;
+        this.updateCount('assemblies', `${assemblyCount} found`);
+      }
     }
     
     if (phase === 'fetching' && fetch) {
