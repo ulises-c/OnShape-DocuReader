@@ -55,15 +55,17 @@ app.use(
 );
 
 // Morgan middleware with explicit stdout to ensure logs appear in console
-app.use(morgan("dev", {
-  stream: {
-    write: (message: string) => {
-      // Remove trailing newline that morgan adds
-      console.log(message.trim());
-    }
-  }
-}));
-app.use(express.json());
+app.use(
+  morgan("dev", {
+    stream: {
+      write: (message: string) => {
+        // Remove trailing newline that morgan adds
+        console.log(message.trim());
+      },
+    },
+  })
+);
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
@@ -98,7 +100,10 @@ if (process.env.NODE_ENV === "production") {
     express.static(path.join(__dirname, "public"), {
       setHeaders: (res, filePath) => {
         if (filePath.endsWith(".js") || filePath.endsWith(".mjs")) {
-          res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+          res.setHeader(
+            "Content-Type",
+            "application/javascript; charset=utf-8"
+          );
         } else if (filePath.endsWith(".json")) {
           res.setHeader("Content-Type", "application/json; charset=utf-8");
         } else if (filePath.endsWith(".css")) {

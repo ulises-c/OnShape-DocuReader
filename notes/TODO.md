@@ -64,3 +64,14 @@ The numbering is just show that it's easier to keep track.
 12. Double check time-out policy on authentication via `.sessions.json`. May need to extend considering exports take a while.
     1. What I do know is the full export caused me to no longer have access. `Access denied`. May be due to rate limit or some other feature.
        1. Seems to be 24 hours - 1 millisecond (23 hours, 59 minutes, 59.999 seconds), so it's not that.
+ 13. Per Assembly full extraction
+     1.  By this I mean when I click on a document, it loads up the elements (assemblies, part studios, etc.). Then for assemblies I can click select "full export" which exports a flattened BOM and for each item in that BOM exports all the thumbnails
+ 14. In AggregateBOM, at the end of the export and in the report, list which assemblies failed to export
+ 15. Close button not working in "Get All"
+ 16. Document-detail view "Copy Raw JSON" doing multiple API calls for a single "copy raw json" action
+     1.  Not Just "Copy Raw JSON" but also "Download BOM CSV" or "Download BOM JSON"
+     2.  Seems to be exactly 8 times since an original is downloaded and 7 copies are also downloaded
+ 17. Upgrade BOM extraction via JSON
+     1.  Add an extra API call for the BOM that gets the version name
+     2.  In bomSource there is a viewHref, document
+ 18. Upgrade detailed view by adding a button that does an extra API call to fetch versions, not just the most recent version. Adds a scrollable dropdown menu to select version to view

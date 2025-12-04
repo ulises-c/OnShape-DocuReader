@@ -6,6 +6,8 @@ import { downloadJson } from '../../utils/file-download.js';
 import { showToast } from '../../utils/toast-notification.js';
 import { downloadCsv } from '../../utils/file-download.js';
 import { bomToCSV } from '../../utils/bomToCSV.js';
+import { fullAssemblyExtract, ExportPhase } from '../../utils/fullAssemblyExporter.js';
+import { showModal, updateProgress, hideModal } from '../full-extract-modal.js';
 
 export class ElementActions {
   constructor(controller, documentService) {
@@ -65,6 +67,57 @@ export class ElementActions {
     } catch (err) {
       console.error('Failed to export BOM CSV:', err);
       showToast('Failed to export BOM CSV');
+      return false;
+    }
+  }
+
+  /**
+   * Handle full assembly extraction (BOM + CSV + Thumbnails ZIP)
+   * 
+   * @param {Object} element - Assembly element
+   * @param {string} documentId - Document ID
+   * @param {string} workspaceId - Workspace ID
+   * @param {Object} service - DocumentService instance
+   * @returns {Promise<boolean>} Success status
+   */
+  async handleFullExtract(element, documentId, workspaceId, service) {
+    if (element.elementType !== 'ASSEMBLY') {
+      showToast('Full Extract is only available for assemblies');
+      return false;
+    }
+
+    try {
+      // Show progress modal
+      showModal(element.name || element.id);
+
+      // Execute extraction with progress updates
+      await fullAssemblyExtract({
+        element,
+        documentId,
+        workspaceId,
+        documentService: service,
+        onProgress: (progress) => {
+          updateProgress(progress);
+          
+          // Log to console for backend tracking
+          if (progress.phase === ExportPhase.COMPLETE) {
+            console.log('[FullExtract] Export completed:', {
+              assembly: progress.assemblyName,
+              bomRows: progress.bomRows,
+              thumbnails: progress.thumbnailsDownloaded,
+              zipSize: progress.zipSizeBytes,
+              duration: progress.elapsedMs
+            });
+          }
+        }
+      });
+
+      showToast('Full extraction complete!');
+      return true;
+
+    } catch (err) {
+      console.error('[FullExtract] Error:', err);
+      showToast(`Full extraction failed: ${err.message}`);
       return false;
     }
   }

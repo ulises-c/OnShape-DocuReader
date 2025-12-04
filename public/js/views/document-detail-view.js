@@ -132,6 +132,22 @@ export class DocumentDetailView extends BaseView {
       const bomCsvBtn = e.target.closest(".download-bom-csv-btn");
       if (bomCsvBtn) {
         await this._handleBomAction(bomCsvBtn, docData, "csv");
+        return;
+      }
+
+      // Full Extract button handler
+      const fullExtractBtn = e.target.closest(".full-extract-btn");
+      if (fullExtractBtn) {
+        const elementId = fullExtractBtn.getAttribute("data-element-id");
+        const el = this._elementsMap.get(String(elementId));
+        if (el) {
+          await this.elementActions.handleFullExtract(
+            el,
+            docData.id,
+            docData.defaultWorkspace?.id,
+            this.controller.documentService
+          );
+        }
       }
     });
   }

@@ -54,6 +54,9 @@ export function renderElementActions(element) {
     <button class="btn download-bom-csv-btn" data-element-id="${escapeHtml(
       element.id
     )}" style="padding:0.25rem 0.5rem; font-size:0.8rem; background:#ffc107; color:#333; border:1px solid #e0a800; border-radius:4px; cursor:pointer;">Download BOM CSV</button>
+    <button class="btn full-extract-btn" data-element-id="${escapeHtml(
+      element.id
+    )}" style="padding:0.25rem 0.5rem; font-size:0.8rem; background:#6f42c1; color:white; border:1px solid #5a32a3; border-radius:4px; cursor:pointer;" title="Download BOM JSON, CSV, and all part thumbnails as ZIP">📦 Full Extract</button>
   `
       : '';
 
