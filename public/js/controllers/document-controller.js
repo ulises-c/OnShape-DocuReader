@@ -838,6 +838,7 @@ export class DocumentController {
           ...options,
           scope,
           prefixFilter: filterOptions?.prefixFilter,
+          assemblies: stats.assemblies,  // Pass pre-scanned assemblies (hybrid approach)
         });
       },
 

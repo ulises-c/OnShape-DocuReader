@@ -887,6 +887,7 @@ export class OnShapeApiClient {
    * @param options.signal - AbortSignal for cancellation
    * @param options.scope - Optional scope for partial export
    * @param options.prefixFilter - Optional prefix to filter root folders
+   * @param options.preScannedAssemblies - Pre-scanned assemblies to skip scan phase (hybrid approach)
    */
   async getAggregateBomWithProgress(
     options: {
@@ -896,6 +897,7 @@ export class OnShapeApiClient {
       signal?: AbortSignal;
       scope?: { scope: 'full' | 'partial'; documentIds?: string[]; folderIds?: string[] };
       prefixFilter?: string;
+      preScannedAssemblies?: AssemblyReference[];
     } = {}
   ): Promise<AggregateBomResult> {
     const startTime = Date.now();
@@ -942,52 +944,95 @@ export class OnShapeApiClient {
 
     checkAborted();
 
-    // Phase 1: Pre-scan to get assembly list with progress
-    process.stdout.write("\n");
-    process.stdout.write("╔════════════════════════════════════════════════════════════════════════╗\n");
-    process.stdout.write("║  [AggregateBOM] STARTING AGGREGATE BOM EXPORT                          ║\n");
-    process.stdout.write("╚════════════════════════════════════════════════════════════════════════╝\n");
-    process.stdout.write(`[AggregateBOM]   Parallel workers: ${workers}\n`);
-    process.stdout.write(`[AggregateBOM]   Delay between calls: ${delayMs}ms\n`);
-    process.stdout.write(`[AggregateBOM]   Export scope: ${isPartialExport ? 'PARTIAL' : 'FULL'}\n`);
-    if (options.prefixFilter) {
-      process.stdout.write(`[AggregateBOM]   Prefix filter: "${options.prefixFilter}"\n`);
-    }
-    process.stdout.write("──────────────────────────────────────────────────────────────────────────\n");
-    process.stdout.write("[AggregateBOM] PHASE 1: Pre-scan (discovering assemblies)...\n");
+    // Phase 1: Pre-scan to get assembly list (or use pre-scanned assemblies)
+    let stats: DirectoryStats;
+    let assemblies: AssemblyReference[];
     
-    // Emit scanning phase start
-    if (onProgress) {
-      onProgress({
-        phase: 'scanning',
-        scan: { foldersScanned: 0, documentsScanned: 0 },
-        timing: { elapsedMs: Date.now() - startTime, avgFetchMs: 0, estimatedRemainingMs: 0 },
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    const stats = await this.getDirectoryStats({
-      delayMs,
-      signal,
-      scope: options.scope,
-      prefixFilter: options.prefixFilter,
-      onProgress: (scanProgress) => {
-        if (onProgress) {
-          onProgress({
-            phase: 'scanning',
-            scan: scanProgress,
-            timing: { elapsedMs: Date.now() - startTime, avgFetchMs: 0, estimatedRemainingMs: 0 },
-            timestamp: new Date().toISOString()
-          });
-        }
+    if (options.preScannedAssemblies?.length) {
+      // Skip scan - use provided assemblies (hybrid two-request approach)
+      process.stdout.write("\n");
+      process.stdout.write("╔════════════════════════════════════════════════════════════════════════╗\n");
+      process.stdout.write("║  [AggregateBOM] STARTING AGGREGATE BOM EXPORT (SKIP SCAN)             ║\n");
+      process.stdout.write("╚════════════════════════════════════════════════════════════════════════╝\n");
+      process.stdout.write(`[AggregateBOM]   Using ${options.preScannedAssemblies.length} pre-scanned assemblies\n`);
+      process.stdout.write(`[AggregateBOM]   Parallel workers: ${workers}\n`);
+      process.stdout.write(`[AggregateBOM]   Delay between calls: ${delayMs}ms\n`);
+      process.stdout.write("──────────────────────────────────────────────────────────────────────────\n");
+      
+      assemblies = options.preScannedAssemblies;
+      
+      // Emit scan-skipped event for UI
+      if (onProgress) {
+        onProgress({
+          phase: 'scanning',
+          scan: { foldersScanned: 0, documentsScanned: 0, skipped: true },
+          timing: { elapsedMs: Date.now() - startTime, avgFetchMs: 0, estimatedRemainingMs: 0 },
+          timestamp: new Date().toISOString()
+        });
       }
-    });
-    
-    process.stdout.write("──────────────────────────────────────────────────────────────────────────\n");
-    process.stdout.write(`[AggregateBOM] ✅ PHASE 1 COMPLETE: Found ${stats.assemblies.length} assemblies\n`);
-    process.stdout.write(`[AggregateBOM]   Folders scanned: ${stats.summary.totalFolders}\n`);
-    process.stdout.write(`[AggregateBOM]   Documents scanned: ${stats.summary.totalDocuments}\n`);
-    process.stdout.write("──────────────────────────────────────────────────────────────────────────\n");
+      
+      // Create minimal stats object for result metadata
+      stats = {
+        scanDate: new Date().toISOString(),
+        scanDurationMs: 0,
+        summary: { totalFolders: 0, totalDocuments: 0, maxDepth: 0, widestLevel: { depth: 0, count: 0 } },
+        elementTypes: { ASSEMBLY: assemblies.length, PARTSTUDIO: 0, DRAWING: 0, BLOB: 0, OTHER: 0 },
+        estimates: { assembliesFound: assemblies.length, estimatedBomApiCalls: assemblies.length, estimatedTimeMinutes: 0 },
+        assemblies
+      };
+      
+      process.stdout.write(`[AggregateBOM] ✅ PHASE 1 SKIPPED: Using ${assemblies.length} pre-scanned assemblies\n`);
+      process.stdout.write("──────────────────────────────────────────────────────────────────────────\n");
+    } else {
+      // Full scan required
+      process.stdout.write("\n");
+      process.stdout.write("╔════════════════════════════════════════════════════════════════════════╗\n");
+      process.stdout.write("║  [AggregateBOM] STARTING AGGREGATE BOM EXPORT                          ║\n");
+      process.stdout.write("╚════════════════════════════════════════════════════════════════════════╝\n");
+      process.stdout.write(`[AggregateBOM]   Parallel workers: ${workers}\n`);
+      process.stdout.write(`[AggregateBOM]   Delay between calls: ${delayMs}ms\n`);
+      process.stdout.write(`[AggregateBOM]   Export scope: ${isPartialExport ? 'PARTIAL' : 'FULL'}\n`);
+      if (options.prefixFilter) {
+        process.stdout.write(`[AggregateBOM]   Prefix filter: "${options.prefixFilter}"\n`);
+      }
+      process.stdout.write("──────────────────────────────────────────────────────────────────────────\n");
+      process.stdout.write("[AggregateBOM] PHASE 1: Pre-scan (discovering assemblies)...\n");
+      
+      // Emit scanning phase start
+      if (onProgress) {
+        onProgress({
+          phase: 'scanning',
+          scan: { foldersScanned: 0, documentsScanned: 0 },
+          timing: { elapsedMs: Date.now() - startTime, avgFetchMs: 0, estimatedRemainingMs: 0 },
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      stats = await this.getDirectoryStats({
+        delayMs,
+        signal,
+        scope: options.scope,
+        prefixFilter: options.prefixFilter,
+        onProgress: (scanProgress) => {
+          if (onProgress) {
+            onProgress({
+              phase: 'scanning',
+              scan: scanProgress,
+              timing: { elapsedMs: Date.now() - startTime, avgFetchMs: 0, estimatedRemainingMs: 0 },
+              timestamp: new Date().toISOString()
+            });
+          }
+        }
+      });
+      
+      assemblies = stats.assemblies;
+      
+      process.stdout.write("──────────────────────────────────────────────────────────────────────────\n");
+      process.stdout.write(`[AggregateBOM] ✅ PHASE 1 COMPLETE: Found ${assemblies.length} assemblies\n`);
+      process.stdout.write(`[AggregateBOM]   Folders scanned: ${stats.summary.totalFolders}\n`);
+      process.stdout.write(`[AggregateBOM]   Documents scanned: ${stats.summary.totalDocuments}\n`);
+      process.stdout.write("──────────────────────────────────────────────────────────────────────────\n");
+    }
 
     checkAborted();
 
@@ -1009,14 +1054,14 @@ export class OnShapeApiClient {
       const avgFetchMs = fetchTimes.length > 0 
         ? fetchTimes.reduce((a, b) => a + b, 0) / fetchTimes.length 
         : 500;
-      const remaining = stats.assemblies.length - completedCount;
+      const remaining = assemblies.length - completedCount;
       const estimatedRemainingMs = remaining * avgFetchMs;
       
       onProgress({
         phase: 'fetching',
         fetch: {
           current: completedCount,
-          total: stats.assemblies.length,
+          total: assemblies.length,
           currentAssembly,
           currentPath,
           succeeded: succeededCount,
@@ -1035,7 +1080,7 @@ export class OnShapeApiClient {
     emitFetchProgress('', []);
 
     const results = await Promise.all(
-      stats.assemblies.map(assembly =>
+      assemblies.map(assembly =>
         limit(async (): Promise<AssemblyBomFetchResult> => {
           checkAborted();
           
@@ -1068,7 +1113,7 @@ export class OnShapeApiClient {
             succeededCount++;
             
             process.stdout.write(
-              `[AggregateBOM] ✅ ${completedCount}/${stats.assemblies.length}: ` +
+              `[AggregateBOM] ✅ ${completedCount}/${assemblies.length}: ` +
               `"${assembly.elementName}" (${fetchDurationMs}ms) - ${bom?.rows?.length || 0} rows\n`
             );
             
@@ -1103,7 +1148,7 @@ export class OnShapeApiClient {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             
             process.stdout.write(
-              `[AggregateBOM] ❌ ${completedCount}/${stats.assemblies.length}: ` +
+              `[AggregateBOM] ❌ ${completedCount}/${assemblies.length}: ` +
               `"${assembly.elementName}" - ${errorMessage}\n`
             );
             
@@ -1113,7 +1158,7 @@ export class OnShapeApiClient {
                 phase: 'fetching',
                 fetch: {
                   current: completedCount,
-                  total: stats.assemblies.length,
+                  total: assemblies.length,
                   currentAssembly: assembly.elementName,
                   currentPath: assembly.folderPath,
                   succeeded: succeededCount,

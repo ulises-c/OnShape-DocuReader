@@ -154,6 +154,8 @@ export interface ExportProgressEvent {
   scan?: {
     foldersScanned: number;
     documentsScanned: number;
+    /** True when using pre-scanned assemblies (hybrid approach skips scan) */
+    skipped?: boolean;
     /** Current absolute path as array of folder names */
     currentPath?: string[];
     /** Element type breakdown */

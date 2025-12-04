@@ -111,6 +111,34 @@ export class ApiClient {
    * @param {string} filterOptions.prefixFilter - Prefix to filter root folders
    * @returns {Promise<Object>} Directory stats including assembly list
    */
+  /**
+   * Prepare assemblies for export (stores on server, returns exportId).
+   * Part of hybrid two-request approach to eliminate double pre-scan.
+   * @param {Object} options
+   * @param {Array} options.assemblies - Pre-scanned assemblies array
+   * @param {Object} [options.scope] - Scope filter
+   * @param {string} [options.prefixFilter] - Prefix filter
+   * @returns {Promise<{exportId: string, assembliesCount: number}>}
+   */
+  async prepareAssembliesForExport({ assemblies, scope = null, prefixFilter = null }) {
+    const response = await fetch('/api/export/prepare-assemblies', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        assemblies,
+        ...(scope?.scope === 'partial' && { scope }),
+        ...(prefixFilter && { prefixFilter })
+      })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(error.error || `HTTP ${response.status}`);
+    }
+    
+    return response.json();
+  }
+
   async getDirectoryStats(delayMs = 100, scope = null, filterOptions = null) {
     const params = new URLSearchParams({
       delay: String(delayMs)
@@ -147,6 +175,7 @@ export class ApiClient {
    * @param {number} options.delay - Delay between API calls in ms
    * @param {Object} options.scope - Optional scope for partial export
    * @param {string} options.prefixFilter - Optional prefix to filter root folders
+   * @param {string} options.exportId - Pre-prepared export session ID (skips scan phase)
    * @param {Object} options.formats - Format selection { json: boolean, csv: boolean }
    * @param {Object} options.rowFilters - Row filter options { prtAsmOnly: boolean }
    * @param {function} options.onProgress - Callback for progress events
@@ -154,7 +183,7 @@ export class ApiClient {
    * @param {function} options.onError - Callback for errors
    * @returns {function} Cleanup function to close SSE connection
    */
-  startAggregateBomStream({ workers = 4, delay = 100, scope = null, prefixFilter = null, formats = null, rowFilters = null, onProgress, onComplete, onError }) {
+  startAggregateBomStream({ workers = 4, delay = 100, scope = null, prefixFilter = null, exportId = null, formats = null, rowFilters = null, onProgress, onComplete, onError }) {
     const params = new URLSearchParams();
     params.set('workers', workers.toString());
     params.set('delay', delay.toString());
@@ -170,12 +199,18 @@ export class ApiClient {
       }
     }
     
-    // Add prefix filter
-    if (prefixFilter) {
+    // Add prefix filter (only if not using exportId - prefixFilter already applied during scan)
+    if (prefixFilter && !exportId) {
       params.set('prefixFilter', prefixFilter);
     }
     
+    // Add exportId if provided (hybrid approach - skip server-side scan)
+    if (exportId) {
+      params.set('exportId', exportId);
+    }
+    
     const url = `/api/export/aggregate-bom-stream?${params.toString()}`;
+    console.log(`[Export SSE] Starting stream: ${url}${exportId ? ' (using prepared assemblies)' : ''}`);
     const eventSource = new EventSource(url);
     
     eventSource.addEventListener('connected', (e) => {

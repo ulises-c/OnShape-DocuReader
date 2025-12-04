@@ -1,9 +1,33 @@
 import { Router } from "express";
+import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import { OnShapeApiClient } from "../services/onshape-api-client.ts";
 import { ApiUsageTracker } from "../services/api-usage-tracker.ts";
+import type { AssemblyReference } from "../types/onshape.ts";
 
 const router = Router();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// In-memory store for prepared export assemblies (hybrid two-request approach)
+// ─────────────────────────────────────────────────────────────────────────────
+const exportPreparedData = new Map<string, {
+  assemblies: AssemblyReference[];
+  createdAt: number;
+  scope?: { scope: 'full' | 'partial'; documentIds?: string[]; folderIds?: string[] };
+  prefixFilter?: string;
+}>();
+
+// Clean up old entries every 5 minutes (TTL: 30 minutes)
+setInterval(() => {
+  const now = Date.now();
+  const TTL = 30 * 60 * 1000; // 30 minutes
+  for (const [id, data] of exportPreparedData.entries()) {
+    if (now - data.createdAt > TTL) {
+      exportPreparedData.delete(id);
+      console.log(`[Export] Cleaned up expired export data: ${id}`);
+    }
+  }
+}, 5 * 60 * 1000);
 const usageTracker = new ApiUsageTracker();
 
 const requireAuth = (
@@ -462,6 +486,54 @@ router.get(
 );
 
 /**
+ * POST /api/export/prepare-assemblies
+ * 
+ * Prepare assemblies for export (stores on server, returns exportId).
+ * Part of hybrid two-request approach to eliminate double pre-scan.
+ * 
+ * Body params:
+ *   - assemblies: Array of AssemblyReference objects (required)
+ *   - scope: Export scope object (optional)
+ *   - prefixFilter: Prefix filter string (optional)
+ * 
+ * Returns:
+ *   - exportId: Unique ID to use with aggregate-bom-stream
+ *   - assembliesCount: Number of assemblies stored
+ */
+router.post(
+  "/export/prepare-assemblies",
+  express.json({ limit: '10mb' }),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { assemblies, scope, prefixFilter } = req.body;
+      
+      if (!assemblies || !Array.isArray(assemblies) || assemblies.length === 0) {
+        res.status(400).json({ error: "assemblies array is required" });
+        return;
+      }
+      
+      // Generate unique ID
+      const exportId = `exp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      
+      // Store for later retrieval
+      exportPreparedData.set(exportId, {
+        assemblies,
+        createdAt: Date.now(),
+        scope,
+        prefixFilter
+      });
+      
+      console.log(`[Export] Prepared ${assemblies.length} assemblies with exportId: ${exportId}`);
+      
+      res.json({ exportId, assembliesCount: assemblies.length });
+    } catch (error) {
+      console.error("[Export] Error preparing assemblies:", error);
+      res.status(500).json({ error: "Failed to prepare assemblies" });
+    }
+  }
+);
+
+/**
  * GET /api/export/aggregate-bom-stream
  * 
  * Stream aggregate BOM export with real-time progress via SSE.
@@ -473,6 +545,7 @@ router.get(
  *   - documentIds: Comma-separated document IDs (for partial)
  *   - folderIds: Comma-separated folder IDs (for partial)
  *   - prefixFilter: Prefix to filter root folders (optional)
+ *   - exportId: ID from prepare-assemblies endpoint (skip scan if provided)
  * 
  * Events emitted:
  *   - connected: Initial connection established
@@ -493,23 +566,54 @@ router.get(
     const delayMs = parseInt(String(req.query.delay ?? "100"), 10);
     const workerCount = parseInt(String(req.query.workers ?? "4"), 10);
     
+    // Parse exportId for hybrid two-request approach (skip scan if provided)
+    const exportId = req.query.exportId as string | undefined;
+    
     // Parse scope parameters
     const scopeParam = req.query.scope as string;
     const documentIdsParam = req.query.documentIds as string;
     const folderIdsParam = req.query.folderIds as string;
     
     // Parse prefix filter
-    const prefixFilter = req.query.prefixFilter as string | undefined;
+    let activePrefixFilter = req.query.prefixFilter as string | undefined;
     
-    const scope = scopeParam === 'partial' 
-      ? {
-          scope: 'partial' as const,
-          documentIds: documentIdsParam ? documentIdsParam.split(',').filter(Boolean) : undefined,
-          folderIds: folderIdsParam ? folderIdsParam.split(',').filter(Boolean) : undefined
-        }
-      : undefined;
+    // Scope can be 'partial' or undefined (full). Type allows both.
+    let scope: { scope: 'full' | 'partial'; documentIds?: string[]; folderIds?: string[] } | undefined = 
+      scopeParam === 'partial' 
+        ? {
+            scope: 'partial' as const,
+            documentIds: documentIdsParam ? documentIdsParam.split(',').filter(Boolean) : undefined,
+            folderIds: folderIdsParam ? folderIdsParam.split(',').filter(Boolean) : undefined
+          }
+        : undefined;
     
-    // Set SSE headers
+    // Check for pre-scanned assemblies (hybrid approach)
+    // Must be done BEFORE setting SSE headers so we can return JSON error if invalid
+    let preScannedAssemblies: AssemblyReference[] | undefined;
+    
+    if (exportId) {
+      const preparedData = exportPreparedData.get(exportId);
+      if (!preparedData) {
+        // Return JSON error since SSE headers not set yet
+        res.status(400).json({ error: "Export session expired or invalid. Please try again." });
+        return;
+      }
+      
+      // Retrieve and delete (one-time use)
+      preScannedAssemblies = preparedData.assemblies;
+      // Override scope/prefixFilter from prepared data if present
+      if (preparedData.scope) {
+        scope = preparedData.scope;
+      }
+      if (preparedData.prefixFilter) {
+        activePrefixFilter = preparedData.prefixFilter;
+      }
+      exportPreparedData.delete(exportId);
+      
+      console.log(`[Export SSE] Using ${preScannedAssemblies.length} pre-scanned assemblies from exportId: ${exportId}`);
+    }
+    
+    // Set SSE headers (after exportId validation)
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -517,6 +621,7 @@ router.get(
     
     let closed = false;
     
+    // Define sendEvent helper for SSE communication
     const sendEvent = (event: string, data: any) => {
       if (closed) return;
       try {
@@ -556,13 +661,13 @@ router.get(
     process.stdout.write("╚════════════════════════════════════════════════════════════════════════╝\n");
     process.stdout.write(`[Export SSE]   Workers: ${workerCount}\n`);
     process.stdout.write(`[Export SSE]   Delay: ${delayMs}ms\n`);
-    process.stdout.write(`[Export SSE]   Scope: ${scope ? 'partial' : 'full'}\n`);
-    if (scope) {
+    process.stdout.write(`[Export SSE]   Scope: ${scope?.scope === 'partial' ? 'partial' : 'full'}\n`);
+    if (scope?.scope === 'partial') {
       process.stdout.write(`[Export SSE]   Documents: ${scope.documentIds?.length || 0}\n`);
       process.stdout.write(`[Export SSE]   Folders: ${scope.folderIds?.length || 0}\n`);
     }
-    if (prefixFilter) {
-      process.stdout.write(`[Export SSE]   Prefix filter: "${prefixFilter}"\n`);
+    if (activePrefixFilter) {
+      process.stdout.write(`[Export SSE]   Prefix filter: "${activePrefixFilter}"\n`);
     }
     process.stdout.write("──────────────────────────────────────────────────────────────────────────\n");
     
@@ -582,8 +687,9 @@ router.get(
           }
         },
         signal: abortController.signal,
-        scope,
-        prefixFilter
+        scope: scope?.scope === 'partial' ? scope : undefined,
+        prefixFilter: exportId ? undefined : activePrefixFilter, // prefixFilter only applies during scan
+        preScannedAssemblies
       });
       
       // Send complete event with full result

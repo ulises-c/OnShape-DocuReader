@@ -52,15 +52,46 @@ export class DocumentService {
 
   /**
    * Start aggregate BOM export with progress streaming.
+   * Supports hybrid two-request approach: if assemblies are provided,
+   * prepares them first then starts stream with exportId (skips scan).
    * @param {Object} options - Export options and callbacks
    * @param {Object} options.scope - Optional scope for partial export
    * @param {string} options.prefixFilter - Optional prefix to filter root folders
+   * @param {Array} options.assemblies - Pre-scanned assemblies (skips scan phase)
    * @param {Object} options.formats - Format selection { json: boolean, csv: boolean }
    * @param {Object} options.rowFilters - Row filter options { prtAsmOnly: boolean }
    * @returns {function} Cleanup function to cancel export
    */
-  startAggregateBomExport(options) {
-    return this.api.startAggregateBomStream(options);
+  async startAggregateBomExport(options) {
+    const { assemblies, scope, prefixFilter, ...streamOptions } = options;
+    
+    try {
+      let exportId = null;
+      
+      // If assemblies provided, prepare them first (skip scan phase)
+      if (assemblies?.length) {
+        console.log(`[DocumentService] Preparing ${assemblies.length} pre-scanned assemblies`);
+        const prepared = await this.api.prepareAssembliesForExport({
+          assemblies,
+          scope,
+          prefixFilter
+        });
+        exportId = prepared.exportId;
+        console.log(`[DocumentService] Prepared export: ${exportId}`);
+      }
+      
+      // Start SSE stream (with or without exportId)
+      return this.api.startAggregateBomStream({
+        ...streamOptions,
+        scope,
+        prefixFilter,
+        exportId  // Will skip scan if provided
+      });
+    } catch (error) {
+      console.error('[DocumentService] Error starting aggregate BOM export:', error);
+      if (options.onError) options.onError(error);
+      return () => {}; // Return no-op cleanup
+    }
   }
 
   async getGlobalTreeRootNodes(limit, offset) {
