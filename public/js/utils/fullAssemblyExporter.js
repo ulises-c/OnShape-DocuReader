@@ -21,6 +21,8 @@ const MAX_FILENAME_LENGTH = 100;
 const THUMBNAIL_SIZE = "300x300";
 const CONCURRENT_THUMBNAIL_LIMIT = 3;
 const DEFAULT_THUMBNAIL_DELAY_MS = 100; // Rate limiting delay between thumbnail fetches
+const THUMBNAIL_RETRY_COUNT = 2;
+const THUMBNAIL_RETRY_DELAY_MS = 500;
 
 // Characters not allowed in filenames (Windows + Unix)
 const INVALID_FILENAME_CHARS = /[<>:"/\\|?*\x00-\x1F]/g;
@@ -157,6 +159,7 @@ function findRowValue(row, headerMap, possibleNames) {
 
 /**
  * Parse a BOM row to extract thumbnail-relevant data.
+ * Matches the Python script approach: uses thumbnailInfo from BOM response when available.
  *
  * @param {Object} row - BOM row from OnShape API
  * @param {Map} headerMap - Header ID to name mapping
@@ -183,22 +186,41 @@ export function parseBomRow(row, headerMap, index) {
     name.toLowerCase().includes("asm") ||
     row.itemSource?.elementType === "ASSEMBLY";
 
-  // Extract thumbnail URL info from itemSource (based on real BOM structure)
-  // Also check relatedOccurrences as fallback for older BOM formats
+  // PRIMARY: Extract thumbnailInfo from itemSource (matches Python script approach)
+  // The BOM API returns thumbnailInfo when thumbnail=true is passed
   let thumbnailInfo = null;
+  let directThumbnailUrl = null;
   
-  if (row.itemSource) {
+  // Check for pre-generated thumbnail URL in itemSource.thumbnailInfo (Python script method)
+  if (row.itemSource?.thumbnailInfo?.sizes) {
+    const sizes = row.itemSource.thumbnailInfo.sizes;
+    // Find 300x300 size preference
+    const preferred = sizes.find(s => s.size === '300x300');
+    if (preferred?.href) {
+      directThumbnailUrl = preferred.href;
+    } else if (sizes.length > 0 && sizes[0].href) {
+      // Fallback to first available size
+      directThumbnailUrl = sizes[0].href;
+    }
+  }
+  
+  // FALLBACK: Construct URL from itemSource IDs
+  if (!directThumbnailUrl && row.itemSource) {
     const src = row.itemSource;
-    thumbnailInfo = {
-      documentId: src.documentId,
-      workspaceId: src.wvmId, // wvmId is the workspace ID in BOM response
-      elementId: src.elementId,
-      partId: src.partId || null,
-    };
-  } else if (row.relatedOccurrences?.length > 0) {
-    // Fallback to relatedOccurrences if itemSource not available
+    if (src.documentId && src.wvmId && src.elementId) {
+      thumbnailInfo = {
+        documentId: src.documentId,
+        workspaceId: src.wvmId, // wvmId is the workspace ID in BOM response
+        elementId: src.elementId,
+        partId: src.partId || null,
+      };
+    }
+  }
+  
+  // SECONDARY FALLBACK: relatedOccurrences for older BOM formats
+  if (!directThumbnailUrl && !thumbnailInfo && row.relatedOccurrences?.length > 0) {
     const occ = row.relatedOccurrences[0];
-    if (typeof occ === 'object') {
+    if (typeof occ === 'object' && occ.documentId) {
       thumbnailInfo = {
         documentId: occ.documentId,
         workspaceId: occ.workspaceId,
@@ -214,6 +236,7 @@ export function parseBomRow(row, headerMap, index) {
     name,
     type: isAssembly ? "assembly" : "part",
     thumbnailInfo,
+    directThumbnailUrl, // Pre-generated URL from OnShape (preferred)
     originalRow: row,
   };
 }
@@ -224,6 +247,7 @@ export function parseBomRow(row, headerMap, index) {
 
 /**
  * Build the OnShape thumbnail URL for a part/element.
+ * This is the fallback method when directThumbnailUrl is not available.
  *
  * @param {Object} info - Thumbnail info from parsed BOM row
  * @param {string} size - Thumbnail size (default: '300x300')
@@ -251,50 +275,66 @@ export function buildThumbnailUrl(info, size = THUMBNAIL_SIZE) {
 
 /**
  * Fetch a thumbnail via the proxy endpoint with retry logic.
+ * Tries multiple URL strategies if the primary fails.
  *
- * @param {string} thumbnailUrl - OnShape thumbnail URL
+ * @param {string} primaryUrl - Primary OnShape thumbnail URL
+ * @param {string|null} fallbackUrl - Fallback URL to try if primary fails
  * @param {number} retries - Number of retries on failure (default: 2)
  * @param {number} retryDelayMs - Delay between retries (default: 500)
  * @returns {Promise<Blob|null>} Thumbnail blob or null on failure
  */
-async function fetchThumbnailBlob(thumbnailUrl, retries = 2, retryDelayMs = 500) {
-  if (!thumbnailUrl) return null;
+async function fetchThumbnailBlob(primaryUrl, fallbackUrl = null, retries = THUMBNAIL_RETRY_COUNT, retryDelayMs = THUMBNAIL_RETRY_DELAY_MS) {
+  if (!primaryUrl && !fallbackUrl) return null;
 
-  const proxyUrl = `/api/thumbnail-proxy?url=${encodeURIComponent(
-    thumbnailUrl
-  )}`;
+  const urlsToTry = [primaryUrl, fallbackUrl].filter(Boolean);
+  
+  for (const thumbnailUrl of urlsToTry) {
+    const proxyUrl = `/api/thumbnail-proxy?url=${encodeURIComponent(thumbnailUrl)}`;
 
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      const response = await fetch(proxyUrl);
-      
-      if (response.ok) {
-        return await response.blob();
-      }
-      
-      // Handle rate limiting (429) or server errors (5xx)
-      if (response.status === 429 || response.status >= 500) {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const response = await fetch(proxyUrl);
+        
+        if (response.ok) {
+          const blob = await response.blob();
+          // Verify we got actual image data
+          if (blob.size > 0 && blob.type.startsWith('image/')) {
+            return blob;
+          }
+          console.warn(`[FullExtract] Empty or invalid image response for: ${thumbnailUrl}`);
+          break; // Try next URL
+        }
+        
+        // Handle rate limiting (429) or server errors (5xx) with retry
+        if (response.status === 429 || response.status >= 500) {
+          if (attempt < retries) {
+            console.warn(
+              `[FullExtract] Thumbnail fetch retry ${attempt + 1}/${retries} (${response.status})`
+            );
+            await delay(retryDelayMs * (attempt + 1)); // Exponential backoff
+            continue;
+          }
+        }
+        
+        // 404 means thumbnail doesn't exist for this URL, try next
+        if (response.status === 404) {
+          console.warn(`[FullExtract] Thumbnail not found (404), trying next method`);
+          break; // Try fallback URL
+        }
+        
+        console.warn(
+          `[FullExtract] Thumbnail fetch failed (${response.status})`
+        );
+        break; // Try next URL
+      } catch (err) {
         if (attempt < retries) {
-          console.warn(
-            `[FullExtract] Thumbnail fetch retry ${attempt + 1}/${retries} (${response.status}): ${thumbnailUrl}`
-          );
-          await delay(retryDelayMs * (attempt + 1)); // Exponential backoff
+          console.warn(`[FullExtract] Thumbnail fetch error, retrying: ${err.message}`);
+          await delay(retryDelayMs * (attempt + 1));
           continue;
         }
+        console.warn(`[FullExtract] Thumbnail fetch error: ${err.message}`);
+        break; // Try next URL
       }
-      
-      console.warn(
-        `[FullExtract] Thumbnail fetch failed (${response.status}): ${thumbnailUrl}`
-      );
-      return null;
-    } catch (err) {
-      if (attempt < retries) {
-        console.warn(`[FullExtract] Thumbnail fetch error, retrying: ${err.message}`);
-        await delay(retryDelayMs * (attempt + 1));
-        continue;
-      }
-      console.warn(`[FullExtract] Thumbnail fetch error: ${err.message}`);
-      return null;
     }
   }
   
@@ -304,7 +344,7 @@ async function fetchThumbnailBlob(thumbnailUrl, retries = 2, retryDelayMs = 500)
 /**
  * Fetch thumbnails with concurrency limit and rate limiting.
  *
- * @param {Array} items - Array of {url, filename} objects
+ * @param {Array} items - Array of {primaryUrl, fallbackUrl, filename} objects
  * @param {number} concurrency - Max concurrent fetches
  * @param {Function} onProgress - Progress callback (current, total, item)
  * @param {number} delayMs - Delay between fetches in ms (rate limiting)
@@ -331,7 +371,7 @@ async function fetchThumbnailsWithLimit(items, concurrency, onProgress, delayMs 
           await delay(delayMs);
         }
 
-        const blob = await fetchThumbnailBlob(item.url);
+        const blob = await fetchThumbnailBlob(item.primaryUrl, item.fallbackUrl);
         completed++;
 
         if (onProgress) {
@@ -427,12 +467,16 @@ export async function fullAssemblyExtract(options) {
     const zip = new JSZip();
 
     // Phase: Fetch BOM
+    // Request flattened BOM with thumbnail info (matches Python script approach)
     reportProgress(ExportPhase.FETCHING_BOM);
+    console.log(`[FullExtract] Fetching flattened BOM with thumbnails for ${assemblyName}...`);
+    
     const bom = await documentService.getBillOfMaterials(
       documentId,
       workspaceId,
       element.id,
-      true // flattened
+      false, // NOT indented = flattened BOM
+      true   // include thumbnails
     );
 
     if (!bom || !Array.isArray(bom.rows)) {
@@ -440,6 +484,7 @@ export async function fullAssemblyExtract(options) {
     }
 
     console.log(`[FullExtract] BOM fetched: ${bom.rows.length} rows, ${bom.headers?.length || 0} headers`);
+    console.log(`[FullExtract] BOM type: ${bom.type || 'unknown'}`);
 
     // Phase: Convert to CSV
     reportProgress(ExportPhase.CONVERTING_CSV, { bomRows: bom.rows.length });
@@ -468,10 +513,18 @@ export async function fullAssemblyExtract(options) {
       const row = bom.rows[i];
       const parsed = parseBomRow(row, headerMap, i);
       const filename = buildThumbnailFilename(parsed);
-      const url = buildThumbnailUrl(parsed.thumbnailInfo);
+      
+      // Prefer direct URL from thumbnailInfo, fallback to constructed URL
+      const primaryUrl = parsed.directThumbnailUrl;
+      const fallbackUrl = buildThumbnailUrl(parsed.thumbnailInfo);
 
-      if (url) {
-        thumbnailItems.push({ url, filename, parsed });
+      if (primaryUrl || fallbackUrl) {
+        thumbnailItems.push({ 
+          primaryUrl, 
+          fallbackUrl,
+          filename, 
+          parsed 
+        });
       } else {
         skippedNoInfo++;
         console.log(`[FullExtract] Row ${i + 1}: No thumbnail info for "${parsed.name}"`);
@@ -480,6 +533,9 @@ export async function fullAssemblyExtract(options) {
 
     console.log(
       `[FullExtract] Prepared ${thumbnailItems.length} thumbnail requests (${skippedNoInfo} skipped - no info)`
+    );
+    console.log(
+      `[FullExtract] Using ${CONCURRENT_THUMBNAIL_LIMIT} concurrent workers with ${thumbnailDelayMs}ms delay`
     );
 
     // Phase: Fetch thumbnails with rate limiting
