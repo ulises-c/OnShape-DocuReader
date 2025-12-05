@@ -111,11 +111,31 @@ export class DocumentService {
     );
   }
 
-  async getBillOfMaterials(documentId, workspaceId, elementId, flatten = true) {
+  /**
+   * Get Bill of Materials for an assembly element.
+   * @param {string} documentId - Document ID
+   * @param {string} workspaceId - Workspace ID
+   * @param {string} elementId - Element ID (assembly)
+   * @param {boolean} flatten - If true, returns flattened BOM (indented=false)
+   * @param {boolean} includeThumbnails - If true, includes thumbnail URLs in response
+   * @returns {Promise<Object>} BOM data with headers and rows
+   */
+  async getBillOfMaterials(documentId, workspaceId, elementId, flatten = true, includeThumbnails = false) {
+    // Parameters aligned with Python bom_to_csv.py script for complete BOM retrieval
     const params = {
       indented: String(!flatten), // false for flattened, true for structured
       generateIfAbsent: "false",
+      onlyVisibleColumns: "false",  // Include all columns, not just visible ones
+      ignoreSubassemblyBomBehavior: "false",  // Respect subassembly BOM behavior settings
+      includeItemMicroversions: "true",  // Include microversion info for each item
+      includeTopLevelAssemblyRow: "false",  // Don't include the top-level assembly as a row
     };
+    
+    // Add thumbnail parameter to get pre-generated thumbnail URLs
+    // This adds thumbnailInfo.sizes[].href to each row's itemSource
+    if (includeThumbnails) {
+      params.thumbnail = "true";
+    }
 
     return this.api.getBillOfMaterials(
       documentId,

@@ -21,8 +21,8 @@ const MAX_FILENAME_LENGTH = 100;
 const THUMBNAIL_SIZE = "300x300";
 const CONCURRENT_THUMBNAIL_LIMIT = 3;
 const DEFAULT_THUMBNAIL_DELAY_MS = 100; // Rate limiting delay between thumbnail fetches
-const THUMBNAIL_RETRY_COUNT = 2;
-const THUMBNAIL_RETRY_DELAY_MS = 500;
+const THUMBNAIL_RETRY_COUNT = 2; // Retries for better success rate
+const THUMBNAIL_RETRY_DELAY_MS = 300; // Base delay for exponential backoff
 
 // Characters not allowed in filenames (Windows + Unix)
 const INVALID_FILENAME_CHARS = /[<>:"/\\|?*\x00-\x1F]/g;
@@ -54,7 +54,7 @@ export const ExportPhase = {
  * @returns {Promise<void>}
  */
 function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // ============================================================================
@@ -190,12 +190,13 @@ export function parseBomRow(row, headerMap, index) {
   // The BOM API returns thumbnailInfo when thumbnail=true is passed
   let thumbnailInfo = null;
   let directThumbnailUrl = null;
-  
+
   // Check for pre-generated thumbnail URL in itemSource.thumbnailInfo (Python script method)
+  // This is the most reliable method as OnShape pre-generates these URLs
   if (row.itemSource?.thumbnailInfo?.sizes) {
     const sizes = row.itemSource.thumbnailInfo.sizes;
-    // Find 300x300 size preference
-    const preferred = sizes.find(s => s.size === '300x300');
+    // Find 300x300 size preference (matches Python script)
+    const preferred = sizes.find((s) => s.size === "300x300");
     if (preferred?.href) {
       directThumbnailUrl = preferred.href;
     } else if (sizes.length > 0 && sizes[0].href) {
@@ -203,8 +204,8 @@ export function parseBomRow(row, headerMap, index) {
       directThumbnailUrl = sizes[0].href;
     }
   }
-  
-  // FALLBACK: Construct URL from itemSource IDs
+
+  // FALLBACK: Construct URL from itemSource IDs (when thumbnailInfo not available)
   if (!directThumbnailUrl && row.itemSource) {
     const src = row.itemSource;
     if (src.documentId && src.wvmId && src.elementId) {
@@ -213,14 +214,19 @@ export function parseBomRow(row, headerMap, index) {
         workspaceId: src.wvmId, // wvmId is the workspace ID in BOM response
         elementId: src.elementId,
         partId: src.partId || null,
+        wvmType: src.wvmType || "w", // workspace vs version
       };
     }
   }
-  
+
   // SECONDARY FALLBACK: relatedOccurrences for older BOM formats
-  if (!directThumbnailUrl && !thumbnailInfo && row.relatedOccurrences?.length > 0) {
+  if (
+    !directThumbnailUrl &&
+    !thumbnailInfo &&
+    row.relatedOccurrences?.length > 0
+  ) {
     const occ = row.relatedOccurrences[0];
-    if (typeof occ === 'object' && occ.documentId) {
+    if (typeof occ === "object" && occ.documentId) {
       thumbnailInfo = {
         documentId: occ.documentId,
         workspaceId: occ.workspaceId,
@@ -248,6 +254,7 @@ export function parseBomRow(row, headerMap, index) {
 /**
  * Build the OnShape thumbnail URL for a part/element.
  * This is the fallback method when directThumbnailUrl is not available.
+ * Supports both workspace (w) and version (v) references.
  *
  * @param {Object} info - Thumbnail info from parsed BOM row
  * @param {string} size - Thumbnail size (default: '300x300')
@@ -259,7 +266,9 @@ export function buildThumbnailUrl(info, size = THUMBNAIL_SIZE) {
   }
 
   const baseUrl = "https://cad.onshape.com/api/thumbnails";
-  let url = `${baseUrl}/d/${info.documentId}/w/${info.workspaceId}/e/${info.elementId}/s/${size}`;
+  // Use wvmType if available (w=workspace, v=version), default to workspace
+  const wvmType = info.wvmType || "w";
+  let url = `${baseUrl}/d/${info.documentId}/${wvmType}/${info.workspaceId}/e/${info.elementId}/s/${size}`;
 
   // Add partId if available for part-specific thumbnail
   if (info.partId) {
@@ -276,68 +285,108 @@ export function buildThumbnailUrl(info, size = THUMBNAIL_SIZE) {
 /**
  * Fetch a thumbnail via the proxy endpoint with retry logic.
  * Tries multiple URL strategies if the primary fails.
+ * Uses exponential backoff for rate limiting and server errors.
  *
- * @param {string} primaryUrl - Primary OnShape thumbnail URL
- * @param {string|null} fallbackUrl - Fallback URL to try if primary fails
+ * @param {string} primaryUrl - Primary OnShape thumbnail URL (pre-generated from thumbnailInfo)
+ * @param {string|null} fallbackUrl - Fallback URL to try if primary fails (constructed URL)
  * @param {number} retries - Number of retries on failure (default: 2)
- * @param {number} retryDelayMs - Delay between retries (default: 500)
+ * @param {number} retryDelayMs - Base delay between retries (default: 300)
  * @returns {Promise<Blob|null>} Thumbnail blob or null on failure
  */
-async function fetchThumbnailBlob(primaryUrl, fallbackUrl = null, retries = THUMBNAIL_RETRY_COUNT, retryDelayMs = THUMBNAIL_RETRY_DELAY_MS) {
+async function fetchThumbnailBlob(
+  primaryUrl,
+  fallbackUrl = null,
+  retries = THUMBNAIL_RETRY_COUNT,
+  retryDelayMs = THUMBNAIL_RETRY_DELAY_MS
+) {
   if (!primaryUrl && !fallbackUrl) return null;
 
   const urlsToTry = [primaryUrl, fallbackUrl].filter(Boolean);
-  
-  for (const thumbnailUrl of urlsToTry) {
-    const proxyUrl = `/api/thumbnail-proxy?url=${encodeURIComponent(thumbnailUrl)}`;
+
+  for (let urlIndex = 0; urlIndex < urlsToTry.length; urlIndex++) {
+    const thumbnailUrl = urlsToTry[urlIndex];
+    const isLastUrl = urlIndex === urlsToTry.length - 1;
+    const proxyUrl = `/api/thumbnail-proxy?url=${encodeURIComponent(
+      thumbnailUrl
+    )}`;
 
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
         const response = await fetch(proxyUrl);
-        
+
         if (response.ok) {
           const blob = await response.blob();
-          // Verify we got actual image data
-          if (blob.size > 0 && blob.type.startsWith('image/')) {
+          // Verify we got actual image data (must have content and be an image type)
+          if (
+            blob.size > 100 &&
+            (blob.type.startsWith("image/") ||
+              blob.type === "application/octet-stream")
+          ) {
             return blob;
           }
-          console.warn(`[FullExtract] Empty or invalid image response for: ${thumbnailUrl}`);
+          // Small response or wrong type - probably an error page
+          console.warn(
+            `[FullExtract] Invalid image response (size=${blob.size}, type=${blob.type})`
+          );
           break; // Try next URL
         }
-        
-        // Handle rate limiting (429) or server errors (5xx) with retry
+
+        // Handle rate limiting (429) or server errors (5xx) with exponential backoff
         if (response.status === 429 || response.status >= 500) {
           if (attempt < retries) {
+            const backoffMs = retryDelayMs * Math.pow(2, attempt); // Exponential: 300, 600, 1200...
             console.warn(
-              `[FullExtract] Thumbnail fetch retry ${attempt + 1}/${retries} (${response.status})`
+              `[FullExtract] Thumbnail fetch retry ${attempt + 1}/${retries} (${
+                response.status
+              }), waiting ${backoffMs}ms`
             );
-            await delay(retryDelayMs * (attempt + 1)); // Exponential backoff
+            await delay(backoffMs);
             continue;
           }
+          console.warn(
+            `[FullExtract] Thumbnail fetch failed after ${retries} retries (${response.status})`
+          );
         }
-        
-        // 404 means thumbnail doesn't exist for this URL, try next
+
+        // 404 means thumbnail doesn't exist for this URL, try fallback immediately
         if (response.status === 404) {
-          console.warn(`[FullExtract] Thumbnail not found (404), trying next method`);
+          if (!isLastUrl) {
+            console.warn(
+              `[FullExtract] Thumbnail not found (404), trying fallback URL`
+            );
+          }
           break; // Try fallback URL
         }
-        
+
+        // Other client errors (400, 401, 403) - don't retry, try fallback
+        if (response.status >= 400 && response.status < 500) {
+          console.warn(
+            `[FullExtract] Thumbnail fetch client error (${response.status})`
+          );
+          break; // Try next URL
+        }
+
         console.warn(
           `[FullExtract] Thumbnail fetch failed (${response.status})`
         );
         break; // Try next URL
       } catch (err) {
         if (attempt < retries) {
-          console.warn(`[FullExtract] Thumbnail fetch error, retrying: ${err.message}`);
-          await delay(retryDelayMs * (attempt + 1));
+          const backoffMs = retryDelayMs * Math.pow(2, attempt);
+          console.warn(
+            `[FullExtract] Thumbnail fetch error, retrying in ${backoffMs}ms: ${err.message}`
+          );
+          await delay(backoffMs);
           continue;
         }
-        console.warn(`[FullExtract] Thumbnail fetch error: ${err.message}`);
+        console.warn(
+          `[FullExtract] Thumbnail fetch error after ${retries} retries: ${err.message}`
+        );
         break; // Try next URL
       }
     }
   }
-  
+
   return null;
 }
 
@@ -350,7 +399,12 @@ async function fetchThumbnailBlob(primaryUrl, fallbackUrl = null, retries = THUM
  * @param {number} delayMs - Delay between fetches in ms (rate limiting)
  * @returns {Promise<Array>} Array of {filename, blob} results
  */
-async function fetchThumbnailsWithLimit(items, concurrency, onProgress, delayMs = DEFAULT_THUMBNAIL_DELAY_MS) {
+async function fetchThumbnailsWithLimit(
+  items,
+  concurrency,
+  onProgress,
+  delayMs = DEFAULT_THUMBNAIL_DELAY_MS
+) {
   const results = [];
   const queue = [...items];
   let completed = 0;
@@ -361,7 +415,7 @@ async function fetchThumbnailsWithLimit(items, concurrency, onProgress, delayMs 
   return new Promise((resolve) => {
     async function worker() {
       activeWorkers++;
-      
+
       while (queue.length > 0) {
         const item = queue.shift();
         if (!item) break;
@@ -371,7 +425,10 @@ async function fetchThumbnailsWithLimit(items, concurrency, onProgress, delayMs 
           await delay(delayMs);
         }
 
-        const blob = await fetchThumbnailBlob(item.primaryUrl, item.fallbackUrl);
+        const blob = await fetchThumbnailBlob(
+          item.primaryUrl,
+          item.fallbackUrl
+        );
         completed++;
 
         if (onProgress) {
@@ -382,9 +439,9 @@ async function fetchThumbnailsWithLimit(items, concurrency, onProgress, delayMs 
           results.push({ filename: item.filename, blob });
         }
       }
-      
+
       activeWorkers--;
-      
+
       // Check if all workers are done
       if (activeWorkers === 0) {
         resolve(results);
@@ -395,7 +452,7 @@ async function fetchThumbnailsWithLimit(items, concurrency, onProgress, delayMs 
     for (let i = 0; i < maxWorkers; i++) {
       worker();
     }
-    
+
     // Handle empty items array
     if (items.length === 0) {
       resolve(results);
@@ -435,13 +492,13 @@ async function loadJSZip() {
  * @returns {Promise<void>}
  */
 export async function fullAssemblyExtract(options) {
-  const { 
-    element, 
-    documentId, 
-    workspaceId, 
-    documentService, 
+  const {
+    element,
+    documentId,
+    workspaceId,
+    documentService,
     onProgress,
-    thumbnailDelayMs = DEFAULT_THUMBNAIL_DELAY_MS
+    thumbnailDelayMs = DEFAULT_THUMBNAIL_DELAY_MS,
   } = options;
 
   const assemblyName = sanitizeForFilename(element.name || element.id, 50);
@@ -467,24 +524,41 @@ export async function fullAssemblyExtract(options) {
     const zip = new JSZip();
 
     // Phase: Fetch BOM
-    // Request flattened BOM with thumbnail info (matches Python script approach)
+    // IMPORTANT: Use the SAME parameters as "Download BOM CSV" button to get full BOM
+    // Do NOT use includeThumbnails=true here as it may return a different/truncated BOM structure
+    // We will construct thumbnail URLs from itemSource data instead
     reportProgress(ExportPhase.FETCHING_BOM);
-    console.log(`[FullExtract] Fetching flattened BOM with thumbnails for ${assemblyName}...`);
-    
-    const bom = await documentService.getBillOfMaterials(
-      documentId,
-      workspaceId,
-      element.id,
-      false, // NOT indented = flattened BOM
-      true   // include thumbnails
+    console.log(
+      `[FullExtract] Fetching flattened BOM for ${assemblyName}...`
     );
+
+    let bom;
+    try {
+      // Call with same defaults as handleDownloadBomCsv: flatten=true, includeThumbnails=false
+      bom = await documentService.getBillOfMaterials(
+        documentId,
+        workspaceId,
+        element.id,
+        true,  // flatten = true (indented=false for flattened BOM)
+        false  // includeThumbnails = false (CRITICAL: matches Download BOM CSV behavior)
+      );
+    } catch (bomError) {
+      console.error(`[FullExtract] Error:`, bomError);
+      throw new Error(
+        `Get BOM failed (${bomError.message || "unknown error"})`
+      );
+    }
 
     if (!bom || !Array.isArray(bom.rows)) {
       throw new Error("No BOM data available for this assembly");
     }
 
-    console.log(`[FullExtract] BOM fetched: ${bom.rows.length} rows, ${bom.headers?.length || 0} headers`);
-    console.log(`[FullExtract] BOM type: ${bom.type || 'unknown'}`);
+    console.log(
+      `[FullExtract] BOM fetched: ${bom.rows.length} rows, ${
+        bom.headers?.length || 0
+      } headers`
+    );
+    console.log(`[FullExtract] BOM type: ${bom.type || "unknown"}`);
 
     // Phase: Convert to CSV
     reportProgress(ExportPhase.CONVERTING_CSV, { bomRows: bom.rows.length });
@@ -503,31 +577,35 @@ export async function fullAssemblyExtract(options) {
     }
 
     // Phase: Parse BOM and prepare thumbnail fetches
+    // Since we didn't request thumbnailInfo in the BOM, we construct URLs from itemSource
     const headerMap = buildHeaderMap(bom.headers);
     const thumbnailsFolder = zip.folder("thumbnails");
 
     const thumbnailItems = [];
     let skippedNoInfo = 0;
-    
+
     for (let i = 0; i < bom.rows.length; i++) {
       const row = bom.rows[i];
       const parsed = parseBomRow(row, headerMap, i);
       const filename = buildThumbnailFilename(parsed);
-      
-      // Prefer direct URL from thumbnailInfo, fallback to constructed URL
+
+      // Since we didn't request thumbnail=true, directThumbnailUrl will be null
+      // We rely on constructing URLs from itemSource data
       const primaryUrl = parsed.directThumbnailUrl;
       const fallbackUrl = buildThumbnailUrl(parsed.thumbnailInfo);
 
       if (primaryUrl || fallbackUrl) {
-        thumbnailItems.push({ 
-          primaryUrl, 
+        thumbnailItems.push({
+          primaryUrl,
           fallbackUrl,
-          filename, 
-          parsed 
+          filename,
+          parsed,
         });
       } else {
         skippedNoInfo++;
-        console.log(`[FullExtract] Row ${i + 1}: No thumbnail info for "${parsed.name}"`);
+        console.log(
+          `[FullExtract] Row ${i + 1}: No thumbnail info for "${parsed.name}"`
+        );
       }
     }
 
