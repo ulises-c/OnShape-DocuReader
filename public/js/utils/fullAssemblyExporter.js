@@ -524,9 +524,10 @@ export async function fullAssemblyExtract(options) {
     const zip = new JSZip();
 
     // Phase: Fetch BOM
-    // IMPORTANT: Use the SAME parameters as "Download BOM CSV" button to get full BOM
-    // Do NOT use includeThumbnails=true here as it may return a different/truncated BOM structure
-    // We will construct thumbnail URLs from itemSource data instead
+    // IMPORTANT: Call getBillOfMaterials with NO extra parameters to match "Download BOM CSV" behavior exactly.
+    // This ensures both features use the identical code path through document-service.js.
+    // The service defaults are: flatten=true, includeThumbnails=false
+    // We will construct thumbnail URLs from itemSource data instead.
     reportProgress(ExportPhase.FETCHING_BOM);
     console.log(
       `[FullExtract] Fetching flattened BOM for ${assemblyName}...`
@@ -534,13 +535,11 @@ export async function fullAssemblyExtract(options) {
 
     let bom;
     try {
-      // Call with same defaults as handleDownloadBomCsv: flatten=true, includeThumbnails=false
+      // Match handleDownloadBomCsv: no extra params, uses service defaults
       bom = await documentService.getBillOfMaterials(
         documentId,
         workspaceId,
-        element.id,
-        true,  // flatten = true (indented=false for flattened BOM)
-        false  // includeThumbnails = false (CRITICAL: matches Download BOM CSV behavior)
+        element.id
       );
     } catch (bomError) {
       console.error(`[FullExtract] Error:`, bomError);
