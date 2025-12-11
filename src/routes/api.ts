@@ -101,6 +101,24 @@ router.get(
 );
 
 router.get(
+  "/documents/:id/versions",
+  async (req: Request, res: Response): Promise<Response> => {
+    try {
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
+      const versions = await client.getDocumentVersions(req.params.id);
+      return res.json(versions);
+    } catch (error) {
+      console.error("Get document versions error:", error);
+      return res.status(500).json({ error: "Failed to fetch document versions" });
+    }
+  }
+);
+
+router.get(
   "/documents/:id/comprehensive",
   async (req: Request, res: Response): Promise<Response> => {
     try {

@@ -15,6 +15,10 @@ export class DocumentService {
     return this.api.getDocument(documentId);
   }
 
+  async getVersions(documentId) {
+    return this.api.getDocumentVersions(documentId);
+  }
+
   async getElements(documentId, workspaceId) {
     return this.api.getElements(documentId, workspaceId);
   }

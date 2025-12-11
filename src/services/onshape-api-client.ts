@@ -216,6 +216,11 @@ export class OnShapeApiClient {
     return response.data;
   }
 
+  async getDocumentVersions(documentId: string): Promise<any[]> {
+    const response = await this.axiosInstance.get(`/documents/d/${documentId}/versions`);
+    return response.data || [];
+  }
+
   async getComprehensiveDocument(
     documentId: string,
     params: any

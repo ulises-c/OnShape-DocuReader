@@ -34,6 +34,12 @@ export class ApiClient {
     return res.json();
   }
 
+  async getDocumentVersions(documentId) {
+    const res = await fetch(`/api/documents/${documentId}/versions`);
+    if (!res.ok) throw new Error(`Get document versions failed (${res.status})`);
+    return res.json();
+  }
+
   async getElements(documentId, workspaceId) {
     const res = await fetch(
       `/api/documents/${documentId}/workspaces/${workspaceId}/elements`
