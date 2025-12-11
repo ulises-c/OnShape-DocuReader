@@ -14,7 +14,6 @@ A web application built with TypeScript and Express.js that uses OAuth 2.0 to se
 - 📊 **API Integration** - Full TypeScript client for OnShape API with comprehensive error handling
 - 🖼️ **Thumbnails** - View document thumbnails with secure proxy loading
 - 👨‍👦 **Parent/Hierarchy** - Load and display parent/hierarchy information for documents
-- 🧩 **Assemblies & Mass Properties** - View assemblies and part mass properties in detail views
 - 🗃️ **Element Metadata** - Access and export element metadata including complete element properties
 - 📝 **Raw JSON View** - Inspect raw document JSON in the UI with one-click copy functionality
 - 📋 **Element JSON Copy** - Copy raw JSON data for individual elements (parts, assemblies, etc.)
