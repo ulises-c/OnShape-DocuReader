@@ -1,6 +1,6 @@
 # OnShape-DocuReader - Project Specification
 
-> Auto-generated: 2025-12-12 14:11:02
+> Auto-generated: 2025-12-12 14:17:05
 
 ## Directory Structure
 
