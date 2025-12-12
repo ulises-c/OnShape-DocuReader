@@ -155,6 +155,42 @@ router.get(
 );
 
 router.get(
+  "/documents/:id/combined-history",
+  async (req: Request, res: Response): Promise<Response> => {
+    try {
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
+      const history = await client.getCombinedDocumentHistory(req.params.id);
+      return res.json(history);
+    } catch (error) {
+      console.error("Get combined document history error:", error);
+      return res.status(500).json({ error: "Failed to fetch combined document history" });
+    }
+  }
+);
+
+router.get(
+  "/documents/:id/history",
+  async (req: Request, res: Response): Promise<Response> => {
+    try {
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
+      const history = await client.getDocumentVersions(req.params.id);
+      return res.json(history);
+    } catch (error) {
+      console.error("Get document history error:", error);
+      return res.status(500).json({ error: "Failed to fetch document history" });
+    }
+  }
+);
+
+router.get(
   "/documents/:id/comprehensive",
   async (req: Request, res: Response): Promise<Response> => {
     try {

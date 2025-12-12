@@ -226,6 +226,101 @@ export class OnShapeApiClient {
     return response.data || [];
   }
 
+  /**
+   * Get document history (alias for getDocumentVersions for backward compatibility).
+   * For combined versions + branches, use getCombinedDocumentHistory instead.
+   */
+  async getDocumentHistory(documentId: string): Promise<any[]> {
+    return this.getDocumentVersions(documentId);
+  }
+
+  /**
+   * Get combined document history (versions + branches) in reverse chronological order.
+   * Returns a unified list with type indicators for UI display.
+   */
+  async getCombinedDocumentHistory(documentId: string): Promise<{
+    items: Array<{
+      id: string;
+      name: string;
+      type: 'version' | 'branch';
+      createdAt: string;
+      modifiedAt?: string;
+      description?: string;
+      creator?: { id: string; name: string };
+      modifier?: { id: string; name: string };
+      microversion?: string;
+      isMainWorkspace?: boolean;
+      parent?: string;
+    }>;
+    defaultWorkspaceId?: string;
+  }> {
+    // Fetch versions and branches in parallel
+    const [versions, branches] = await Promise.all([
+      this.getDocumentVersions(documentId),
+      this.getDocumentBranches(documentId)
+    ]);
+
+    const items: Array<{
+      id: string;
+      name: string;
+      type: 'version' | 'branch';
+      createdAt: string;
+      modifiedAt?: string;
+      description?: string;
+      creator?: { id: string; name: string };
+      modifier?: { id: string; name: string };
+      microversion?: string;
+      isMainWorkspace?: boolean;
+      parent?: string;
+    }> = [];
+
+    // Add versions with type indicator
+    for (const v of versions) {
+      items.push({
+        id: v.id,
+        name: v.name || 'Unnamed Version',
+        type: 'version',
+        createdAt: v.createdAt || v.modifiedAt || new Date().toISOString(),
+        modifiedAt: v.modifiedAt,
+        description: v.description,
+        creator: v.creator,
+        modifier: v.lastModifier,
+        microversion: v.microversion,
+        parent: v.parent
+      });
+    }
+
+    // Add branches (workspaces) with type indicator
+    for (const b of branches) {
+      items.push({
+        id: b.id,
+        name: b.name || 'Unnamed Branch',
+        type: 'branch',
+        createdAt: b.createdAt || b.modifiedAt || new Date().toISOString(),
+        modifiedAt: b.modifiedAt,
+        description: b.description,
+        creator: b.creator,
+        modifier: b.lastModifier || b.modifiedBy,
+        isMainWorkspace: b.isMainWorkspace || false
+      });
+    }
+
+    // Sort by date in reverse chronological order (newest first)
+    items.sort((a, b) => {
+      const dateA = new Date(a.modifiedAt || a.createdAt).getTime();
+      const dateB = new Date(b.modifiedAt || b.createdAt).getTime();
+      return dateB - dateA;
+    });
+
+    // Find the main workspace ID
+    const mainWorkspace = branches.find((b: any) => b.isMainWorkspace);
+
+    return {
+      items,
+      defaultWorkspaceId: mainWorkspace?.id
+    };
+  }
+
   async getComprehensiveDocument(
     documentId: string,
     params: any

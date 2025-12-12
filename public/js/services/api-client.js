@@ -46,6 +46,12 @@ export class ApiClient {
     return res.json();
   }
 
+  async getCombinedDocumentHistory(documentId) {
+    const res = await fetch(`/api/documents/${documentId}/combined-history`);
+    if (!res.ok) throw new Error(`Get combined document history failed (${res.status})`);
+    return res.json();
+  }
+
   async getElements(documentId, workspaceId) {
     const res = await fetch(
       `/api/documents/${documentId}/workspaces/${workspaceId}/elements`

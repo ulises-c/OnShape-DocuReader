@@ -23,6 +23,10 @@ export class DocumentService {
     return this.api.getDocumentBranches(documentId);
   }
 
+  async getCombinedHistory(documentId) {
+    return this.api.getCombinedDocumentHistory(documentId);
+  }
+
   async getElements(documentId, workspaceId) {
     return this.api.getElements(documentId, workspaceId);
   }

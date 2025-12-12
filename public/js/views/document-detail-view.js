@@ -30,20 +30,19 @@ export class DocumentDetailView extends BaseView {
   render(docData, elements) {
     this.clear();
     this._currentDocData = docData;
-    this._loadedVersions = null;
-    this._loadedBranches = null;
+    this._loadedHistory = null;
+    this._selectedHistoryItem = null; // Track currently selected version/branch
+    this._currentWorkspaceId = docData.defaultWorkspace?.id || null; // Track active workspace for element operations
 
     const infoContainer = document.getElementById("documentInfo");
     if (infoContainer) {
       const topBarHtml = this._renderTopBar(docData);
       const thumbnailHtml = renderThumbnailSection(docData);
-      const versionSelectorHtml = this._renderVersionSelector(docData);
-      const branchSelectorHtml = this._renderBranchSelector(docData);
+      const historyHtml = this._renderHistorySelector(docData);
       const infoHtml = renderDocumentInfo(docData);
-      infoContainer.innerHTML = topBarHtml + thumbnailHtml + versionSelectorHtml + branchSelectorHtml + infoHtml;
+      infoContainer.innerHTML = topBarHtml + thumbnailHtml + historyHtml + infoHtml;
       this._setupThumbnail(docData);
-      this._bindVersionSelector(docData);
-      this._bindBranchSelector(docData);
+      this._bindHistorySelector(docData);
     }
 
     const elementsContainer = document.getElementById("documentElements");
@@ -64,32 +63,36 @@ export class DocumentDetailView extends BaseView {
     return ``;
   }
 
-  _renderVersionSelector(docData) {
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Unified History Selector (Versions + Branches combined)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  _renderHistorySelector(docData) {
     return `
-      <div class="version-selector-section" id="version-selector-${docData.id}">
-        <div class="version-selector-header">
-          <h4>Document Versions</h4>
-          <button class="btn btn-secondary btn-sm load-versions-btn" id="load-versions-${docData.id}">
-            Load Versions
+      <div class="history-selector-section" id="history-selector-${docData.id}">
+        <div class="history-selector-header">
+          <h4>Versions and History</h4>
+          <button class="btn btn-secondary btn-sm load-history-btn" id="load-history-${docData.id}">
+            Load History
           </button>
         </div>
-        <div class="version-selector-content" id="version-content-${docData.id}">
-          <p class="version-hint">Click "Load Versions" to see all available versions of this document.</p>
+        <div class="history-selector-content" id="history-content-${docData.id}">
+          <p class="history-hint">Click "Load History" to see all versions and branches of this document.</p>
         </div>
       </div>
     `;
   }
 
-  _bindVersionSelector(docData) {
-    const loadBtn = document.getElementById(`load-versions-${docData.id}`);
+  _bindHistorySelector(docData) {
+    const loadBtn = document.getElementById(`load-history-${docData.id}`);
     if (loadBtn) {
-      loadBtn.addEventListener("click", () => this._handleLoadVersions(docData.id));
+      loadBtn.addEventListener("click", () => this._handleLoadHistory(docData.id));
     }
   }
 
-  async _handleLoadVersions(documentId) {
-    const loadBtn = document.getElementById(`load-versions-${documentId}`);
-    const contentEl = document.getElementById(`version-content-${documentId}`);
+  async _handleLoadHistory(documentId) {
+    const loadBtn = document.getElementById(`load-history-${documentId}`);
+    const contentEl = document.getElementById(`history-content-${documentId}`);
 
     if (!contentEl) return;
 
@@ -98,32 +101,32 @@ export class DocumentDetailView extends BaseView {
       loadBtn.disabled = true;
       loadBtn.textContent = "Loading...";
     }
-    contentEl.innerHTML = '<p class="version-loading">Fetching versions...</p>';
+    contentEl.innerHTML = '<p class="history-loading">Fetching versions and branches...</p>';
 
     try {
-      const versions = await this.controller.documentService.getVersions(documentId);
-      this._loadedVersions = versions;
+      const history = await this.controller.documentService.getCombinedHistory(documentId);
+      this._loadedHistory = history;
 
-      if (!versions || versions.length === 0) {
-        contentEl.innerHTML = '<p class="version-empty">No versions found for this document.</p>';
+      if (!history?.items || history.items.length === 0) {
+        contentEl.innerHTML = '<p class="history-empty">No versions or branches found for this document.</p>';
         if (loadBtn) {
-          loadBtn.textContent = "Reload Versions";
+          loadBtn.textContent = "Reload History";
           loadBtn.disabled = false;
         }
         return;
       }
 
-      // Render version dropdown
-      contentEl.innerHTML = this._renderVersionDropdown(versions, documentId);
-      this._bindVersionDropdown(documentId);
+      // Render history dropdown and action buttons
+      contentEl.innerHTML = this._renderHistoryDropdown(history, documentId);
+      this._bindHistoryDropdown(documentId);
 
       if (loadBtn) {
-        loadBtn.textContent = "Reload Versions";
+        loadBtn.textContent = "Reload History";
         loadBtn.disabled = false;
       }
     } catch (error) {
-      console.error("Error loading versions:", error);
-      contentEl.innerHTML = `<p class="version-error">Failed to load versions: ${escapeHtml(error.message)}</p>`;
+      console.error("Error loading history:", error);
+      contentEl.innerHTML = `<p class="history-error">Failed to load history: ${escapeHtml(error.message)}</p>`;
       if (loadBtn) {
         loadBtn.textContent = "Retry";
         loadBtn.disabled = false;
@@ -131,361 +134,156 @@ export class DocumentDetailView extends BaseView {
     }
   }
 
-  _renderVersionDropdown(versions, documentId) {
-    const optionsHtml = versions.map((v, idx) => {
-      const name = escapeHtml(v.name || `Version ${idx + 1}`);
-      const date = v.createdAt ? new Date(v.createdAt).toLocaleDateString() : "";
-      return `<option value="${idx}" data-version-id="${escapeHtml(v.id)}">${name} ${date ? `(${date})` : ""}</option>`;
+  _renderHistoryDropdown(history, documentId) {
+    // Build options with type badges (version vs branch)
+    const optionsHtml = history.items.map((item, idx) => {
+      const name = escapeHtml(item.name || 'Unnamed');
+      const dateStr = item.modifiedAt || item.createdAt;
+      const date = dateStr ? new Date(dateStr).toLocaleDateString() : "";
+      const time = dateStr ? new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "";
+      const typeLabel = item.type === 'branch' ? '🌿' : '📌';
+      const mainBadge = item.isMainWorkspace ? ' (Main)' : '';
+      const modifier = item.modifier?.name || item.creator?.name || '';
+      
+      return `<option value="${idx}" data-item-id="${escapeHtml(item.id)}" data-item-type="${item.type}">${typeLabel} ${name}${mainBadge} - ${modifier} ${date} ${time}</option>`;
     }).join("");
 
     return `
-      <div class="version-dropdown-container">
-        <label for="version-select-${documentId}">Select Version:</label>
-        <select id="version-select-${documentId}" class="version-select">
-          <option value="" disabled selected>-- Choose a version --</option>
+      <div class="history-dropdown-container">
+        <label for="history-select-${documentId}">Select Version or Branch:</label>
+        <select id="history-select-${documentId}" class="history-select">
+          <option value="" disabled selected>-- Choose from history --</option>
           ${optionsHtml}
         </select>
       </div>
-      <div class="version-details" id="version-details-${documentId}">
-        <p class="version-hint">Select a version to view its details.</p>
+      <div class="history-details" id="history-details-${documentId}">
+        <p class="history-hint">Select an item to view details. Elements will reload for the selected workspace.</p>
       </div>
     `;
   }
 
-  _bindVersionDropdown(documentId) {
-    const selectEl = document.getElementById(`version-select-${documentId}`);
+  _bindHistoryDropdown(documentId) {
+    const selectEl = document.getElementById(`history-select-${documentId}`);
     if (selectEl) {
-      selectEl.addEventListener("change", (e) => {
+      selectEl.addEventListener("change", async (e) => {
         const idx = parseInt(e.target.value, 10);
-        if (!isNaN(idx) && this._loadedVersions && this._loadedVersions[idx]) {
-          this._displayVersionDetails(documentId, this._loadedVersions[idx]);
+        if (!isNaN(idx) && this._loadedHistory?.items?.[idx]) {
+          const item = this._loadedHistory.items[idx];
+          this._selectedHistoryItem = item;
+          this._displayHistoryDetails(documentId, item);
+          
+          // Update workspace context and reload elements for branches
+          if (item.type === 'branch') {
+            this._currentWorkspaceId = item.id;
+            await this._reloadElementsForWorkspace(documentId, item.id);
+          } else {
+            // Versions: show note that element operations will use version context
+            // For now, keep current workspace but note the version selection
+            this._displayVersionNote(documentId, item);
+          }
         }
       });
     }
   }
 
-  _displayVersionDetails(documentId, version) {
-    const detailsEl = document.getElementById(`version-details-${documentId}`);
+  _displayHistoryDetails(documentId, item) {
+    const detailsEl = document.getElementById(`history-details-${documentId}`);
     if (!detailsEl) return;
 
-    const name = escapeHtml(version.name || "Unnamed Version");
-    const description = version.description ? escapeHtml(version.description) : "<em>No description</em>";
-    const createdAt = version.createdAt ? new Date(version.createdAt).toLocaleString() : "Unknown";
-    const creatorName = version.creator?.name ? escapeHtml(version.creator.name) : "Unknown";
-    const versionId = escapeHtml(version.id || "");
-    const microversionId = version.microversion ? escapeHtml(version.microversion) : "N/A";
+    const name = escapeHtml(item.name || "Unnamed");
+    const description = item.description ? escapeHtml(item.description) : "<em>No description</em>";
+    const createdAt = item.createdAt ? new Date(item.createdAt).toLocaleString() : "Unknown";
+    const modifiedAt = item.modifiedAt ? new Date(item.modifiedAt).toLocaleString() : createdAt;
+    const creatorName = item.creator?.name ? escapeHtml(item.creator.name) : "Unknown";
+    const modifierName = item.modifier?.name ? escapeHtml(item.modifier.name) : creatorName;
+    const itemId = escapeHtml(item.id || "");
+    const typeLabel = item.type === 'branch' ? 'Branch (Workspace)' : 'Version';
+    const typeBadgeClass = item.type === 'branch' ? 'history-type-branch' : 'history-type-version';
+    const mainBadge = item.isMainWorkspace ? '<span class="history-main-badge">Main</span>' : "";
+    const microversionRow = item.microversion 
+      ? `<div class="history-detail-row">
+          <span class="history-label">Microversion:</span>
+          <span class="history-value">${escapeHtml(item.microversion)}</span>
+        </div>` 
+      : '';
+    
+    // Show context note for workspace selection
+    const contextNote = item.type === 'branch' 
+      ? `<div class="history-context-note history-context-active">
+          ✅ Elements below now show content from this workspace. Element actions will use this context.
+        </div>`
+      : `<div class="history-context-note history-context-version">
+          ℹ️ Version selected. Element actions require workspace context; using default workspace for operations.
+        </div>`;
 
     detailsEl.innerHTML = `
-      <div class="version-detail-card">
-        <h5>${name}</h5>
-        <div class="version-detail-row">
-          <span class="version-label">Description:</span>
-          <span class="version-value">${description}</span>
+      <div class="history-detail-card">
+        <h5>
+          ${name} 
+          <span class="history-type-badge ${typeBadgeClass}">${typeLabel}</span>
+          ${mainBadge}
+        </h5>
+        <div class="history-detail-row">
+          <span class="history-label">Description:</span>
+          <span class="history-value">${description}</span>
         </div>
-        <div class="version-detail-row">
-          <span class="version-label">Created:</span>
-          <span class="version-value">${createdAt}</span>
+        <div class="history-detail-row">
+          <span class="history-label">Modified:</span>
+          <span class="history-value">${modifiedAt} by ${modifierName}</span>
         </div>
-        <div class="version-detail-row">
-          <span class="version-label">Creator:</span>
-          <span class="version-value">${creatorName}</span>
+        <div class="history-detail-row">
+          <span class="history-label">Created:</span>
+          <span class="history-value">${createdAt} by ${creatorName}</span>
         </div>
-        <div class="version-detail-row">
-          <span class="version-label">Version ID:</span>
-          <span class="version-value version-id">${versionId}</span>
+        <div class="history-detail-row">
+          <span class="history-label">${item.type === 'branch' ? 'Workspace' : 'Version'} ID:</span>
+          <span class="history-value history-id">${itemId}</span>
         </div>
-        <div class="version-detail-row">
-          <span class="version-label">Microversion:</span>
-          <span class="version-value">${microversionId}</span>
-        </div>
+        ${microversionRow}
+        ${contextNote}
       </div>
     `;
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Branch Selector Methods
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  _renderBranchSelector(docData) {
-    return `
-      <div class="branch-selector-section" id="branch-selector-${docData.id}">
-        <div class="branch-selector-header">
-          <h4>Document Branches (Workspaces)</h4>
-          <button class="btn btn-secondary btn-sm load-branches-btn" id="load-branches-${docData.id}">
-            Load Branches
-          </button>
-        </div>
-        <div class="branch-selector-content" id="branch-content-${docData.id}">
-          <p class="branch-hint">Click "Load Branches" to see all workspaces/branches of this document.</p>
-        </div>
-      </div>
-    `;
-  }
-
-  _bindBranchSelector(docData) {
-    const loadBtn = document.getElementById(`load-branches-${docData.id}`);
-    if (loadBtn) {
-      loadBtn.addEventListener("click", () => this._handleLoadBranches(docData.id));
-    }
-  }
-
-  async _handleLoadBranches(documentId) {
-    const loadBtn = document.getElementById(`load-branches-${documentId}`);
-    const contentEl = document.getElementById(`branch-content-${documentId}`);
-
-    if (!contentEl) return;
+  /**
+   * Reload elements list for a specific workspace (branch selection)
+   */
+  async _reloadElementsForWorkspace(documentId, workspaceId) {
+    const elementsContainer = document.getElementById("documentElements");
+    if (!elementsContainer) return;
 
     // Show loading state
-    if (loadBtn) {
-      loadBtn.disabled = true;
-      loadBtn.textContent = "Loading...";
-    }
-    contentEl.innerHTML = '<p class="branch-loading">Fetching branches...</p>';
+    elementsContainer.innerHTML = `<div class="elements-loading">Loading elements for selected workspace...</div>`;
 
     try {
-      const branches = await this.controller.documentService.getBranches(documentId);
-      this._loadedBranches = branches;
-
-      if (!branches || branches.length === 0) {
-        contentEl.innerHTML = '<p class="branch-empty">No branches found for this document.</p>';
-        if (loadBtn) {
-          loadBtn.textContent = "Reload Branches";
-          loadBtn.disabled = false;
-        }
-        return;
+      const elements = await this.controller.documentService.getElements(documentId, workspaceId);
+      
+      // Update elements map
+      this._elementsMap.clear();
+      if (elements?.length) {
+        elements.forEach((el) => this._elementsMap.set(String(el.id), el));
       }
-
-      // Render branch dropdown
-      contentEl.innerHTML = this._renderBranchDropdown(branches, documentId);
-      this._bindBranchDropdown(documentId);
-
-      if (loadBtn) {
-        loadBtn.textContent = "Reload Branches";
-        loadBtn.disabled = false;
-      }
+      
+      // Re-render elements list
+      elementsContainer.innerHTML = renderElementsList(elements);
+      
+      // Re-bind element actions with new workspace context
+      this._bindElementActions(elementsContainer, this._currentDocData);
+      
+      showToast(`Loaded ${elements?.length || 0} elements from workspace`);
     } catch (error) {
-      console.error("Error loading branches:", error);
-      contentEl.innerHTML = `<p class="branch-error">Failed to load branches: ${escapeHtml(error.message)}</p>`;
-      if (loadBtn) {
-        loadBtn.textContent = "Retry";
-        loadBtn.disabled = false;
-      }
+      console.error("Error loading elements for workspace:", error);
+      elementsContainer.innerHTML = `<div class="elements-error">Failed to load elements: ${escapeHtml(error.message)}</div>`;
     }
   }
 
-  _renderBranchDropdown(branches, documentId) {
-    const optionsHtml = branches.map((b, idx) => {
-      const name = escapeHtml(b.name || `Branch ${idx + 1}`);
-      const isMain = b.isMainWorkspace ? " (Main)" : "";
-      return `<option value="${idx}" data-branch-id="${escapeHtml(b.id)}">${name}${isMain}</option>`;
-    }).join("");
-
-    return `
-      <div class="branch-dropdown-container">
-        <label for="branch-select-${documentId}">Select Branch:</label>
-        <select id="branch-select-${documentId}" class="branch-select">
-          <option value="" disabled selected>-- Choose a branch --</option>
-          ${optionsHtml}
-        </select>
-      </div>
-      <div class="branch-details" id="branch-details-${documentId}">
-        <p class="branch-hint">Select a branch to view its details.</p>
-      </div>
-    `;
-  }
-
-  _bindBranchDropdown(documentId) {
-    const selectEl = document.getElementById(`branch-select-${documentId}`);
-    if (selectEl) {
-      selectEl.addEventListener("change", (e) => {
-        const idx = parseInt(e.target.value, 10);
-        if (!isNaN(idx) && this._loadedBranches && this._loadedBranches[idx]) {
-          this._displayBranchDetails(documentId, this._loadedBranches[idx]);
-        }
-      });
-    }
-  }
-
-  _displayBranchDetails(documentId, branch) {
-    const detailsEl = document.getElementById(`branch-details-${documentId}`);
-    if (!detailsEl) return;
-
-    const name = escapeHtml(branch.name || "Unnamed Branch");
-    const description = branch.description ? escapeHtml(branch.description) : "<em>No description</em>";
-    const createdAt = branch.createdAt ? new Date(branch.createdAt).toLocaleString() : "Unknown";
-    const modifiedAt = branch.modifiedAt ? new Date(branch.modifiedAt).toLocaleString() : "Unknown";
-    const creatorName = branch.creator?.name ? escapeHtml(branch.creator.name) : "Unknown";
-    const branchId = escapeHtml(branch.id || "");
-    const isMain = branch.isMainWorkspace ? '<span class="branch-main-badge">Main</span>' : "";
-
-    detailsEl.innerHTML = `
-      <div class="branch-detail-card">
-        <h5>${name} ${isMain}</h5>
-        <div class="branch-detail-row">
-          <span class="branch-label">Description:</span>
-          <span class="branch-value">${description}</span>
-        </div>
-        <div class="branch-detail-row">
-          <span class="branch-label">Created:</span>
-          <span class="branch-value">${createdAt}</span>
-        </div>
-        <div class="branch-detail-row">
-          <span class="branch-label">Modified:</span>
-          <span class="branch-value">${modifiedAt}</span>
-        </div>
-        <div class="branch-detail-row">
-          <span class="branch-label">Creator:</span>
-          <span class="branch-value">${creatorName}</span>
-        </div>
-        <div class="branch-detail-row">
-          <span class="branch-label">Branch ID:</span>
-          <span class="branch-value branch-id">${branchId}</span>
-        </div>
-      </div>
-    `;
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Branch Selector Methods
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  _renderBranchSelector(docData) {
-    return `
-      <div class="branch-selector-section" id="branch-selector-${docData.id}">
-        <div class="branch-selector-header">
-          <h4>Document Branches (Workspaces)</h4>
-          <button class="btn btn-secondary btn-sm load-branches-btn" id="load-branches-${docData.id}">
-            Load Branches
-          </button>
-        </div>
-        <div class="branch-selector-content" id="branch-content-${docData.id}">
-          <p class="branch-hint">Click "Load Branches" to see all workspaces/branches of this document.</p>
-        </div>
-      </div>
-    `;
-  }
-
-  _bindBranchSelector(docData) {
-    const loadBtn = document.getElementById(`load-branches-${docData.id}`);
-    if (loadBtn) {
-      loadBtn.addEventListener("click", () => this._handleLoadBranches(docData.id));
-    }
-  }
-
-  async _handleLoadBranches(documentId) {
-    const loadBtn = document.getElementById(`load-branches-${documentId}`);
-    const contentEl = document.getElementById(`branch-content-${documentId}`);
-
-    if (!contentEl) return;
-
-    // Show loading state
-    if (loadBtn) {
-      loadBtn.disabled = true;
-      loadBtn.textContent = "Loading...";
-    }
-    contentEl.innerHTML = '<p class="branch-loading">Fetching branches...</p>';
-
-    try {
-      const branches = await this.controller.documentService.getBranches(documentId);
-      this._loadedBranches = branches;
-
-      if (!branches || branches.length === 0) {
-        contentEl.innerHTML = '<p class="branch-empty">No branches found for this document.</p>';
-        if (loadBtn) {
-          loadBtn.textContent = "Reload Branches";
-          loadBtn.disabled = false;
-        }
-        return;
-      }
-
-      // Render branch dropdown
-      contentEl.innerHTML = this._renderBranchDropdown(branches, documentId);
-      this._bindBranchDropdown(documentId);
-
-      if (loadBtn) {
-        loadBtn.textContent = "Reload Branches";
-        loadBtn.disabled = false;
-      }
-    } catch (error) {
-      console.error("Error loading branches:", error);
-      contentEl.innerHTML = `<p class="branch-error">Failed to load branches: ${escapeHtml(error.message)}</p>`;
-      if (loadBtn) {
-        loadBtn.textContent = "Retry";
-        loadBtn.disabled = false;
-      }
-    }
-  }
-
-  _renderBranchDropdown(branches, documentId) {
-    const optionsHtml = branches.map((b, idx) => {
-      const name = escapeHtml(b.name || `Branch ${idx + 1}`);
-      const isMain = b.isMainWorkspace ? " (Main)" : "";
-      return `<option value="${idx}" data-branch-id="${escapeHtml(b.id)}">${name}${isMain}</option>`;
-    }).join("");
-
-    return `
-      <div class="branch-dropdown-container">
-        <label for="branch-select-${documentId}">Select Branch:</label>
-        <select id="branch-select-${documentId}" class="branch-select">
-          <option value="" disabled selected>-- Choose a branch --</option>
-          ${optionsHtml}
-        </select>
-      </div>
-      <div class="branch-details" id="branch-details-${documentId}">
-        <p class="branch-hint">Select a branch to view its details.</p>
-      </div>
-    `;
-  }
-
-  _bindBranchDropdown(documentId) {
-    const selectEl = document.getElementById(`branch-select-${documentId}`);
-    if (selectEl) {
-      selectEl.addEventListener("change", (e) => {
-        const idx = parseInt(e.target.value, 10);
-        if (!isNaN(idx) && this._loadedBranches && this._loadedBranches[idx]) {
-          this._displayBranchDetails(documentId, this._loadedBranches[idx]);
-        }
-      });
-    }
-  }
-
-  _displayBranchDetails(documentId, branch) {
-    const detailsEl = document.getElementById(`branch-details-${documentId}`);
-    if (!detailsEl) return;
-
-    const name = escapeHtml(branch.name || "Unnamed Branch");
-    const description = branch.description ? escapeHtml(branch.description) : "<em>No description</em>";
-    const createdAt = branch.createdAt ? new Date(branch.createdAt).toLocaleString() : "Unknown";
-    const modifiedAt = branch.modifiedAt ? new Date(branch.modifiedAt).toLocaleString() : "Unknown";
-    const creatorName = branch.creator?.name ? escapeHtml(branch.creator.name) : "Unknown";
-    const branchId = escapeHtml(branch.id || "");
-    const isMain = branch.isMainWorkspace ? '<span class="branch-main-badge">Main</span>' : "";
-
-    detailsEl.innerHTML = `
-      <div class="branch-detail-card">
-        <h5>${name} ${isMain}</h5>
-        <div class="branch-detail-row">
-          <span class="branch-label">Description:</span>
-          <span class="branch-value">${description}</span>
-        </div>
-        <div class="branch-detail-row">
-          <span class="branch-label">Created:</span>
-          <span class="branch-value">${createdAt}</span>
-        </div>
-        <div class="branch-detail-row">
-          <span class="branch-label">Modified:</span>
-          <span class="branch-value">${modifiedAt}</span>
-        </div>
-        <div class="branch-detail-row">
-          <span class="branch-label">Creator:</span>
-          <span class="branch-value">${creatorName}</span>
-        </div>
-        <div class="branch-detail-row">
-          <span class="branch-label">Branch ID:</span>
-          <span class="branch-value branch-id">${branchId}</span>
-        </div>
-      </div>
-    `;
+  /**
+   * Display note when a version is selected (not a branch)
+   */
+  _displayVersionNote(documentId, item) {
+    // Versions don't have editable workspace context, so we just note this
+    // Element actions will still work using the default workspace
+    console.log(`[DocumentDetailView] Version selected: ${item.name} (${item.id})`);
   }
 
   _setupThumbnail(docData) {
@@ -590,25 +388,27 @@ export class DocumentDetailView extends BaseView {
 
     if (!el || (el.elementType || el.type) !== "ASSEMBLY") return;
 
-    const doc = this.controller.state.getState().currentDocument;
-    if (!doc?.defaultWorkspace?.id) {
-      // const { showToast } = await import("../utils/toast-notification.js");
+    // Use current workspace context (updated when branch is selected)
+    const workspaceId = this._currentWorkspaceId;
+    if (!workspaceId) {
       showToast("No workspace available");
       return;
     }
+
+    const doc = this.controller.state.getState().currentDocument;
 
     if (format === "json") {
       await this.elementActions.handleFetchBomJson(
         el,
         doc.id,
-        doc.defaultWorkspace.id,
+        workspaceId,
         this.controller.documentService
       );
     } else {
       await this.elementActions.handleDownloadBomCsv(
         el,
         doc.id,
-        doc.defaultWorkspace.id,
+        workspaceId,
         this.controller.documentService
       );
     }
