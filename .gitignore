@@ -40,6 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# python
+.venv/
+
 # Files used as examples with actual data
 *.real.json
 /examples/real_onshape_docs/

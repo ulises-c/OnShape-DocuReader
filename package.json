@@ -10,8 +10,10 @@
     "dev": "concurrently \"nodemon src/index.ts\" \"vite\" \"npm run open-browser\"",
     "open-browser": "sh -c 'sleep 3 && wslview http://localhost:5173'",
     "clean": "rimraf dist",
-    "prebuild": "npm run clean",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "prebuild": "npm run clean && npm run spec",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "spec": "python project_tools/generate_spec.py . -o docs/SPEC.md --ignore project_tools examples notes",
+    "spec:preview": "python project_tools/generate_spec.py . --stdout --ignore project_tools examples notes | head -150"
   },
   "repository": {
     "type": "git",
