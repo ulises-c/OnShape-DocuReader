@@ -12,7 +12,7 @@
     "clean": "rimraf dist",
     "prebuild": "npm run clean && npm run spec",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "spec": "python project_tools/generate_spec.py . -o docs/SPEC.md --ignore project_tools examples notes",
+    "spec": "python project_tools/generate_spec.py . -o AUTO_SPEC.md --ignore project_tools examples notes",
     "spec:preview": "python project_tools/generate_spec.py . --stdout --ignore project_tools examples notes | head -150"
   },
   "repository": {
