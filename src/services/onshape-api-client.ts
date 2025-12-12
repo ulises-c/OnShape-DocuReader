@@ -384,6 +384,19 @@ export class OnShapeApiClient {
     return response.data || [];
   }
 
+  /**
+   * Get document elements by version ID (read-only version context)
+   */
+  async getElementsByVersion(
+    documentId: string,
+    versionId: string
+  ): Promise<OnShapeDocumentElement[]> {
+    const response = await this.axiosInstance.get(
+      `/documents/d/${documentId}/v/${versionId}/elements`
+    );
+    return response.data || [];
+  }
+
   async getParts(
     documentId: string,
     workspaceId: string,

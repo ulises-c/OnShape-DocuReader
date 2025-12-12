@@ -250,6 +250,24 @@ router.get(
 );
 
 router.get(
+  "/documents/:id/versions/:vid/elements",
+  async (req: Request, res: Response): Promise<Response> => {
+    try {
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
+      const elements = await client.getElementsByVersion(req.params.id, req.params.vid);
+      return res.json(elements);
+    } catch (error) {
+      console.error("Get elements by version error:", error);
+      return res.status(500).json({ error: "Failed to fetch elements for version" });
+    }
+  }
+);
+
+router.get(
   "/documents/:id/workspaces/:wid/elements/:eid/parts",
   async (req: Request, res: Response): Promise<Response> => {
     try {

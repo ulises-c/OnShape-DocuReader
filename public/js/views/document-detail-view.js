@@ -33,6 +33,8 @@ export class DocumentDetailView extends BaseView {
     this._loadedHistory = null;
     this._selectedHistoryItem = null; // Track currently selected version/branch
     this._currentWorkspaceId = docData.defaultWorkspace?.id || null; // Track active workspace for element operations
+    this._currentContextType = 'w'; // Default to workspace context
+    this._currentContextId = docData.defaultWorkspace?.id || null; // Track current context ID (workspace or version)
 
     const infoContainer = document.getElementById("documentInfo");
     if (infoContainer) {
@@ -172,14 +174,21 @@ export class DocumentDetailView extends BaseView {
           this._selectedHistoryItem = item;
           this._displayHistoryDetails(documentId, item);
           
-          // Update workspace context and reload elements for branches
+          console.log(`[DocumentDetailView] History selection changed: type=${item.type}, id=${item.id}, name=${item.name}`);
+          
+          // Update context and reload elements based on type
           if (item.type === 'branch') {
+            // Branch (workspace) selected - update workspace context
             this._currentWorkspaceId = item.id;
-            await this._reloadElementsForWorkspace(documentId, item.id);
+            this._currentContextType = 'w';
+            this._currentContextId = item.id;
+            await this._reloadElementsForWorkspace(documentId, item.id, 'w');
           } else {
-            // Versions: show note that element operations will use version context
-            // For now, keep current workspace but note the version selection
-            this._displayVersionNote(documentId, item);
+            // Version selected - update version context
+            // Keep the workspace ID for BOM operations (versions are read-only snapshots)
+            this._currentContextType = 'v';
+            this._currentContextId = item.id;
+            await this._reloadElementsForVersion(documentId, item.id);
           }
         }
       });
@@ -210,10 +219,10 @@ export class DocumentDetailView extends BaseView {
     // Show context note for workspace selection
     const contextNote = item.type === 'branch' 
       ? `<div class="history-context-note history-context-active">
-          ✅ Elements below now show content from this workspace. Element actions will use this context.
+          ✅ Elements and thumbnail now show content from this workspace. Element actions will use this context.
         </div>`
       : `<div class="history-context-note history-context-version">
-          ℹ️ Version selected. Element actions require workspace context; using default workspace for operations.
+          ℹ️ Version selected. Thumbnail updated. Element actions require workspace context; using default workspace for operations.
         </div>`;
 
     detailsEl.innerHTML = `
@@ -247,8 +256,11 @@ export class DocumentDetailView extends BaseView {
 
   /**
    * Reload elements list for a specific workspace (branch selection)
+   * @param {string} documentId - Document ID
+   * @param {string} workspaceId - Workspace ID
+   * @param {string} contextType - Context type ('w' for workspace)
    */
-  async _reloadElementsForWorkspace(documentId, workspaceId) {
+  async _reloadElementsForWorkspace(documentId, workspaceId, contextType = 'w') {
     const elementsContainer = document.getElementById("documentElements");
     if (!elementsContainer) return;
 
@@ -268,7 +280,13 @@ export class DocumentDetailView extends BaseView {
       elementsContainer.innerHTML = renderElementsList(elements);
       
       // Re-bind element actions with new workspace context
+      // Store context type and ID for element actions to use correct endpoints
+      this._currentContextType = 'w';
+      this._currentContextId = workspaceId;
       this._bindElementActions(elementsContainer, this._currentDocData);
+      
+      // Reload thumbnail for the new workspace context
+      this._reloadThumbnailForContext(documentId, workspaceId, contextType);
       
       showToast(`Loaded ${elements?.length || 0} elements from workspace`);
     } catch (error) {
@@ -278,12 +296,113 @@ export class DocumentDetailView extends BaseView {
   }
 
   /**
-   * Display note when a version is selected (not a branch)
+   * Reload elements list for a specific version (version selection)
+   * Note: Version context is read-only, some element actions may have limited functionality
+   * @param {string} documentId - Document ID
+   * @param {string} versionId - Version ID
    */
-  _displayVersionNote(documentId, item) {
-    // Versions don't have editable workspace context, so we just note this
-    // Element actions will still work using the default workspace
-    console.log(`[DocumentDetailView] Version selected: ${item.name} (${item.id})`);
+  async _reloadElementsForVersion(documentId, versionId) {
+    const elementsContainer = document.getElementById("documentElements");
+    if (!elementsContainer) return;
+
+    // Show loading state
+    elementsContainer.innerHTML = `<div class="elements-loading">Loading elements for selected version...</div>`;
+
+    try {
+      // Use version context for API call - need to use 'v' type endpoint
+      // Note: We fetch elements via the version endpoint
+      const response = await fetch(`/api/documents/${documentId}/versions/${versionId}/elements`);
+      
+      let elements = [];
+      if (response.ok) {
+        elements = await response.json();
+      } else if (response.status === 404) {
+        // Version elements endpoint may not exist; fall back to showing a message
+        console.warn(`[DocumentDetailView] Version elements endpoint not available, using default workspace`);
+        // Fall back to default workspace elements but note the version context
+        const doc = this._currentDocData;
+        if (doc?.defaultWorkspace?.id) {
+          elements = await this.controller.documentService.getElements(documentId, doc.defaultWorkspace.id);
+        }
+      } else {
+        throw new Error(`Failed to load elements (${response.status})`);
+      }
+      
+      // Update elements map
+      this._elementsMap.clear();
+      if (elements?.length) {
+        elements.forEach((el) => this._elementsMap.set(String(el.id), el));
+      }
+      
+      // Re-render elements list
+      elementsContainer.innerHTML = renderElementsList(elements);
+      
+      // Re-bind element actions
+      // For versions, we store the version ID and context type so element actions can use version-specific endpoints
+      this._currentContextType = 'v';
+      this._currentContextId = versionId;
+      this._bindElementActions(elementsContainer, this._currentDocData);
+      
+      // Reload thumbnail for the version context
+      this._reloadThumbnailForContext(documentId, versionId, 'v');
+      
+      showToast(`Loaded ${elements?.length || 0} elements from version`);
+    } catch (error) {
+      console.error("Error loading elements for version:", error);
+      elementsContainer.innerHTML = `<div class="elements-error">Failed to load elements: ${escapeHtml(error.message)}</div>`;
+    }
+  }
+
+  /**
+   * Reload thumbnail for a specific workspace or version context
+   * @param {string} documentId - Document ID
+   * @param {string} contextId - Workspace ID or Version ID
+   * @param {string} contextType - 'w' for workspace, 'v' for version
+   */
+  _reloadThumbnailForContext(documentId, contextId, contextType) {
+    // The thumbnail image element ID matches the pattern in document-info-renderer.js
+    const thumbnailImg = document.getElementById(`document-thumbnail-img-${documentId}`);
+    if (!thumbnailImg) {
+      console.log(`[DocumentDetailView] No thumbnail element found for document ${documentId} (looking for document-thumbnail-img-${documentId})`);
+      return;
+    }
+
+    // Build the OnShape thumbnail URL with the new context
+    // OnShape thumbnail URL pattern: /api/thumbnails/d/{did}/{wvm}/{wvmid}/s/{size}
+    const size = '300x300'; // Default size, matches preferred size in _setupThumbnail
+    const thumbnailUrl = `https://cad.onshape.com/api/thumbnails/d/${documentId}/${contextType}/${contextId}/s/${size}`;
+    
+    // Add cache-busting parameter to force reload
+    const cacheBuster = Date.now();
+    const proxyUrl = `/api/thumbnail-proxy?url=${encodeURIComponent(thumbnailUrl)}&_cb=${cacheBuster}`;
+    
+    console.log(`[DocumentDetailView] Reloading thumbnail for ${contextType === 'w' ? 'workspace' : 'version'}: ${contextId}`);
+    console.log(`[DocumentDetailView] Thumbnail URL: ${thumbnailUrl}`);
+    console.log(`[DocumentDetailView] Proxy URL: ${proxyUrl}`);
+    
+    // Show loading state
+    thumbnailImg.style.opacity = '0.5';
+    
+    // Directly update the src to trigger reload (simpler approach that works better with proxy)
+    thumbnailImg.onload = () => {
+      thumbnailImg.style.opacity = '1';
+      thumbnailImg.style.display = 'block'; // Ensure visible after load
+      console.log(`[DocumentDetailView] Thumbnail loaded successfully for ${contextType}/${contextId}`);
+      
+      // Hide placeholder if present
+      const placeholder = document.getElementById(`thumbnail-placeholder-${documentId}`);
+      if (placeholder) {
+        placeholder.style.display = 'none';
+      }
+    };
+    thumbnailImg.onerror = (err) => {
+      console.warn(`[DocumentDetailView] Failed to load thumbnail for ${contextType}/${contextId}:`, err);
+      thumbnailImg.style.opacity = '1';
+      // Keep the existing thumbnail on error
+    };
+    
+    // Update src directly - the cache buster ensures fresh fetch
+    thumbnailImg.src = proxyUrl;
   }
 
   _setupThumbnail(docData) {
@@ -388,11 +507,27 @@ export class DocumentDetailView extends BaseView {
 
     if (!el || (el.elementType || el.type) !== "ASSEMBLY") return;
 
-    // Use current workspace context (updated when branch is selected)
-    const workspaceId = this._currentWorkspaceId;
-    if (!workspaceId) {
-      showToast("No workspace available");
+    // Use current context (workspace or version) - updated when branch/version is selected
+    const contextId = this._currentContextId || this._currentWorkspaceId;
+    const contextType = this._currentContextType || 'w';
+    
+    if (!contextId) {
+      showToast("No workspace or version context available");
       return;
+    }
+
+    // For versions, BOM API requires workspace context - use the selected version's workspace if available
+    // or fall back to default workspace for version snapshots
+    let workspaceIdForBom = contextId;
+    if (contextType === 'v') {
+      // Versions don't have direct BOM access; we need to use the workspace context
+      // For now, use the default workspace - the BOM will reflect the current state
+      workspaceIdForBom = this._currentWorkspaceId || this._currentDocData?.defaultWorkspace?.id;
+      if (!workspaceIdForBom) {
+        showToast("BOM requires workspace context; no workspace available for this version");
+        return;
+      }
+      showToast("Note: BOM fetched from workspace context (versions are snapshots)");
     }
 
     const doc = this.controller.state.getState().currentDocument;
@@ -401,14 +536,14 @@ export class DocumentDetailView extends BaseView {
       await this.elementActions.handleFetchBomJson(
         el,
         doc.id,
-        workspaceId,
+        workspaceIdForBom,
         this.controller.documentService
       );
     } else {
       await this.elementActions.handleDownloadBomCsv(
         el,
         doc.id,
-        workspaceId,
+        workspaceIdForBom,
         this.controller.documentService
       );
     }
