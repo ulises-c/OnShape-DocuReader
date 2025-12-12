@@ -42,6 +42,7 @@ next-env.d.ts
 
 # python
 .venv/
+examples/example_python_real/
 
 # Files used as examples with actual data
 *.real.json
