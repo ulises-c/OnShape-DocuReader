@@ -2,9 +2,11 @@ import { AppState } from "./state/app-state.js";
 import { ApiClient } from "./services/api-client.js";
 import { AuthService } from "./services/auth-service.js";
 import { DocumentService } from "./services/document-service.js";
+import { AirtableService } from "./services/airtable-service.js";
 import { ExportService } from "./services/export-service.js";
 import { ThumbnailService } from "./services/thumbnail-service.js";
 import { Navigation } from "./views/navigation.js";
+import { AirtableController } from "./controllers/airtable-controller.js";
 import { ModalManager } from "./views/modal-manager.js";
 import { AppController } from "./controllers/app-controller.js";
 import { DocumentController } from "./controllers/document-controller.js";
@@ -17,12 +19,16 @@ import { configureRoutes, ROUTES } from "./router/routes.js";
 const state = new AppState();
 const apiClient = new ApiClient();
 
+// Airtable service (standalone, uses its own API routes)
+const airtableService = new AirtableService();
+
 // Services bundle
 const services = {
   authService: new AuthService(apiClient),
   documentService: new DocumentService(apiClient),
   exportService: new ExportService(apiClient),
   thumbnailService: new ThumbnailService(),
+  airtableService: airtableService,
   apiClient: apiClient,
 };
 
@@ -38,10 +44,12 @@ const documentController = new DocumentController(
   services.thumbnailService
 );
 const exportController = new ExportController(state, services, modalManager);
+const airtableController = new AirtableController(state, services, navigation);
 
 const controllers = {
   documentController,
   exportController,
+  airtableController,
 };
 
 // Wire up modal manager handlers
@@ -52,6 +60,9 @@ modalManager.setHandlers({
 
 // Expose documentController globally for PartDetailView back button access
 window.__documentController = documentController;
+
+// Wire router to airtableController for navigation
+airtableController.router = null; // Will be set after router initialization
 
 // Boot application
 const appController = new AppController(
@@ -149,9 +160,10 @@ const appController = new AppController(
       },
     });
 
-    // Expose router and historyState to documentController for link generation
+    // Expose router and historyState to controllers for link generation
     documentController.router = router;
     documentController.historyState = historyState;
+    airtableController.router = router;
 
     // Configure routes with controller instance so restored state flows through correctly
     configureRoutes(router, {
@@ -167,6 +179,7 @@ const appController = new AppController(
       export: {
         show: () => {},
       },
+      airtable: airtableController,
     });
 
     // Start router first

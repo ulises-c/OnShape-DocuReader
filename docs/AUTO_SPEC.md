@@ -1,6 +1,6 @@
 # OnShape-DocuReader - Project Specification
 
-> Auto-generated: 2025-12-12 14:37:09
+> Auto-generated: 2025-12-12 15:05:32
 
 ## Directory Structure
 
@@ -142,7 +142,7 @@ OnShape-DocuReader/
 ## Module Overview
 
 Total files: 66
-Total lines: 14,491
+Total lines: 14,697
 
 ### Root
 
@@ -152,17 +152,16 @@ Total lines: 14,491
 
 ### public/js
 
-#### `app.js` (208 lines)
+#### `app.js` (213 lines)
 
 ### public/js/controllers
 
-#### `airtable-controller.js` (250 lines)
+#### `airtable-controller.js` (211 lines)
 
 _* AirtableController - handles Airtable authentication and thumbnail upload workflows_
 
 - **Exports:** `AirtableController`
 - **Classes:** `AirtableController`
-- **Functions:** `escapeHandler`
 
 #### `app-controller.js` (118 lines)
 - **Exports:** `AppController`
@@ -193,7 +192,7 @@ _* Lightweight hash-based Router. * Responsibilities: - Register route patterns 
 - **Classes:** `Router`
 - **Functions:** `return`
 
-#### `routes.js` (139 lines)
+#### `routes.js` (145 lines)
 
 _* Route definitions and configuration. * Provides: - ROUTES map with normalized route patterns - configureRoutes(router, controllers) to bind patterns to controller handlers - pathTo(pattern, params?,..._
 
@@ -201,7 +200,7 @@ _* Route definitions and configuration. * Provides: - ROUTES map with normalized
 
 ### public/js/services
 
-#### `airtable-service.js` (207 lines)
+#### `airtable-service.js` (136 lines)
 
 _* AirtableService - handles Airtable API interactions from frontend_
 
@@ -334,12 +333,12 @@ _* Centralized toast notification system_
 
 ### public/js/views
 
-#### `airtable-upload-view.js` (462 lines)
+#### `airtable-upload-view.js` (691 lines)
 
 _* AirtableUploadView - UI for uploading thumbnails to Airtable_
 
 - **Exports:** `AirtableUploadView`
-- **Classes:** `AirtableUploadView`
+- **Classes:** `AirtableUploadView extends BaseView`
 
 #### `base-view.js` (33 lines)
 
@@ -405,7 +404,7 @@ _* ModalManager - controls export and progress modals_
 - **Classes:** `ModalManager`
 - **Functions:** `getChecked, getRadio`
 
-#### `navigation.js` (20 lines)
+#### `navigation.js` (29 lines)
 
 _* Navigation - page transitions_
 
@@ -507,12 +506,13 @@ _* Airtable Authentication Routes * Handles OAuth 2.0 flow for Airtable authenti
 
 ### src/services
 
-#### `airtable-api-client.ts` (304 lines)
+#### `airtable-api-client.ts` (364 lines)
 
-_* Airtable API Client * Provides methods for interacting with Airtable's REST API. Handles record operations, schema retrieval, and attachment uploads._
+_* Airtable API Client Provides methods for interacting with Airtable's REST API. Handles record operations, schema retrieval, and attachment uploads._
 
 - **Exports:** `AirtableApiClient, AirtableRecord, AirtableListResponse, TableField, TableSchema, AttachmentResult, AirtableBase, AirtableBasesResponse`
 - **Classes:** `AirtableApiClient`
+- **Dependencies:** `axios`
 
 #### `airtable-oauth-service.ts` (179 lines)
 
@@ -522,7 +522,7 @@ _* Airtable OAuth 2.0 Service * Handles OAuth 2.0 Authorization Code flow with P
 - **Classes:** `AirtableOAuthService`
 - **Dependencies:** `axios, crypto`
 
-#### `airtable-thumbnail-service.ts` (295 lines)
+#### `airtable-thumbnail-service.ts` (302 lines)
 
 _* Airtable Thumbnail Upload Service * Handles processing ZIP files containing thumbnails and uploading them to matching Airtable records based on part number._
 

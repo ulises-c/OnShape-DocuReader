@@ -9,6 +9,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import authRoutes from "./routes/auth.ts";
 import apiRoutes from "./routes/api.ts";
+import airtableAuthRoutes from "./routes/airtable-auth.ts";
+import airtableApiRoutes from "./routes/airtable-api.ts";
 import { oauthConfig } from "./config/oauth.ts";
 import { SessionStorage } from "./services/session-storage.ts";
 
@@ -93,7 +95,9 @@ setInterval(() => {
 }, 60 * 60 * 1000);
 
 app.use("/auth", authRoutes);
+app.use("/auth/airtable", airtableAuthRoutes);
 app.use("/api", apiRoutes);
+app.use("/api/airtable", airtableApiRoutes);
 
 if (process.env.NODE_ENV === "production") {
   app.use(

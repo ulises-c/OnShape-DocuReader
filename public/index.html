@@ -56,6 +56,7 @@
                     <button id="getAllBtn" class="btn btn-success">Get All</button>
                     <button id="getSelectedBtn" class="btn btn-info" disabled>Get Selected</button>
                     <button id="exportCSVBtn" class="btn btn-warning">Export CSV [ASM/PRT]</button>
+                    <button id="airtableUploadBtn" class="btn btn-info" title="Upload thumbnails to Airtable">📊 Airtable</button>
                 </div>
 
                 <div class="dashboard-layout">
@@ -152,6 +153,17 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Airtable Upload -->
+            <div id="airtableUpload" class="page">
+                <div class="detail-header">
+                    <button id="backFromAirtableBtn" class="btn btn-secondary">← Back to Documents</button>
+                    <h2>Airtable Thumbnail Upload</h2>
+                </div>
+                <div class="airtable-upload-container" id="airtableUploadContainer">
+                    <!-- Content rendered by AirtableUploadView -->
                 </div>
             </div>
 

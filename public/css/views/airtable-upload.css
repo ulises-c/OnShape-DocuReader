@@ -1,0 +1,467 @@
+/* Airtable Upload View Styles */
+
+.airtable-upload-panel {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--spacing-lg);
+}
+
+.airtable-upload-container {
+  padding: var(--spacing-lg);
+}
+
+/* Auth Section */
+.airtable-auth-section {
+  text-align: center;
+  padding: var(--spacing-xl) var(--spacing-lg);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.airtable-auth-section .auth-icon {
+  font-size: 3rem;
+  margin-bottom: var(--spacing-md);
+}
+
+.airtable-auth-section h3 {
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--color-primary);
+}
+
+.airtable-auth-section p {
+  color: var(--color-text-light);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* Header with status */
+.airtable-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.airtable-status {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-text-light);
+}
+
+.status-indicator.connected {
+  background: var(--color-success, #28a745);
+}
+
+.status-indicator.disconnected {
+  background: var(--color-error, #dc3545);
+}
+
+/* Upload Section */
+.upload-section {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.upload-section h3 {
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--color-primary);
+}
+
+/* Requirements */
+.upload-requirements {
+  background: var(--color-bg-dark);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.upload-requirements h4 {
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.upload-requirements ul {
+  margin: 0;
+  padding-left: var(--spacing-lg);
+  font-size: 0.9rem;
+  color: var(--color-text-light);
+}
+
+.upload-requirements code {
+  background: var(--color-bg-card);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+}
+
+/* Configuration */
+.config-section {
+  margin-bottom: var(--spacing-lg);
+}
+
+.config-section h4 {
+  margin: 0 0 var(--spacing-md) 0;
+  font-size: 0.95rem;
+  color: var(--color-text);
+}
+
+.config-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.config-row label {
+  min-width: 140px;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.config-row .form-select,
+.config-row .form-input {
+  flex: 1;
+  max-width: 400px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+}
+
+.config-row .form-select:focus,
+.config-row .form-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
+}
+
+/* Dropzone */
+.upload-dropzone {
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl);
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  margin-bottom: var(--spacing-md);
+}
+
+.upload-dropzone:hover,
+.upload-dropzone.dragover {
+  border-color: var(--color-primary);
+  background: rgba(0, 123, 255, 0.05);
+}
+
+.dropzone-content {
+  pointer-events: none;
+}
+
+.dropzone-icon {
+  font-size: 2.5rem;
+  margin-bottom: var(--spacing-sm);
+}
+
+.dropzone-content p {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.dropzone-hint {
+  font-size: 0.85rem;
+  color: var(--color-text-light);
+  margin-top: var(--spacing-xs) !important;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  padding: 0;
+  font-size: inherit;
+  text-decoration: underline;
+  pointer-events: auto;
+}
+
+/* Selected File Display */
+.selected-file {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: var(--color-bg-dark);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.selected-file .file-icon {
+  font-size: 1.5rem;
+}
+
+.selected-file .file-name {
+  flex: 1;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selected-file .file-size {
+  color: var(--color-text-light);
+  font-size: 0.9rem;
+}
+
+.selected-file .btn-icon {
+  background: none;
+  border: none;
+  color: var(--color-text-light);
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  font-size: 1rem;
+  border-radius: var(--radius-sm);
+}
+
+.selected-file .btn-icon:hover {
+  background: var(--color-bg-card);
+  color: var(--color-error, #dc3545);
+}
+
+/* Upload Options */
+.upload-options {
+  margin-bottom: var(--spacing-lg);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+/* Upload Actions */
+.upload-actions {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+/* Progress Section */
+.upload-progress {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.upload-progress h4 {
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+.progress-bar-container {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.progress-bar {
+  flex: 1;
+  height: 20px;
+  background: var(--color-bg-dark);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--color-primary);
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  min-width: 50px;
+  text-align: right;
+  font-weight: 500;
+}
+
+.progress-status {
+  color: var(--color-text-light);
+  font-size: 0.9rem;
+  margin: var(--spacing-sm) 0 var(--spacing-md) 0;
+}
+
+/* Results Section */
+.upload-results {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.upload-results h4 {
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+.results-summary {
+  margin-bottom: var(--spacing-lg);
+}
+
+.summary-stats {
+  display: flex;
+  gap: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.summary-stats .stat {
+  text-align: center;
+  padding: var(--spacing-md);
+  background: var(--color-bg-dark);
+  border-radius: var(--radius-md);
+  min-width: 100px;
+}
+
+.summary-stats .stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.summary-stats .stat-label {
+  font-size: 0.85rem;
+  color: var(--color-text-light);
+}
+
+.summary-stats .stat-success .stat-value {
+  color: var(--color-success, #28a745);
+}
+
+.summary-stats .stat-error .stat-value {
+  color: var(--color-error, #dc3545);
+}
+
+.summary-stats .stat-info .stat-value {
+  color: var(--color-info, #17a2b8);
+}
+
+/* Results Table */
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.results-table th,
+.results-table td {
+  padding: var(--spacing-sm) var(--spacing-md);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.results-table th {
+  background: var(--color-bg-dark);
+  font-weight: 600;
+}
+
+.results-table tr:hover {
+  background: var(--color-bg-dark);
+}
+
+.results-details {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.status-badge.status-uploaded {
+  background: rgba(40, 167, 69, 0.1);
+  color: var(--color-success, #28a745);
+}
+
+.status-badge.status-matched {
+  background: rgba(23, 162, 184, 0.1);
+  color: var(--color-info, #17a2b8);
+}
+
+.status-badge.status-skipped {
+  background: rgba(108, 117, 125, 0.1);
+  color: var(--color-text-light);
+}
+
+.status-badge.status-error {
+  background: rgba(220, 53, 69, 0.1);
+  color: var(--color-error, #dc3545);
+}
+
+.results-truncated {
+  text-align: center;
+  color: var(--color-text-light);
+  font-style: italic;
+  margin-top: var(--spacing-md);
+}
+
+.no-results {
+  text-align: center;
+  color: var(--color-text-light);
+  font-style: italic;
+  padding: var(--spacing-lg);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .airtable-upload-panel {
+    padding: var(--spacing-md);
+  }
+
+  .config-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .config-row label {
+    min-width: auto;
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .config-row .form-select,
+  .config-row .form-input {
+    max-width: none;
+  }
+
+  .summary-stats {
+    justify-content: center;
+  }
+
+  .summary-stats .stat {
+    flex: 1;
+    min-width: 80px;
+  }
+}

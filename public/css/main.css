@@ -23,4 +23,5 @@
 @import './views/part-detail.css';
 @import './views/export.css';
 @import './views/export-filter-modal.css';
+@import './views/airtable-upload.css';
 @import './components/pagination.css';

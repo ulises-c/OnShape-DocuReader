@@ -1,5 +1,7 @@
 # OnShape DocuReader – Efficient SPEC file for LLMs & AI Agents
 
+> Last Updated: 2025-12-12 15:00:00 PST
+
 ## Overview
 
 OnShape DocuReader is a secure web application that authenticates against the OnShape API v12 using OAuth 2.0 PKCE to let users browse their documents, inspect elements and metadata, and execute comprehensive exports (JSON, ZIP, CSV) with progress tracking. The project deliberately avoids heavy frontend frameworks, instead using modular vanilla JavaScript paired with a TypeScript/Express backend.
@@ -116,19 +118,131 @@ Express Server (src/)
 - Build commands: `npm run dev` (nodemon + Vite), `npm run build`, `npm start`.
 - TypeScript configuration targets ES2020, NodeNext modules, strict mode, no emit during dev (`noEmit: true`).
 
-## Active Initiatives & TODO Highlights
+## Airtable Integration
 
-1. **Enhanced BOM to CSV workflow** (filtering, replacing deprecated helpers, automated exporters, user-driven filtering UI).
-2. **Download indicators and detailed API usage tracking** across sessions with visualization.
-3. **Bug fixes & UI improvements** for child element interactions, detail layouts, and hierarchy loading.
-4. **Document list enhancements**: pagination backed by API (implemented), folder-based navigation via `globaltreenodes`, caching, and database storage.
-5. **Export UX updates**: standardized download locations/structures, thumbnail downloads, image handling.
-6. **Caching/database layer** considerations (Redis/SQL) for scalability.
+The application supports optional Airtable integration for uploading CAD thumbnails to matching Airtable records.
 
-## Future Roadmap (from architecture notes & prompts)
+### Architecture
 
-- Complete SSE streaming for aggregate BOM progress (progress events, ETA, abort handling).
-- Improve caching, rate limiting, and real-time progress monitoring on backend.
-- Frontend enhancements: navigation system, hierarchy visualization, progressive loading, better document tiles.
-- Developer experience upgrades: debugging tools, documentation, testing infrastructure.
-- Potential adoption of service workers, WebSocket updates, and progressive web app capabilities.
+```
+Frontend (Browser)
+├── AirtableController - Orchestrates auth flow and upload UI
+│   ├── showUploadPage() - Render upload view with auth status
+│   ├── navigateToUpload() - Router-based navigation
+│   └── Router integration for ROUTES.AIRTABLE_UPLOAD
+├── AirtableService - API calls to backend Airtable routes
+│   ├── getAuthStatus() - Check authentication
+│   ├── getConfiguration() - Check server config
+│   ├── login() / logout() - Auth flow
+│   ├── getBases() / getTables() - List resources
+│   └── uploadThumbnails() - ZIP upload with progress
+└── AirtableUploadView - ZIP upload UI with progress tracking
+    ├── Drag-and-drop ZIP upload
+    ├── Dry run mode toggle
+    ├── Progress bar and status log
+    └── Auth status display
+
+Backend (Express)
+├── /auth/airtable/* - OAuth 2.0 routes
+│   ├── GET /login - Initiate OAuth with PKCE
+│   ├── GET /callback - Handle OAuth callback
+│   ├── GET /status - Check auth status
+│   └── POST /logout - Clear Airtable session
+├── /api/airtable/* - API proxy routes
+│   ├── GET /config - Check server configuration (no auth)
+│   ├── GET /bases - List accessible bases
+│   ├── GET /bases/:baseId/tables - List tables
+│   ├── GET /bases/:baseId/tables/:tableId/schema - Get field schema
+│   └── POST /upload-thumbnails - Process ZIP and upload
+├── AirtableOAuthService - PKCE OAuth flow
+│   ├── generateAuthUrl() - Build OAuth URL with code challenge
+│   ├── exchangeCodeForTokens() - Exchange code for tokens
+│   └── refreshAccessToken() - Token refresh
+├── AirtableApiClient - REST API client
+│   ├── listBases() / listTables() - Resource listing
+│   ├── listRecords() - Query with filterByFormula
+│   ├── getTableSchema() - Get field IDs for uploads
+│   └── uploadAttachment() - Direct attachment upload
+└── AirtableThumbnailService - ZIP processing
+    ├── parseFilename() - Extract part number from filename
+    ├── processZipFile() - Extract and process thumbnails
+    ├── findRecordByPartNumber() - Match to Airtable records
+    └── uploadThumbnail() - Upload single attachment
+```
+
+### Key Features
+
+- **Separate OAuth Flow**: Airtable auth is independent from OnShape auth
+- **PKCE Security**: Uses OAuth 2.0 Authorization Code flow with PKCE (S256)
+- **ZIP Processing**: Server-side extraction of thumbnail ZIP files via JSZip
+- **Part Number Matching**: Filenames parsed as `{bomItem}_{partNumber}_{name}.png`
+- **Direct Upload**: Uses Airtable's content upload API (requires field ID from schema)
+- **Dry Run Mode**: Preview matches without uploading
+- **Progress Tracking**: Real-time upload progress via callbacks
+- **Rate Limiting**: 5 requests/second per base (Airtable limit)
+
+### Import Notes
+
+When importing from `airtable-api-client.ts`, use type-only imports for interfaces:
+```typescript
+import { AirtableApiClient } from './airtable-api-client.ts';
+import type { AirtableRecord } from './airtable-api-client.ts';
+```
+
+This ensures proper ESM compatibility with TypeScript's NodeNext module resolution.
+
+### AirtableApiClient Methods
+
+| Method | Description |
+|--------|-------------|
+| `listBases()` | List all accessible bases |
+| `listTables(baseId)` / `getTables(baseId)` | List tables in a base |
+| `listRecords(baseId, tableId, options?)` | Query records with filtering, pagination |
+| `getRecord(baseId, tableId, recordId)` | Get single record by ID |
+| `updateRecord(baseId, tableId, recordId, fields)` | Update record fields |
+| `getTableSchema(baseId, tableId)` | Get table schema with field IDs |
+| `getFieldId(baseId, tableId, fieldName)` | Find field ID by name |
+| `uploadAttachment(baseId, recordId, fieldId, buffer, filename, contentType)` | Direct file upload |
+| `findRecordsByField(baseId, tableId, fieldName, value, options?)` | Find records by field value |
+| `findRecordByField(baseId, tableId, fieldName, value)` | Find single record by field |
+| `findRecordByPartNumber(baseId, tableId, partNumber, partNumberField?)` | Find record by part number |
+
+### Routes
+
+| Method | Endpoint                                             | Auth | Description                |
+| ------ | ---------------------------------------------------- | ---- | -------------------------- |
+| GET    | `/auth/airtable/login`                               | No   | Initiate OAuth flow        |
+| GET    | `/auth/airtable/callback`                            | No   | OAuth callback handler     |
+| GET    | `/auth/airtable/status`                              | No   | Check auth status          |
+| POST   | `/auth/airtable/logout`                              | Yes  | Clear Airtable session     |
+| GET    | `/api/airtable/config`                               | No   | Check server configuration |
+| GET    | `/api/airtable/bases`                                | Yes  | List accessible bases      |
+| GET    | `/api/airtable/bases/:baseId/tables`                 | Yes  | List tables in base        |
+| GET    | `/api/airtable/bases/:baseId/tables/:tableId/schema` | Yes  | Get table field schema     |
+| POST   | `/api/airtable/upload-thumbnails`                    | Yes  | Upload thumbnails from ZIP |
+
+### Environment Variables
+
+```bash
+# Airtable OAuth Configuration
+AIRTABLE_CLIENT_ID=...
+AIRTABLE_CLIENT_SECRET=...
+AIRTABLE_REDIRECT_URI=http://localhost:3000/auth/airtable/callback
+
+# Airtable Database Configuration (optional defaults)
+AIRTABLE_BASE_ID=appXXXXXXXX
+AIRTABLE_TABLE_ID=tblXXXXXXXX
+AIRTABLE_PART_NUMBER_FIELD=Part number
+AIRTABLE_THUMBNAIL_FIELD=CAD_Thumbnail
+```
+
+### Data Flow
+
+1. **Configuration Check**: Frontend calls `/api/airtable/config` to verify server setup
+2. **Authentication**: User clicks Airtable button → OAuth flow with PKCE → tokens stored in session
+3. **Upload Flow**:
+   - User uploads ZIP file containing thumbnails
+   - Server extracts ZIP, parses filenames for part numbers
+   - Server queries Airtable for matching records by part number
+   - Server uploads attachments using direct upload API
+   - Progress reported back to frontend

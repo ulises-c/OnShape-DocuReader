@@ -17,4 +17,13 @@ export class Navigation {
       console.warn('navigateTo: page not found', pageId);
     }
   }
+
+  /**
+   * Get the currently active page ID
+   * @returns {string|null} The ID of the active page or null
+   */
+  getCurrentPage() {
+    const activePage = this.pages.find(p => p.classList.contains('active'));
+    return activePage?.id || null;
+  }
 }

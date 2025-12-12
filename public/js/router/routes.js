@@ -24,6 +24,7 @@ export const ROUTES = {
   ASSEMBLY_DETAILED_VIEW: "/assembly/:id/detailed",
   SEARCH_RESULTS: "/search",
   EXPORT_VIEW: "/export/:documentId",
+  AIRTABLE_UPLOAD: "/airtable/upload",
 };
 
 /**
@@ -77,6 +78,11 @@ export function configureRoutes(router, controllers = {}) {
   router.register(ROUTES.EXPORT_VIEW, (params, state, context) => {
     controllers.export?.showForDocument?.(params.documentId, state, context) ||
       controllers.export?.show?.(state, context);
+  });
+
+  // Airtable upload route
+  router.register(ROUTES.AIRTABLE_UPLOAD, (_params, state, context) => {
+    controllers.airtable?.showUploadPage?.(state, context);
   });
 
   // Home route fallback to dashboard/list

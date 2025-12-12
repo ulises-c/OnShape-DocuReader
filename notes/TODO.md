@@ -75,4 +75,27 @@ The numbering is just show that it's easier to keep track.
  17. Enhance BOM extraction JSON
      1.  Add an extra API call for the BOM that gets the version name
      2.  In bomSource there is a viewHref, document
- 18. Integrate AirTable into the OnShape-DocuReader project.
+ 18. [COMPLETE] Integrate AirTable into the OnShape-DocuReader project.
+     - Phase 1: OAuth Foundation ✓ (config, types, session augmentation)
+     - Phase 2: API Client ✓ (airtable-api-client.ts, airtable-oauth-service.ts)
+     - Phase 3: Thumbnail Upload ✓ (airtable-thumbnail-service.ts)
+     - Phase 4: Frontend Integration ✓ (controller, service, view, routes, navigation)
+     - Phase 5: Build Fixes ✓ (added missing methods, fixed type errors)
+     - Testing: Pending manual verification
+     - Files created/modified:
+       - src/config/airtable.ts - OAuth and database configuration
+       - src/services/airtable-oauth-service.ts - PKCE OAuth flow
+       - src/services/airtable-api-client.ts - REST API client (added getTables, findRecordByPartNumber, pageSize option)
+       - src/services/airtable-thumbnail-service.ts - ZIP processing and upload (fixed null handling for fieldId)
+       - src/routes/airtable-auth.ts - OAuth routes
+       - src/routes/airtable-api.ts - API proxy routes with /config endpoint
+       - src/types/airtable.d.ts - Type definitions
+       - src/types/session.d.ts - Session augmentation
+       - public/js/services/airtable-service.js - Frontend API client
+       - public/js/controllers/airtable-controller.js - Upload workflow orchestration
+       - public/js/views/airtable-upload-view.js - Upload UI component
+       - public/css/views/airtable-upload.css - Styling
+       - public/js/router/routes.js - Added AIRTABLE_UPLOAD route
+       - public/js/app.js - Wired router to airtableController
+       - public/js/controllers/app-controller.js - Bound Airtable button
+       - examples/.env.example - Added Airtable env vars
