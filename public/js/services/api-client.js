@@ -40,6 +40,12 @@ export class ApiClient {
     return res.json();
   }
 
+  async getDocumentBranches(documentId) {
+    const res = await fetch(`/api/documents/${documentId}/branches`);
+    if (!res.ok) throw new Error(`Get document branches failed (${res.status})`);
+    return res.json();
+  }
+
   async getElements(documentId, workspaceId) {
     const res = await fetch(
       `/api/documents/${documentId}/workspaces/${workspaceId}/elements`

@@ -31,16 +31,19 @@ export class DocumentDetailView extends BaseView {
     this.clear();
     this._currentDocData = docData;
     this._loadedVersions = null;
+    this._loadedBranches = null;
 
     const infoContainer = document.getElementById("documentInfo");
     if (infoContainer) {
       const topBarHtml = this._renderTopBar(docData);
       const thumbnailHtml = renderThumbnailSection(docData);
       const versionSelectorHtml = this._renderVersionSelector(docData);
+      const branchSelectorHtml = this._renderBranchSelector(docData);
       const infoHtml = renderDocumentInfo(docData);
-      infoContainer.innerHTML = topBarHtml + thumbnailHtml + versionSelectorHtml + infoHtml;
+      infoContainer.innerHTML = topBarHtml + thumbnailHtml + versionSelectorHtml + branchSelectorHtml + infoHtml;
       this._setupThumbnail(docData);
       this._bindVersionSelector(docData);
+      this._bindBranchSelector(docData);
     }
 
     const elementsContainer = document.getElementById("documentElements");
@@ -194,6 +197,292 @@ export class DocumentDetailView extends BaseView {
         <div class="version-detail-row">
           <span class="version-label">Microversion:</span>
           <span class="version-value">${microversionId}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Branch Selector Methods
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  _renderBranchSelector(docData) {
+    return `
+      <div class="branch-selector-section" id="branch-selector-${docData.id}">
+        <div class="branch-selector-header">
+          <h4>Document Branches (Workspaces)</h4>
+          <button class="btn btn-secondary btn-sm load-branches-btn" id="load-branches-${docData.id}">
+            Load Branches
+          </button>
+        </div>
+        <div class="branch-selector-content" id="branch-content-${docData.id}">
+          <p class="branch-hint">Click "Load Branches" to see all workspaces/branches of this document.</p>
+        </div>
+      </div>
+    `;
+  }
+
+  _bindBranchSelector(docData) {
+    const loadBtn = document.getElementById(`load-branches-${docData.id}`);
+    if (loadBtn) {
+      loadBtn.addEventListener("click", () => this._handleLoadBranches(docData.id));
+    }
+  }
+
+  async _handleLoadBranches(documentId) {
+    const loadBtn = document.getElementById(`load-branches-${documentId}`);
+    const contentEl = document.getElementById(`branch-content-${documentId}`);
+
+    if (!contentEl) return;
+
+    // Show loading state
+    if (loadBtn) {
+      loadBtn.disabled = true;
+      loadBtn.textContent = "Loading...";
+    }
+    contentEl.innerHTML = '<p class="branch-loading">Fetching branches...</p>';
+
+    try {
+      const branches = await this.controller.documentService.getBranches(documentId);
+      this._loadedBranches = branches;
+
+      if (!branches || branches.length === 0) {
+        contentEl.innerHTML = '<p class="branch-empty">No branches found for this document.</p>';
+        if (loadBtn) {
+          loadBtn.textContent = "Reload Branches";
+          loadBtn.disabled = false;
+        }
+        return;
+      }
+
+      // Render branch dropdown
+      contentEl.innerHTML = this._renderBranchDropdown(branches, documentId);
+      this._bindBranchDropdown(documentId);
+
+      if (loadBtn) {
+        loadBtn.textContent = "Reload Branches";
+        loadBtn.disabled = false;
+      }
+    } catch (error) {
+      console.error("Error loading branches:", error);
+      contentEl.innerHTML = `<p class="branch-error">Failed to load branches: ${escapeHtml(error.message)}</p>`;
+      if (loadBtn) {
+        loadBtn.textContent = "Retry";
+        loadBtn.disabled = false;
+      }
+    }
+  }
+
+  _renderBranchDropdown(branches, documentId) {
+    const optionsHtml = branches.map((b, idx) => {
+      const name = escapeHtml(b.name || `Branch ${idx + 1}`);
+      const isMain = b.isMainWorkspace ? " (Main)" : "";
+      return `<option value="${idx}" data-branch-id="${escapeHtml(b.id)}">${name}${isMain}</option>`;
+    }).join("");
+
+    return `
+      <div class="branch-dropdown-container">
+        <label for="branch-select-${documentId}">Select Branch:</label>
+        <select id="branch-select-${documentId}" class="branch-select">
+          <option value="" disabled selected>-- Choose a branch --</option>
+          ${optionsHtml}
+        </select>
+      </div>
+      <div class="branch-details" id="branch-details-${documentId}">
+        <p class="branch-hint">Select a branch to view its details.</p>
+      </div>
+    `;
+  }
+
+  _bindBranchDropdown(documentId) {
+    const selectEl = document.getElementById(`branch-select-${documentId}`);
+    if (selectEl) {
+      selectEl.addEventListener("change", (e) => {
+        const idx = parseInt(e.target.value, 10);
+        if (!isNaN(idx) && this._loadedBranches && this._loadedBranches[idx]) {
+          this._displayBranchDetails(documentId, this._loadedBranches[idx]);
+        }
+      });
+    }
+  }
+
+  _displayBranchDetails(documentId, branch) {
+    const detailsEl = document.getElementById(`branch-details-${documentId}`);
+    if (!detailsEl) return;
+
+    const name = escapeHtml(branch.name || "Unnamed Branch");
+    const description = branch.description ? escapeHtml(branch.description) : "<em>No description</em>";
+    const createdAt = branch.createdAt ? new Date(branch.createdAt).toLocaleString() : "Unknown";
+    const modifiedAt = branch.modifiedAt ? new Date(branch.modifiedAt).toLocaleString() : "Unknown";
+    const creatorName = branch.creator?.name ? escapeHtml(branch.creator.name) : "Unknown";
+    const branchId = escapeHtml(branch.id || "");
+    const isMain = branch.isMainWorkspace ? '<span class="branch-main-badge">Main</span>' : "";
+
+    detailsEl.innerHTML = `
+      <div class="branch-detail-card">
+        <h5>${name} ${isMain}</h5>
+        <div class="branch-detail-row">
+          <span class="branch-label">Description:</span>
+          <span class="branch-value">${description}</span>
+        </div>
+        <div class="branch-detail-row">
+          <span class="branch-label">Created:</span>
+          <span class="branch-value">${createdAt}</span>
+        </div>
+        <div class="branch-detail-row">
+          <span class="branch-label">Modified:</span>
+          <span class="branch-value">${modifiedAt}</span>
+        </div>
+        <div class="branch-detail-row">
+          <span class="branch-label">Creator:</span>
+          <span class="branch-value">${creatorName}</span>
+        </div>
+        <div class="branch-detail-row">
+          <span class="branch-label">Branch ID:</span>
+          <span class="branch-value branch-id">${branchId}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Branch Selector Methods
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  _renderBranchSelector(docData) {
+    return `
+      <div class="branch-selector-section" id="branch-selector-${docData.id}">
+        <div class="branch-selector-header">
+          <h4>Document Branches (Workspaces)</h4>
+          <button class="btn btn-secondary btn-sm load-branches-btn" id="load-branches-${docData.id}">
+            Load Branches
+          </button>
+        </div>
+        <div class="branch-selector-content" id="branch-content-${docData.id}">
+          <p class="branch-hint">Click "Load Branches" to see all workspaces/branches of this document.</p>
+        </div>
+      </div>
+    `;
+  }
+
+  _bindBranchSelector(docData) {
+    const loadBtn = document.getElementById(`load-branches-${docData.id}`);
+    if (loadBtn) {
+      loadBtn.addEventListener("click", () => this._handleLoadBranches(docData.id));
+    }
+  }
+
+  async _handleLoadBranches(documentId) {
+    const loadBtn = document.getElementById(`load-branches-${documentId}`);
+    const contentEl = document.getElementById(`branch-content-${documentId}`);
+
+    if (!contentEl) return;
+
+    // Show loading state
+    if (loadBtn) {
+      loadBtn.disabled = true;
+      loadBtn.textContent = "Loading...";
+    }
+    contentEl.innerHTML = '<p class="branch-loading">Fetching branches...</p>';
+
+    try {
+      const branches = await this.controller.documentService.getBranches(documentId);
+      this._loadedBranches = branches;
+
+      if (!branches || branches.length === 0) {
+        contentEl.innerHTML = '<p class="branch-empty">No branches found for this document.</p>';
+        if (loadBtn) {
+          loadBtn.textContent = "Reload Branches";
+          loadBtn.disabled = false;
+        }
+        return;
+      }
+
+      // Render branch dropdown
+      contentEl.innerHTML = this._renderBranchDropdown(branches, documentId);
+      this._bindBranchDropdown(documentId);
+
+      if (loadBtn) {
+        loadBtn.textContent = "Reload Branches";
+        loadBtn.disabled = false;
+      }
+    } catch (error) {
+      console.error("Error loading branches:", error);
+      contentEl.innerHTML = `<p class="branch-error">Failed to load branches: ${escapeHtml(error.message)}</p>`;
+      if (loadBtn) {
+        loadBtn.textContent = "Retry";
+        loadBtn.disabled = false;
+      }
+    }
+  }
+
+  _renderBranchDropdown(branches, documentId) {
+    const optionsHtml = branches.map((b, idx) => {
+      const name = escapeHtml(b.name || `Branch ${idx + 1}`);
+      const isMain = b.isMainWorkspace ? " (Main)" : "";
+      return `<option value="${idx}" data-branch-id="${escapeHtml(b.id)}">${name}${isMain}</option>`;
+    }).join("");
+
+    return `
+      <div class="branch-dropdown-container">
+        <label for="branch-select-${documentId}">Select Branch:</label>
+        <select id="branch-select-${documentId}" class="branch-select">
+          <option value="" disabled selected>-- Choose a branch --</option>
+          ${optionsHtml}
+        </select>
+      </div>
+      <div class="branch-details" id="branch-details-${documentId}">
+        <p class="branch-hint">Select a branch to view its details.</p>
+      </div>
+    `;
+  }
+
+  _bindBranchDropdown(documentId) {
+    const selectEl = document.getElementById(`branch-select-${documentId}`);
+    if (selectEl) {
+      selectEl.addEventListener("change", (e) => {
+        const idx = parseInt(e.target.value, 10);
+        if (!isNaN(idx) && this._loadedBranches && this._loadedBranches[idx]) {
+          this._displayBranchDetails(documentId, this._loadedBranches[idx]);
+        }
+      });
+    }
+  }
+
+  _displayBranchDetails(documentId, branch) {
+    const detailsEl = document.getElementById(`branch-details-${documentId}`);
+    if (!detailsEl) return;
+
+    const name = escapeHtml(branch.name || "Unnamed Branch");
+    const description = branch.description ? escapeHtml(branch.description) : "<em>No description</em>";
+    const createdAt = branch.createdAt ? new Date(branch.createdAt).toLocaleString() : "Unknown";
+    const modifiedAt = branch.modifiedAt ? new Date(branch.modifiedAt).toLocaleString() : "Unknown";
+    const creatorName = branch.creator?.name ? escapeHtml(branch.creator.name) : "Unknown";
+    const branchId = escapeHtml(branch.id || "");
+    const isMain = branch.isMainWorkspace ? '<span class="branch-main-badge">Main</span>' : "";
+
+    detailsEl.innerHTML = `
+      <div class="branch-detail-card">
+        <h5>${name} ${isMain}</h5>
+        <div class="branch-detail-row">
+          <span class="branch-label">Description:</span>
+          <span class="branch-value">${description}</span>
+        </div>
+        <div class="branch-detail-row">
+          <span class="branch-label">Created:</span>
+          <span class="branch-value">${createdAt}</span>
+        </div>
+        <div class="branch-detail-row">
+          <span class="branch-label">Modified:</span>
+          <span class="branch-value">${modifiedAt}</span>
+        </div>
+        <div class="branch-detail-row">
+          <span class="branch-label">Creator:</span>
+          <span class="branch-value">${creatorName}</span>
+        </div>
+        <div class="branch-detail-row">
+          <span class="branch-label">Branch ID:</span>
+          <span class="branch-value branch-id">${branchId}</span>
         </div>
       </div>
     `;

@@ -119,6 +119,42 @@ router.get(
 );
 
 router.get(
+  "/documents/:id/branches",
+  async (req: Request, res: Response): Promise<Response> => {
+    try {
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
+      const branches = await client.getDocumentBranches(req.params.id);
+      return res.json(branches);
+    } catch (error) {
+      console.error("Get document branches error:", error);
+      return res.status(500).json({ error: "Failed to fetch document branches" });
+    }
+  }
+);
+
+router.get(
+  "/documents/:id/branches",
+  async (req: Request, res: Response): Promise<Response> => {
+    try {
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
+      const branches = await client.getDocumentBranches(req.params.id);
+      return res.json(branches);
+    } catch (error) {
+      console.error("Get document branches error:", error);
+      return res.status(500).json({ error: "Failed to fetch document branches" });
+    }
+  }
+);
+
+router.get(
   "/documents/:id/comprehensive",
   async (req: Request, res: Response): Promise<Response> => {
     try {

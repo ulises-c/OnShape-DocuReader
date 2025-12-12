@@ -221,6 +221,11 @@ export class OnShapeApiClient {
     return response.data || [];
   }
 
+  async getDocumentBranches(documentId: string): Promise<any[]> {
+    const response = await this.axiosInstance.get(`/documents/d/${documentId}/workspaces`);
+    return response.data || [];
+  }
+
   async getComprehensiveDocument(
     documentId: string,
     params: any
