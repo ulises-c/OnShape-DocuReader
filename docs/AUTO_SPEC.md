@@ -1,13 +1,11 @@
 # OnShape-DocuReader - Project Specification
 
-> Auto-generated: 2025-12-12 14:17:05
+> Auto-generated: 2025-12-12 14:37:09
 
 ## Directory Structure
 
 ```
 OnShape-DocuReader/
-├── docs/
-│   └── SPEC.md
 ├── public/
 │   ├── css/
 │   │   ├── base/
@@ -131,13 +129,11 @@ OnShape-DocuReader/
 │   │   └── usage.d.ts
 │   ├── index.ts
 │   └── SPEC.min.md
-├── FULL_SPEC.md
 ├── LICENSE
 ├── nodemon.json
 ├── package-lock.json
 ├── package.json
 ├── README.md
-├── SPEC.md
 ├── tsconfig.json
 └── vite.config.js
 

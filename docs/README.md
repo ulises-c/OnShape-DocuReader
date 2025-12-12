@@ -1,6 +1,4 @@
-## 1. Root Directory `SPEC.md`
-
-```markdown
+markdown
 # OnShape DocuReader - Project Specification
 
 ## Overview
@@ -45,4 +43,4 @@ OnShape DocuReader is a web application that provides secure OAuth 2.0 authentic
 - `npm run dev` - Development server with hot reload
 - `npm start` - Production server
 - Port 3000 (default)
-```
+

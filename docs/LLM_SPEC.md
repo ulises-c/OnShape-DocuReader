@@ -1,4 +1,4 @@
-# OnShape DocuReader – High-Level Specification
+# OnShape DocuReader – Efficient SPEC file for LLMs & AI Agents
 
 ## Overview
 
@@ -132,4 +132,3 @@ Express Server (src/)
 - Frontend enhancements: navigation system, hierarchy visualization, progressive loading, better document tiles.
 - Developer experience upgrades: debugging tools, documentation, testing infrastructure.
 - Potential adoption of service workers, WebSocket updates, and progressive web app capabilities.
-

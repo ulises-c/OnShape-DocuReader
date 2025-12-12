@@ -16,19 +16,28 @@ Contains comprehensive instructions for Agents and LLMs working on this project.
 
 ### Working with TODO Items
 
-When working on tasks from `TODO.md`:
+When working on tasks from `notes/TODO.md`:
 
 1. **Select a TODO item** from `notes/TODO.md`
-2. **Complete the implementation** (code, documentation, testing)d
+2. **Complete the implementation** (code, documentation, testing)
 
 ### File Structure Overview
 
 ```
-notes/
-├── TODO.md          # Active tasks to be completed
-├── INSTRUCTIONS.md  # This file - instructions for agents
-├── ARCHITECTURE.md  # Project architecture documentation
-└── ONSHAPE_API.md   # API reference documentation
+OnShape-DocuReader/
+├── docs/
+│   ├── AUTO_SPEC.md # Auto generated SPEC file on `build`
+│   ├── LLM_SPEC.md # LLM generated & edited SPEC file
+│   └── SPEC.md 
+├── notes/
+│   ├── ARCHITECTURE.md # Project architecture documentation
+│   ├── CONSOLE-OUTPUT.md # Front end and back end console output, used as context for bug fixing
+│   ├── GOALS.md # Overall project goals
+│   ├── LLM-INSTRUCTIONS.md # This file - instructions for agents
+│   ├── LLM-PROMPT.md # Current prompt for LLM
+│   ├── LLM-RESPONSE.md # LLM response for context. Used when continuing a prior task.
+│   ├── ONSHAPE_API.md # API reference documentation
+│   └── TODO.md # Active tasks to be completed
 ```
 
 ## File Size Management
@@ -39,7 +48,7 @@ notes/
 
 ### Consistency Requirements
 
-1. **Headers**: Every file must start with "# What is this file?"
+1. **Headers**: Every file must start with a header explaining what the file does.
 2. **Timestamps**: Use PST, 24-hour format (YYYY-MM-DD HH:MM:SS)
 3. **Sections**: Use clear, descriptive section headers
 4. **Lists**: Use consistent formatting (numbered for ordered, bullets for unordered)
@@ -48,7 +57,7 @@ notes/
 ### When Making Changes
 
 1. **Code changes**: Update relevant documentation
-2. **Architecture changes**: Update `ARCHITECTURE.md`
+2. **Architecture changes**: Update `docs/LLM_SPEC.md`
 3. **API usage**: Reference `ONSHAPE_API.md`
 4. **New features**: Update `README.md` if user-facing
 
