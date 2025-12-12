@@ -71,7 +71,8 @@ The numbering is just show that it's easier to keep track.
  16. Document-detail view "Copy Raw JSON" doing multiple API calls for a single "copy raw json" action
      1.  Not Just "Copy Raw JSON" but also "Download BOM CSV" or "Download BOM JSON"
      2.  Seems to be exactly 8 times since an original is downloaded and 7 copies are also downloaded
- 17. Upgrade BOM extraction via JSON
+         1.  Might be incremented per click done on element buttons
+ 17. Enhance BOM extraction JSON
      1.  Add an extra API call for the BOM that gets the version name
      2.  In bomSource there is a viewHref, document
- 18. Upgrade detailed view by adding a button that does an extra API call to fetch versions, not just the most recent version. Adds a scrollable dropdown menu to select version to view
+ 18. Integrate AirTable into the OnShape-DocuReader project.

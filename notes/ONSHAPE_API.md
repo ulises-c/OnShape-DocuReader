@@ -1,220 +1,271 @@
-# What is this file?
+# Onshape REST API Reference
 
-This document provides a general overview of the OnShape API v12 that is used in this project for reference and understanding of the document structure and capabilities.
+This document consolidates the technical reference for the Onshape REST API, optimized for concise consumption by LLMs and Agents.
 
-# OnShape API v12 Reference
+## I. Core Concepts & Architecture
 
-## Onshape REST API
+### API Access
+| Environment | Base URL Pattern |
+| :--- | :--- |
+| Standard | `https://cad.onshape.com/api/v{version}/...` |
+| Enterprise | `https://{companyName}.onshape.com/api/v{version}/...` |
+| API Explorer | `https://cad.onshape.com/glassworks/explorer/` |
 
-- https://cad.onshape.com/glassworks/explorer
-- https://onshape-public.github.io/docs/
+### Onshape Data Model & Identifiers
+Onshape is a version-controlled, fileless platform. All data resides in Documents and Elements (tabs).
 
-## API Base Information
+| ID Type | Description | Length | Persistence | Context |
+| :--- | :--- | :--- | :--- | :--- |
+| **Document ID** (`did`) | Unique identifier for a Document. | 24 char | Permanent | - |
+| **Element ID** (`eid`) | Unique identifier for a specific tab (Part Studio, Assembly, Drawing, etc.). | 24 char | Permanent | - |
+| **Workspace ID** (`wid`) | Identifies a mutable branch (Workspace). | 24 char | Permanent | Used in `POST` requests. |
+| **Version ID** (`vid`) | Identifies an immutable named snapshot (Version). | 24 char | Permanent | Used in `GET` requests (`v/{vid}`). |
+| **Microversion ID** (`mid`) | Identifies an immutable internal revision (Commit). | 24 char | Permanent | Used in `GET` requests (`m/{mid}`). |
+| **Part ID** (`pid`) | Geometric entity identifier. | Variable | Transient | Short-lived. Use Associativity API for persistence. |
+| **WVM Context** | Path component indicating context type: `w` (Workspace), `v` (Version), or `m` (Microversion). | 1 char | - | Required in many endpoints: `/{wvm}/{wvmid}`. |
 
-- **Base URL**: `https://cad.onshape.com/api/v12`
-- **Authentication**: OAuth 2.0 with PKCE flow
-- **Required Scopes**: `OAuth2Read`, `OAuth2ReadPII`
-- **Response Format**: JSON
-- **Rate Limiting**: API requests are rate-limited (configurable in export operations)
+**Key Constraint:** `POST` and `DELETE` operations are restricted to **Workspaces** (`w/{wid}`).
 
-## Document Structure Overview
+### API Conventions
+*   **Methods:** Primarily `GET` (Read), `POST` (Write/Update/Create), and `DELETE`.
+*   **Versioning:** API versions (`v{version}`) are included in the path (`/api/v10/...`). Clients should target the latest documented version.
+*   **Units:** Length units: `meter`, `inch`, `mm`, etc. Angular units: `degree`, `radian`, `deg`, `rad`.
+*   **API Response Codes:** `200 OK`, `204 No Content`, `307 Temporary Redirect`. Client errors include `400 Bad Request`, `401 Unauthorized`, `403 Forbidden` (permission denied), `404 Not Found`, `409 Conflict`, and `429 Too Many Requests`.
 
-### Document Hierarchy
+## II. Authentication & Limits
 
-OnShape organizes content in a hierarchical structure:
+### A. Authentication Methods
 
-```
-Document
-├── Workspaces (branches/versions of the document)
-│   ├── Elements (individual components within the document)
-│   │   ├── Parts (individual parts within Part Studios)
-│   │   ├── Assemblies (collections of parts and sub-assemblies)
-│   │   ├── Drawings (2D technical drawings)
-│   │   └── Other element types (Blobs, Bill of Materials, etc.)
-│   └── Metadata (properties, tags, notes)
-└── Versions/Branches (version control for the document)
-```
+| Method | Use Case | Header Format | Security | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| **OAuth2** | App Store / Delegated Access (Required) | `Authorization: Bearer {token}` | Highest | Tokens expire; requires refresh token flow (POST to `/oauth/token`). |
+| **Basic Auth** | Internal Scripts / Testing | `Authorization: Basic {base64(ACCESS_KEY:SECRET_KEY)}` | Lowest | Convenient for local use; exposes secret key. |
+| **Request Signature** | Internal Scripts / Production | `Authorization: On {ACCESS_KEY}:HmacSHA256:{SIGNATURE}` | Medium | Signature generated via HMAC-SHA256 of request data (Method, Nonce, Date, Path, Query String, Secret Key). |
 
-### Document Types
+### B. Rate & Annual Limits
 
-Documents can contain various element types:
+*   **Rate Limits:** Enforced per endpoint. Exceeding limits returns `429 Too Many Requests` with a `Retry-After` header indicating delay in seconds.
+*   **Annual Call Limits (Examples):**
+    *   Enterprise: 10,000 / Full User
+    *   Professional: 5,000 / User
+*   **Exclusions:** Calls from public App Store apps and Onshape Webhooks generally **do not** count toward annual limits.
 
-1. **PARTSTUDIO** - 3D modeling environment for creating parts
-2. **ASSEMBLY** - Environment for assembling parts and sub-assemblies
-3. **DRAWING** - 2D technical drawings and documentation
-4. **BLOB** - Imported files (CAD files, images, etc.)
-5. **BILLOFMATERIALS** - Structured lists of parts and quantities
-6. **APPLICATION** - Custom applications and features
+## III. Document & Core Utility APIs (V10)
 
-## Key API Endpoints Used
+### A. Document Management (`/documents`)
 
-### Authentication & User
+| Endpoint | Method | Path | Signature (Input/Output) | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| `createDocument` | `POST` | `/documents` | `(body: { name: string, ... }) => BTDocumentInfo` | |
+| `getDocument` | `GET` | `/documents/{did}` | `() => BTDocumentInfo` | |
+| `updateDocumentAttributes` | `POST` | `/documents/{did}` | `(body: { name?: string, description?: string, ... }) => BTDocumentInfo` | |
+| `getElementsInDocument` | `GET` | `/documents/d/{did}/{wvm}/{wvmid}/elements` | `() => BTElementInfo[]` | Lists all tabs/elements. |
+| `createVersion` | `POST` | `/documents/d/{did}/versions` | `(body: { documentId: string, name: string, workspaceId: string }) => BTVersionInfo` | Creates a named snapshot of the current workspace. |
+| `deleteDocument` | `DELETE`| `/documents/{did}` | `(params: { forever?: boolean }) => 204 No Content` | |
 
-- `GET /users/sessioninfo` - Get current user information
-- OAuth flow endpoints (handled by OnShape OAuth service)
+### B. Metadata Management (`/metadata`)
 
-### Documents
+Metadata updates require specifying the `propertyId` for the field being modified.
 
-- `GET /documents` - List user's documents (with filtering, sorting, pagination)
-- `GET /documents/{documentId}` - Get detailed document information
-- `GET /documents/d/{documentId}/w/{workspaceId}/elements` - Get elements within a document workspace
-
-### Elements & Parts
-
-- `GET /documents/d/{documentId}/w/{workspaceId}/e/{elementId}/parts` - Get parts from an element
-- `GET /documents/d/{documentId}/w/{workspaceId}/e/{elementId}/assemblies` - Get assemblies from an element
-- `GET /documents/d/{documentId}/w/{workspaceId}/e/{elementId}/parts/{partId}/massProperties` - Get part mass properties
-
-### Metadata & Properties
-
-- `GET /metadata/d/{documentId}` - Get document metadata
-- `GET /metadata/d/{documentId}/w/{workspaceId}/e/{elementId}` - Get element metadata
-
-### Thumbnails
-
-- `GET /thumbnails/d/{documentId}/w/{workspaceId}/s/{size}` - Get document thumbnails
-- Multiple size options: 70x40, 300x300, 600x340
-
-## Document Data Structure
-
-### Core Document Properties
-
-```json
-{
-  "id": "document_identifier",
-  "name": "Document Name",
-  "owner": { "id": "user_id", "name": "Owner Name", "type": 0 },
-  "createdBy": { "id": "user_id", "name": "Creator Name" },
-  "createdAt": "2024-09-16T15:59:08.000Z",
-  "modifiedAt": "2025-06-02T15:59:08.000Z",
-  "isPublic": false,
-  "permission": "WRITE",
-  "notes": "Document notes",
-  "tags": ["tag1", "tag2"],
-  "documentLabels": ["label1", "label2"],
-  "defaultWorkspace": { "id": "workspace_id", "name": "Main" },
-  "workspaces": [...]
+**Update Request Body Type:**
+```typescript
+type BTMetadataUpdate = {
+  properties: Array<{
+    value: string | number | boolean;
+    propertyId: string;
+  }>;
+  jsonType?: "metadata-element" | "metadata-part"; 
+  partId?: string; // Required for part metadata updates
 }
 ```
 
-### Element Structure
+| Endpoint | Method | Path | Context |
+| :--- | :--- | :--- | :--- |
+| `getWMVEMetadata` | `GET` | `/metadata/d/{did}/{wvm}/{wvmid}/e/{eid}` | Element (Tab) |
+| `updateWVEMetadata` | `POST` | `/metadata/d/{did}/w/{wid}/e/{eid}` | Element (Tab) |
+| `getWMVEPMetadata` | `GET` | `/metadata/d/{did}/{wvm}/{wvmid}/e/{eid}/p/{pid}` | Part |
+| `updateWVEPMetadata` | `POST` | `/metadata/d/{did}/w/{wid}/e/{eid}/p/{pid}` | Part |
+| `updateVEOPStandardContentPartMetadata`| `POST` | `/metadata/standardcontent/d/{did}` | Standard Content (Global/Company) |
 
-```json
-{
-  "id": "element_identifier",
-  "name": "Element Name",
-  "type": "Part Studio",
-  "elementType": "PARTSTUDIO",
-  "dataType": "onshape/partstudio",
-  "lengthUnits": "millimeter",
-  "angleUnits": "degree",
-  "massUnits": "pound",
-  "microversionId": "version_identifier"
+### C. Release Management (V10)
+
+| Endpoint | Method | Path | Signature (Input/Output) |
+| :--- | :--- | :--- | :--- |
+| `updateNextNumbers` | `POST` | `/partnumber/nextnumbers` | `(params: { cid?: string, did?: string }, body: { itemPartNumbers: BTItemPartNumberInfo[] }) => BTNextPartNumberResponse` |
+| `getLatestInDocumentOrCompany` | `GET` | `/revisions/{cd}/{cdid}/p/{pnum}/latest` | `(params: { et: number }) => BTRevisionInfo` |
+| `getRevisionHistoryInCompanyByPartNumber` | `GET` | `/revisions/companies/{cid}/partnumber/{pnum}` | `(params: { elementType: number }) => BTRevisionInfo[]` |
+
+## IV. CAD Modeling & Geometry APIs (V9)
+
+### A. Part Studios (`/partstudios`)
+
+| Endpoint | Method | Path | Signature (Input/Output) | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| `createPartStudio` | `POST` | `/partstudios/d/{did}/w/{wid}` | `(body: { name: string }) => BTElementInfo` | |
+| `getPartStudioBodyDetails` | `GET` | `/partstudios/d/{did}/{wvm}/{wvmid}/e/{eid}/bodydetails`| `() => BTBodyDetailsResponse` | Topological info (faces, edges). |
+| `getPartStudioMassProperties` | `GET` | `/partstudios/d/{did}/{wvm}/{wvmid}/e/{eid}/massproperties`| `() => BTMassPropertiesInfo` | |
+| `updateRollback` | `POST` | `/partstudios/d/{did}/w/{wid}/e/{eid}/features/rollback` | `(body: { rollbackIndex: number }) => BTUpdateFeaturesResponse` | Moves the Feature List rollback bar. |
+
+### B. Feature Access & FeatureScript
+
+Features are defined by structured JSON using internal types (e.g., `BTMSketch-151`, `BTMFeature-134`).
+
+| Endpoint | Method | Path | Signature (Input/Output) | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| `getPartStudioFeatures` | `GET` | `/partstudios/d/{did}/{wvm}/{wvmid}/e/{eid}/features` | `() => BTFeatureListResponse` | Retrieves the entire Feature List structure. |
+| `addPartStudioFeature` | `POST` | `/partstudios/d/{did}/{wvm}/{wvmid}/e/{eid}/features` | `(body: BTFeatureDefinitionCall) => BTFeatureDefinitionResponse` | |
+| `updatePartStudioFeature` | `POST` | `/partstudios/d/{did}/w/{wid}/e/{eid}/features/featureid/{fid}` | `(body: BTFeatureDefinitionCall) => BTFeatureDefinitionResponse` | |
+| `evalFeatureScript` | `POST` | `/partstudios/d/{did}/w/{wid}/e/{eid}/featurescript` | `(body: { script: string, ... }) => BTFeatureScriptEvalResponse` | Executes lambda FeatureScript expressions. |
+
+### C. Assemblies (`/assemblies`)
+
+| Endpoint | Method | Path | Signature (Input/Output) | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| `createAssembly` | `POST` | `/assemblies/d/{did}/w/{wid}` | `(body: { name: string }) => BTElementInfo` | |
+| `getAssemblyDefinition` | `GET` | `/assemblies/d/{did}/{wvm}/{wvmid}/e/{eid}` | `() => BTAssemblyDefinitionInfo` | Returns component instances and mate features. |
+| `createInstance` | `POST` | `/assemblies/d/{targetDid}/w/{targetWid}/e/{targetEid}/instances` | `(body: { documentId: string, elementId: string, partId?: string, ... }) => BTAssemblyInstanceInfo` | Inserts an instance of a part, subassembly, etc. |
+| `modify` | `POST` | `/assemblies/d/{did}/w/{wid}/e/{eid}/modify` | `(body: { deleteInstances?: string[], transformDefinitions?: BTTransformDefinition[], ... }) => BTAssemblyDefinitionInfo` | Bulk modification (transforms, suppression, deletion). |
+
+### D. Configurations (V6)
+
+Configuration settings are often passed via an encoded string.
+
+| Endpoint | Method | Path | Notes |
+| :--- | :--- | :--- | :--- |
+| `getConfiguration` | `GET` | `/elements/d/{did}/wvm/{wvmid}/e/{eid}/configuration` | Get input parameters and options. |
+| `encodeConfigurationMap` | `POST` | `/elements/d/{did}/e/{eid}/configurationencodings` | Converts `{parameters: [{parameterId, parameterValue}]}` to URL component (`queryParam`) and encoded ID (`encodedId`). |
+
+### E. Associativity (ID Translation)
+
+| Endpoint | Method | Path | Signature (Input/Output) | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| `idtranslations` | `POST` | `/partstudios/d/{did}/w/{wid}/e/{eid}/idtranslations` | `(body: { sourceDocumentMicroversion: string, ids: string[] }) => BTIdTranslationResponse` | Maps transient geometric IDs from an old microversion to the current one. |
+
+## V. Data Translation (Import & Export)
+
+The Translation process (export/import) is often asynchronous, requiring polling or webhooks for status (`Translation/getTranslation`).
+
+### A. Asynchronous Exports
+
+| Endpoint Category | Method | Target Type | Endpoint Pattern | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| **Format Specific** | `POST` | PS, Assembly (V11) | `/{type}/d/.../e/{eid}/export/{format}` | Specific endpoints for glTF, OBJ, SOLIDWORKS, STEP (Faster, format-optimized). |
+| **Generic Translation** | `POST` | PS, Assembly, Blob | `/{type}/d/.../e/{eid}/translations` | Generic translation. Requires `"formatName": string` in body (e.g., `"ACIS"`). |
+| **Drawing Export** | `POST` | Drawing (V6) | `/drawings/d/.../e/{eid}/translations` | Exports to formats like `DRAWING_JSON`. |
+
+**Retrieval after completion:**
+1. Poll `Translation/getTranslation` on `translationId` until `requestState="DONE"`.
+2. Retrieve file:
+    *   If `storeInDocument=true`: Use `BlobElement/downloadFileWorkspace` on `resultElementIds`.
+    *   If `storeInDocument=false` (External): Use `Documents/downloadExternalData` on `resultExternalDataIds`.
+
+### B. Synchronous Exports (Fast, Limited Formats)
+
+These endpoints return a `307 Temporary Redirect` to the file resource.
+
+| Endpoint | Method | Path Pattern | Formats |
+| :--- | :--- | :--- | :--- |
+| `exportPartStudio...` | `GET` | `/partstudios/d/.../e/{eid}/{format}` | glTF, Parasolid, STL |
+| `exportPart...` | `GET` | `/parts/d/.../e/{eid}/partid/{pid}/{format}` | glTF, Parasolid, STL |
+
+### C. Imports
+
+Imports convert external files into Onshape format (default) or specified formats, creating a Blob Element.
+
+| Endpoint | Method | Path Pattern | Notes |
+| :--- | :--- | :--- | :--- |
+| `createTranslation` | `POST` | `/translations/d/{did}/w/{wid}` | `Content-Type: multipart/form-data`. Use `-F 'file=@/path/filename.ext'`. |
+| `uploadFileCreateElement` | `POST` | `/blobelements/d/{did}/w/{wid}` | Upload file and create new blob element. |
+
+## VI. Drawings API (V6)
+
+Drawings modifications are asynchronous and structured via nested JSON commands inside `modifyDrawing`.
+
+| Endpoint | Method | Path | Signature (Input/Output) |
+| :--- | :--- | :--- | :--- |
+| `createDrawingAppElement` | `POST` | `/drawings/d/{did}/w/{wid}/create` | `(body: { drawingName: string, ... }) => BTElementInfo` |
+| `modifyDrawing` | `POST` | `/drawings/d/{did}/w/{wid}/e/{eid}/modify` | `(body: { description: string, jsonRequests: BTDrawingRequest[] }) => BTModificationResponse` |
+| `getModificationStatus` | `GET` | `/drawings/modify/status/{mrid}` | `() => BTModificationStatus` | Poll for modification completion (`requestState: "DONE"`). |
+
+### Drawing Modification (`BTDrawingRequest` types)
+
+The `jsonRequests` array contains specific operations, often targeting geometric entities via `BTReferencePoint`.
+
+```typescript
+type BTDrawingRequest = { 
+  messageName: "onshapeCreateAnnotations" | "onshapeEditAnnotations" | "onshapeCreateViews" | "onshapeEditViews";
+  formatVersion: "2021-01-01";
+  annotations?: BTAnnotation[];
+  views?: BTView[]; 
+}
+type BTReferencePoint = { 
+  coordinate: [number, number, number];
+  type: "Onshape::Reference::Point";
+  snapPointType?: "ModeCenter" | "ModeEnd" | ...;
+  uniqueId?: string; // geometric entity ID
+  viewId?: string; // drawing view ID
 }
 ```
+**Supported Annotation Types (Examples):** `Onshape::Note`, `Onshape::Callout`, `Onshape::GeometricTolerance`, `Onshape::Centerline::PointToPoint`, `Onshape::Dimension::Radial`, `Onshape::InspectionSymbol`, `Onshape::Circle`, `Onshape::Line`, `Onshape::Table::GeneralTable`.
 
-### Thumbnail Structure
+## VII. App Development & Extensibility
 
-```json
-{
-  "thumbnail": {
-    "sizes": [
-      {
-        "size": "300x300",
-        "href": "https://cad.onshape.com/api/thumbnails/d/{docId}/w/{workspaceId}/s/300x300?t={timestamp}",
-        "mediaType": "image/png"
-      }
-    ]
-  }
+### A. Webhooks (`/webhooks`)
+
+Webhooks send event notifications (HTTP POST with JSON body) to a registered URL.
+
+| Endpoint | Method | Path | Signature (Input/Output) | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| `createWebhook` | `POST` | `/webhooks` | `(body: { events: string[], url: string, ... }) => BTWebhookInfo` | Requires `documentId` or `companyId` based on event group. Set `isTransient=false` to prevent cleanup. |
+| `unregisterWebhook` | `DELETE`| `/webhooks/{webhookId}` | `() => 204 No Content` | Deregisters the webhook. |
+
+**Key Event Types:**
+*   **Document Group:** `onshape.model.lifecycle.changed`, `onshape.model.translation.complete`, `onshape.model.lifecycle.createversion`, `onshape.model.lifecycle.metadata`.
+*   **Workflow Group:** `onshape.workflow.transition`.
+
+### B. Structured Storage (App Elements)
+
+Apps can store structured data in App Elements. JSON Tree storage enables robust merging and differencing.
+
+**JSON Tree Edit Types (BTJEdit):**
+Edits target nodes using a `BTJPath` object.
+
+```typescript
+// Path structure to a node in the JSON tree
+type BTJPath = { 
+  btType: "BTJPath-3073"; 
+  startNode: string; // root node or nodeId
+  path: Array<{ btType: "BTJPathKey-3221", key: string } | { btType: "BTJPathIndex-1871", index: number }>;
 }
+
+// Example operations
+type BTJEditDelete = { btType: "BTJEditDelete-1992"; path: BTJPath; }
+type BTJEditInsert = { btType: "BTJEditInsert-2523"; path: BTJPath; value: any; }
+type BTJEditChange = { btType: "BTJEditChange-2636"; path: BTJPath; value: any; }
+type BTJEditList = { btType: "BTJEditList-2707"; edits: BTJEdit[]; }
 ```
 
-## Units and Measurements
+### C. Client Messaging
 
-OnShape supports various unit systems:
+Used for inter-iframe communication between the Application Extension (AE) and the Onshape Client (OSC). Messages must validate origin URL against the original `server` query parameter.
 
-### Length Units
+**AE to OSC Messages (Examples):**
+*   `applicationInit`: Required startup message.
+*   `keepAlive`: Maintain session.
+*   `openSelectItemDialog`: Request standard Onshape dialogs.
 
-- millimeter, centimeter, meter, inch, foot, yard
+**OSC to AE Messages (Examples):**
+*   `show`/`hide`: Element tab activated/deactivated.
+*   `SELECTION`: Notifies selection changes (Element Right Panel context).
+*   `saveChanges`: Request for app to persist edits before OSC commits a major action (e.g., saving a version).
 
-### Angle Units
+### D. Billing
 
-- degree, radian
+| Endpoint | Method | Path | Purpose |
+| :--- | :--- | :--- | :--- |
+| `getPurchases` | `GET` | `/accounts/purchases` | Check user entitlement/purchases. |
+| `cancelRecurringPurchase`| `DELETE`| `/accounts/purchases/{pid}` | Cancel subscription. |
+| `consumePurchase` | `POST` | `/accounts/purchases/{pid}/consume` | Indicate use of consumable unit (WIP). |
+| `getPlansForClient` | `GET` | `/billing/plans/client/{cid}` | List client's defined billing plans. |
 
-### Mass Units
-
-- kilogram, gram, pound, ounce
-
-### Other Units
-
-- Time: second, minute, hour
-- Force: newton, poundForce
-- Pressure: pascal, poundPerSquareInch
-- Energy: joule, footPoundForce
-- Volume: cubicMeter, cubicMillimeter, cubicInch
-
-## API Features Used in Project
-
-### Implemented Features
-
-1. **Document Listing** - Browse user's documents with search and filtering
-2. **Document Details** - View comprehensive document information
-3. **Element Browsing** - Explore parts, assemblies, and other elements
-4. **Thumbnail Display** - Show document thumbnails via secure proxy
-5. **Metadata Access** - View document and element metadata
-6. **Mass Properties** - Access part mass properties and calculations
-7. **Export Operations** - Bulk export with progress tracking
-8. **Parent/Hierarchy** - Navigate document relationships
-
-### Export Capabilities
-
-- **Formats**: JSON, ZIP archives
-- **Scope**: All documents or selected documents
-- **Includes**: Elements, parts, assemblies, metadata, thumbnails
-- **Progress Tracking**: Real-time export progress and logging
-- **Rate Limiting**: Configurable API request timing
-
-## Error Handling
-
-The API client implements comprehensive error handling:
-
-- **Authentication Errors** - Redirect to login on token expiration
-- **Rate Limiting** - Respect API rate limits with configurable delays
-- **Network Errors** - Graceful degradation and user feedback
-- **Permission Errors** - Handle insufficient permissions gracefully
-- **Data Validation** - Validate API responses before processing
-
-## Version Compatibility
-
-This project targets OnShape API **v12**, which includes:
-
-- Enhanced metadata support
-- Improved thumbnail handling
-- Extended element type support
-- Better error responses
-- Performance optimizations
-
-## Security Considerations
-
-1. **OAuth 2.0 PKCE Flow** - Secure authentication without client secrets
-2. **Token Management** - Secure storage and refresh of access tokens
-3. **CORS Protection** - Configured for secure cross-origin requests
-4. **Proxy Endpoints** - Secure thumbnail loading via backend proxy
-5. **Input Validation** - All API inputs validated and sanitized
-
-## Rate Limiting Guidelines
-
-- **Default Rate**: ~10 requests per second (configurable)
-- **Bulk Operations**: Use progressive delays for large exports
-- **Thumbnail Loading**: Cached and rate-limited via proxy
-- **Error Handling**: Exponential backoff on rate limit errors
-
-## Future API Considerations
-
-Potential enhancements for future versions:
-
-- WebSocket support for real-time updates
-- Enhanced search capabilities
-- Additional metadata fields
-- Improved thumbnail resolutions
-- Extended element type support
+**In-App Purchase Flow:** Redirect user to `https://cad.onshape.com/billing/purchase?redirectUri=RRRR&clientId=CCCC&sku=SSSS&userId=UUUU`.
