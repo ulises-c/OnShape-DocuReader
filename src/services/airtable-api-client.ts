@@ -239,38 +239,116 @@ export class AirtableApiClient {
   // ─────────────────────────────────────────────────────────────────────────────
 
   /**
-   * Upload an attachment directly to Airtable using the content upload API.
-   * This requires the field ID (not field name).
+   * Upload an attachment to an Airtable record.
+   * 
+   * Airtable attachments can be uploaded via:
+   * 1. URL-based: Provide a publicly accessible URL (Airtable downloads it)
+   * 2. Direct upload: Use the content API (requires specific endpoint format)
+   * 
+   * This method uses the direct upload approach with the content API.
+   * The endpoint format is: POST https://content.airtable.com/v0/{baseId}/{recordId}/{fieldName}/uploadAttachment
+   * 
+   * IMPORTANT: The endpoint uses the field NAME (e.g., "CAD_Thumbnail"), NOT the field ID (e.g., "fldXXX").
    * 
    * @param baseId - Airtable base ID
+   * @param tableId - Table ID or name (not used in direct upload, kept for compatibility)
    * @param recordId - Record ID to attach to
-   * @param fieldId - Field ID (not name) for the attachment field
+   * @param fieldName - Field NAME (not ID) for the attachment field (e.g., "CAD_Thumbnail")
    * @param fileBuffer - File content as Buffer
    * @param filename - Original filename
    * @param contentType - MIME type (e.g., 'image/png')
    */
   async uploadAttachment(
     baseId: string,
+    tableId: string,
     recordId: string,
-    fieldId: string,
+    fieldName: string,
     fileBuffer: Buffer,
     filename: string,
     contentType: string
   ): Promise<AttachmentResult> {
-    // Airtable direct upload endpoint
-    const uploadUrl = `https://content.airtable.com/v0/${baseId}/${recordId}/${fieldId}/uploadAttachment`;
-    
-    const response = await axios.post(uploadUrl, fileBuffer, {
-      headers: {
-        Authorization: `Bearer ${this.accessToken}`,
-        'Content-Type': contentType,
-        'Content-Disposition': `attachment; filename="${encodeURIComponent(filename)}"`,
-      },
-      maxBodyLength: Infinity,
-      maxContentLength: Infinity,
-    });
+    console.log(`[Airtable API] Uploading attachment via two-step process`);
+    console.log(`[Airtable API]   Base: ${baseId}, Table: ${tableId}, Record: ${recordId}`);
+    console.log(`[Airtable API]   Field Name: ${fieldName}, Filename: ${filename}`);
+    console.log(`[Airtable API]   Content-Type: ${contentType}, Size: ${fileBuffer.length} bytes`);
 
-    return response.data;
+    try {
+      // Step 1: Request upload URL from Airtable Content API
+      // CRITICAL: The endpoint uses field NAME in the path, NOT field ID
+      // Format: POST https://content.airtable.com/v0/{baseId}/{recordId}/{fieldName}/uploadAttachment
+      // 
+      // The field name should NOT be URL encoded in the path (Airtable expects exact field name)
+      // Example: CAD_Thumbnail stays as CAD_Thumbnail, not CAD%5FThumbnail
+      const uploadRequestUrl = `https://content.airtable.com/v0/${baseId}/${recordId}/${fieldName}/uploadAttachment`;
+      
+      const requestBody = { contentType, filename };
+      console.log(`[Airtable API] Step 1: Requesting upload URL from ${uploadRequestUrl}`);
+      console.log(`[Airtable API]   Request body:`, JSON.stringify(requestBody));
+      
+      const uploadRequestResponse = await axios.post(
+        uploadRequestUrl,
+        requestBody,
+        {
+          headers: {
+            'Authorization': `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const { uploadUrl, id: attachmentId } = uploadRequestResponse.data;
+      
+      if (!uploadUrl) {
+        throw new Error('No upload URL returned from Airtable');
+      }
+
+      console.log(`[Airtable API] Step 2: Uploading file to presigned URL (${fileBuffer.length} bytes)`);
+      
+      // Step 2: Upload file content to the presigned URL
+      await axios.put(uploadUrl, fileBuffer, {
+        headers: {
+          'Content-Type': contentType,
+        },
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
+      });
+
+      console.log(`[Airtable API] Upload successful, attachment ID: ${attachmentId}`);
+      
+      return {
+        id: attachmentId,
+        url: '', // URL will be populated by Airtable after processing
+        filename,
+        size: fileBuffer.length,
+        type: contentType,
+      };
+    } catch (error: any) {
+      // Log detailed error information
+      const errorDetails = {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+      };
+      console.error('[Airtable API] Upload failed:', errorDetails);
+      
+      // If direct upload fails with 400, provide helpful error message
+      const errorType = error.response?.data?.error?.type;
+      const errorMsg = error.response?.data?.error?.message || errorType || error.message;
+      
+      // Check if this might be a permission or scope issue
+      if (error.response?.status === 400) {
+        console.error('[Airtable API] 400 Bad Request - Possible causes:');
+        console.error('[Airtable API]   1. Field name mismatch - ensure using exact field NAME, not field ID');
+        console.error('[Airtable API]   2. Field type is not "Attachment" in Airtable');
+        console.error('[Airtable API]   3. Record ID does not exist');
+        console.error('[Airtable API]   4. OAuth scope missing - need data.records:write');
+        console.error('[Airtable API]   5. Token needs re-authentication after scope changes');
+        console.error(`[Airtable API]   Current field name being used: "${fieldName}"`);
+      }
+      
+      throw new Error(`Attachment upload failed: ${errorMsg}`);
+    }
   }
 
   /**

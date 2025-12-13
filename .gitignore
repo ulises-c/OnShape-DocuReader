@@ -48,6 +48,8 @@ examples/example_python_real/
 *.real.json
 /examples/real_onshape_docs/
 *.csv
+notes/AIRTABLE_API.md
+notes/CONSOLE-OUTPUT.md
 
 # AI Pack
 .aipack/

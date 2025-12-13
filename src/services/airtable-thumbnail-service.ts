@@ -49,7 +49,6 @@ export interface ThumbnailServiceConfig {
 export class AirtableThumbnailService {
   private apiClient: AirtableApiClient;
   private config: ThumbnailServiceConfig;
-  private thumbnailFieldId: string | null = null;
 
   constructor(apiClient: AirtableApiClient, config?: Partial<ThumbnailServiceConfig>) {
     this.apiClient = apiClient;
@@ -99,29 +98,6 @@ export class AirtableThumbnailService {
   }
 
   /**
-   * Get the field ID for the thumbnail field (cached)
-   * @throws Error if field ID cannot be found
-   */
-  private async getThumbnailFieldId(): Promise<string> {
-    if (this.thumbnailFieldId) {
-      return this.thumbnailFieldId;
-    }
-
-    const fieldId = await this.apiClient.getFieldId(
-      this.config.baseId,
-      this.config.tableId,
-      this.config.thumbnailField
-    );
-
-    if (!fieldId) {
-      throw new Error(`Thumbnail field "${this.config.thumbnailField}" not found in table schema`);
-    }
-
-    this.thumbnailFieldId = fieldId;
-    return this.thumbnailFieldId;
-  }
-
-  /**
    * Upload a single thumbnail to a record
    */
   async uploadThumbnail(
@@ -129,8 +105,6 @@ export class AirtableThumbnailService {
     imageBuffer: Buffer,
     filename: string
   ): Promise<void> {
-    const fieldId = await this.getThumbnailFieldId();
-    
     // Determine content type from filename
     const ext = filename.split('.').pop()?.toLowerCase();
     const contentType = {
@@ -141,10 +115,16 @@ export class AirtableThumbnailService {
       webp: 'image/webp',
     }[ext || 'png'] || 'image/png';
 
+    // Log the field name being used for debugging
+    console.log(`[AirtableThumbnail] Uploading to record ${recordId}, field: "${this.config.thumbnailField}"`);
+
+    // Use the two-step upload process
+    // IMPORTANT: thumbnailField must be the exact field NAME as shown in Airtable UI, not field ID
     await this.apiClient.uploadAttachment(
       this.config.baseId,
+      this.config.tableId,
       recordId,
-      fieldId,
+      this.config.thumbnailField,
       imageBuffer,
       filename,
       contentType
@@ -242,9 +222,9 @@ export class AirtableThumbnailService {
     
     // Airtable rate limit: 5 requests/second per base
     // Use conservative concurrency with delays to stay well under limit
-    // With 1 worker at 300ms delay = ~3.3 req/sec (safe margin)
-    const matchLimit = pLimit(2); // Single worker to ensure sequential processing
-    const MATCH_DELAY = 350; // 300ms delay between match requests (allows ~3.3 req/sec)
+    // With 2 workers at 350ms delay = ~3.3 req/sec (safe margin)
+    const matchLimit = pLimit(2); // Two workers for parallel matching
+    const MATCH_DELAY = 350; // 350ms delay between match requests (allows ~3.3 req/sec)
 
     console.log(`[AirtableThumbnail] Starting parallel matching with ${Math.min(workerCount, 2)} workers, ${MATCH_DELAY}ms delay`);
 
@@ -324,7 +304,7 @@ export class AirtableThumbnailService {
     // The total should reflect total files, processed tracks how many we've handled
     onProgress?.(progress);
 
-    const UPLOAD_DELAY = 300; // 300ms between uploads for rate limiting (content API is stricter)
+    const UPLOAD_DELAY = 500; // 500ms between uploads for rate limiting (content API is stricter)
 
     for (const { name, file, parsed, record } of matchedFiles) {
       progress.currentFile = name;
@@ -365,15 +345,23 @@ export class AirtableThumbnailService {
       } catch (error: any) {
         console.error(`[AirtableThumbnail] Error uploading "${name}":`, error.message);
         
-        // Check for rate limit error
+        // Check for specific error types
         const isRateLimit = error.response?.status === 429;
+        const isBadRequest = error.response?.status === 400;
+        
+        let errorMessage = error.message;
+        if (isRateLimit) {
+          errorMessage = 'Rate limit exceeded during upload. Try again later.';
+        } else if (isBadRequest) {
+          // 400 errors often indicate scope or permission issues
+          errorMessage = 'Upload failed (400). Try re-authenticating with Airtable to refresh permissions.';
+        }
+        
         results.push({
           partNumber: parsed.partNumber,
           filename: name,
           status: 'error',
-          error: isRateLimit 
-            ? 'Rate limit exceeded during upload. Try again later.'
-            : error.message,
+          error: errorMessage,
         });
         progress.errors++;
         onProgress?.(progress);

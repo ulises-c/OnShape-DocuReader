@@ -160,6 +160,14 @@ router.post(
         thumbnailField: String(req.query.thumbnailField || airtableConfig.thumbnailField),
       };
 
+      // Log config for debugging
+      console.log(`[Airtable API] Upload config:`, {
+        baseId: config.baseId,
+        tableId: config.tableId,
+        partNumberField: config.partNumberField,
+        thumbnailField: config.thumbnailField,
+      });
+
       const service = new AirtableThumbnailService(client, config);
       const dryRun = req.query.dryRun === 'true';
       const workerCount = Math.max(1, Math.min(8, parseInt(String(req.query.workers || '4'), 10)));

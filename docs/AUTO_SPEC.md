@@ -1,6 +1,6 @@
 # onshape-docureader
 
-Generated: 2025-12-12 17:33
+Generated: 2025-12-12 18:17
 
 Using OnShape API to gather information about documents
 
@@ -138,7 +138,7 @@ onshape-docureader/
 
 ## Stats
 
-Files: 60 | Lines: 13,743 | Routes: 44 | TODOs: 4
+Files: 60 | Lines: 13,823 | Routes: 44 | TODOs: 5
 
 ## Routes
 
@@ -192,6 +192,7 @@ Files: 60 | Lines: 13,743 | Routes: 44 | TODOs: 4
 - [bomToCSV.js] TODO: Check for edge cases, e.g. commas, quotes in values
 - [airtable-upload-view.js] TODO: Implement actual cancellation if using streaming upload
 - [document-detail-view.js] NOTE: We fetch elements via the version endpoint
+- [airtable.ts] NOTE: Attachment uploads require data.records:write scope
 - [api-call-cost.ts] NOTE: These are estimates and may not reflect actual costs incurred by Onshape
 
 ## Modules
@@ -451,7 +452,7 @@ Airtable Thumbnail Upload Service Handles processing ZIP files containing thumbn
 
 **class AirtableThumbnailService**
   constructor(apiClient: AirtableApiClient, config?: Partial<ThumbnailServiceConfig>)
-  Properties: apiClient: AirtableApiClient, config: ThumbnailServiceConfig, thumbnailFieldId: string | null = null
+  Properties: apiClient: AirtableApiClient, config: ThumbnailServiceConfig
   Methods:
     - parseFilename(filename: string) -> ParsedFilename | null
     - async findRecordByPartNumber(partNumber: string) -> Promise<AirtableRecord | null>

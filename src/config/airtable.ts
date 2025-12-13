@@ -36,8 +36,14 @@ export const airtableConfig: AirtableConfig = {
   clientSecret: process.env.AIRTABLE_CLIENT_SECRET || '',
   redirectUri: process.env.AIRTABLE_REDIRECT_URI || 'http://localhost:3000/auth/airtable/callback',
   
-  // Required scopes for reading/writing records and schema
-  scopes: ['data.records:read', 'data.records:write', 'schema.bases:read'],
+  // Required scopes for reading/writing records, schema, and uploading attachments
+  // Note: Attachment uploads require data.records:write scope
+  scopes: [
+    'data.records:read',
+    'data.records:write',
+    'schema.bases:read',
+    'user.email:read'  // Optional: for displaying user info
+  ],
   
   // Airtable OAuth URLs
   authorizationUrl: 'https://airtable.com/oauth2/v1/authorize',

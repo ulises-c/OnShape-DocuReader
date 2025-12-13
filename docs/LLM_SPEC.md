@@ -229,9 +229,50 @@ This ensures proper ESM compatibility with TypeScript's NodeNext module resoluti
 ### Rate Limiting
 
 - Airtable API limit: 5 requests/second per base
-- Matching phase: Max 2 concurrent workers with 250ms staggered delays (~4 req/sec)
-- Upload phase: Sequential with 300ms delay between uploads (content API is stricter)
+- Matching phase: Parallel processing (2 workers) with 350ms delay between requests (~3.3 req/sec)
+- Upload phase: Sequential with 500ms delay between uploads (content API is stricter)
 - 429 errors are caught and reported with user-friendly messages
+- Progress tracking uses atomic counters for accurate real-time updates
+
+### Attachment Upload
+
+The Airtable attachment upload uses a two-step process via the content API:
+
+**Step 1: Request Upload URL**
+```
+POST https://content.airtable.com/v0/{baseId}/{recordId}/{fieldName}/uploadAttachment
+Content-Type: application/json
+Authorization: Bearer {token}
+Body: { "contentType": "image/png", "filename": "example.png" }
+```
+
+**Step 2: Upload File to Presigned URL**
+```
+PUT {uploadUrl}
+Content-Type: image/png
+Body: <binary file data>
+```
+
+Key requirements:
+- Uses field **name** (not field ID) in the URL path
+  - Example: Use `CAD_Thumbnail` NOT `fldtYjisBei9dSlPT`
+  - The field name is case-sensitive and must match exactly
+  - Do NOT URL-encode the field name (underscores stay as underscores)
+- Step 1 returns `uploadUrl` and `id` (attachment ID)
+- Step 2 uses the presigned URL directly (no auth header needed)
+- Attachment is automatically associated with the record after upload
+- **OAuth Scope Required**: `data.records:write` scope is required for attachment uploads
+- If you get 400 BAD_REQUEST errors, re-authenticate to get a token with updated scopes
+
+**Troubleshooting 400 Errors:**
+- Verify OAuth app has `data.records:write` scope enabled
+- Re-authenticate (logout/login) after adding new scopes
+- Ensure the field name matches exactly (case-sensitive)
+  - Check the exact field name in Airtable UI (not the field ID)
+  - Field name with spaces or special characters must match exactly
+- Verify the field type is "Attachment" in Airtable schema
+- Check that the record ID exists and is valid
+- Ensure the base ID is correct
 
 ### Routes
 
@@ -290,10 +331,11 @@ The dashboard header includes an Airtable auth indicator:
 3. **Upload Flow**:
    - User uploads ZIP file containing thumbnails
    - **Phase 1 (Extracting)**: Server extracts ZIP, parses filenames for part numbers
-   - **Phase 2 (Matching)**: Parallel queries to Airtable for matching records (max 2 workers, 250ms delays)
-   - **Phase 3 (Uploading)**: Sequential uploads using direct upload API (300ms delays)
-   - Progress reported back to frontend with phase indicators
+   - **Phase 2 (Matching)**: Rate-limited parallel queries to Airtable (max 2 concurrent, 250ms between requests)
+   - **Phase 3 (Uploading)**: Sequential uploads using direct upload API (300ms delays) or dry-run skip
+   - Progress reported back to frontend with atomic counter updates
 4. **Report Download**:
-   - After processing completes, results stored in view state
-   - User can download JSON or CSV report with full results
-   - CSV includes metadata header with timestamp, file name, mode, and summary
+   - After processing completes, results stored in view state (`_lastResults`)
+   - Download JSON Report button: Full results object as formatted JSON
+   - Download CSV Report button: Tabular format with metadata header comments
+   - CSV includes: Part Number, Filename, Status, Record ID, Error columns
