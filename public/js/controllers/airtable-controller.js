@@ -3,49 +3,54 @@
  */
 
 import { AirtableUploadView } from '../views/airtable-upload-view.js';
-import { showToast } from '../utils/toast-notification.js';
 import { ROUTES } from '../router/routes.js';
+import { showToast } from '../utils/toast-notification.js';
 
 export class AirtableController {
   constructor(state, services, navigation) {
     this.state = state;
     this.airtableService = services.airtableService;
     this.navigation = navigation;
-    this.router = null; // Set by app.js after initialization
-    
-    this.uploadView = null; // Lazy initialized
-    this._isAuthenticated = false;
-    this._previousPage = null;
-    
+    this.router = null; // Set by app.js after router initialization
+
+    // Initialize view
+    this.uploadView = new AirtableUploadView(
+      '#airtableUploadContainer',
+      this,
+      this.airtableService
+    );
+
+    // Cache auth status to avoid repeated checks
+    this._authStatusCache = null;
+    this._authStatusCacheTime = 0;
+    this._AUTH_CACHE_TTL = 30000; // 30 seconds
+
     this._bindDashboardEvents();
   }
 
-  /**
-   * Bind event listeners for dashboard elements
-   */
   _bindDashboardEvents() {
-    // Airtable button in dashboard
+    // Airtable button in dashboard header
     const airtableBtn = document.getElementById('airtableUploadBtn');
     if (airtableBtn) {
       airtableBtn.addEventListener('click', () => this._handleAirtableButtonClick());
     }
-    
-    // Back button from Airtable page
+
+    // Back button from Airtable upload page
     const backBtn = document.getElementById('backFromAirtableBtn');
     if (backBtn) {
       backBtn.addEventListener('click', () => this._navigateBack());
     }
-    
-    // Listen for escape key to close modal/navigate back
-    document.addEventListener('keydown', (e) => this._escapeHandler(e));
+
+    // Listen for escape key to close upload page
+    document.addEventListener('keydown', this._escapeHandler.bind(this));
+
+    // Initialize auth indicator on page load
+    this.refreshAuthStatus();
   }
 
-  /**
-   * Escape key handler
-   */
   _escapeHandler(e) {
     if (e.key === 'Escape') {
-      const currentPage = this.navigation.getCurrentPage?.();
+      const currentPage = this.navigation.getCurrentPage();
       if (currentPage === 'airtableUpload') {
         this._navigateBack();
       }
@@ -53,57 +58,50 @@ export class AirtableController {
   }
 
   /**
-   * Handle Airtable button click - check auth status and show appropriate UI
+   * Handle Airtable button click in dashboard
+   * If authenticated, go to upload page; otherwise, initiate login
    */
   async _handleAirtableButtonClick() {
-    try {
-      // Store current page for back navigation
-      this._previousPage = this.navigation.getCurrentPage?.() || 'dashboard';
-      
-      // Check Airtable auth status
-      const status = await this.airtableService.getAuthStatus();
-      this._isAuthenticated = status.authenticated;
-      
-      if (this._isAuthenticated) {
-        // Navigate to Airtable upload page
-        this.show();
+    const status = await this.getAuthStatus();
+
+    if (!status.configured) {
+      showToast('Airtable is not configured on this server');
+      return;
+    }
+
+    if (status.authenticated) {
+      // Navigate to upload page
+      if (this.router) {
+        this.router.navigate(ROUTES.AIRTABLE_UPLOAD);
       } else {
-        // Show login prompt or redirect to Airtable OAuth
-        const shouldLogin = confirm(
-          'You need to sign in to Airtable to upload thumbnails.\n\n' +
-          'Click OK to sign in with Airtable.'
-        );
-        
-        if (shouldLogin) {
-          this.airtableService.login();
-        }
+        this.showUploadPage();
       }
-    } catch (error) {
-      console.error('[AirtableController] Error checking auth status:', error);
-      showToast('Failed to check Airtable connection status');
+    } else {
+      // Initiate login
+      this.login();
     }
   }
 
   /**
    * Show the Airtable upload page
-   * @param {Object} restoredState - Optional restored state from router
+   * @param {Object} restoredState - Optional state to restore
    */
-  async show(restoredState = null) {
-    // Navigate to airtable page
-    this.navigation.navigateTo('airtableUpload');
-    
-    // Initialize view if needed
-    if (!this.uploadView) {
-      this.uploadView = new AirtableUploadView(
-        '#airtableUploadContainer',
-        this,
-        this.airtableService
-      );
+  async showUploadPage(restoredState = null) {
+    // Check auth status first
+    const status = await this.getAuthStatus();
+
+    if (!status.configured) {
+      showToast('Airtable is not configured on this server');
+      this._navigateBack();
+      return;
     }
-    
-    // Render the upload view
-    await this.uploadView.render(this._isAuthenticated);
-    
+
+    // Navigate to upload page
+    this.navigation.navigateTo('airtableUpload');
+
+    // Render view with auth status
+    await this.uploadView.render(status.authenticated);
+
     // Restore state if provided
     if (restoredState && typeof this.uploadView.restoreState === 'function') {
       this.uploadView.restoreState(restoredState);
@@ -111,39 +109,68 @@ export class AirtableController {
   }
 
   /**
-   * Navigate back to previous page
+   * Alias for showUploadPage for router compatibility
    */
+  async show(restoredState = null) {
+    return this.showUploadPage(restoredState);
+  }
+
   _navigateBack() {
     if (this.router) {
       this.router.navigate(ROUTES.DOCUMENT_LIST);
     } else {
-      this.navigation.navigateTo(this._previousPage || 'dashboard');
+      this.navigation.navigateTo('dashboard');
     }
   }
 
   /**
-   * Handle Airtable login
+   * Initiate Airtable OAuth login
    */
   login() {
-    this.airtableService.login();
+    // Store current route to return after auth
+    const returnTo = window.location.hash || '/#/airtable/upload';
+    this.airtableService.login(returnTo);
   }
 
   /**
-   * Handle Airtable logout
+   * Logout from Airtable
    */
   async logout() {
     try {
       await this.airtableService.logout();
-      this._isAuthenticated = false;
-      showToast('Signed out of Airtable');
-      
-      // Re-render if on airtable page
-      if (this.uploadView && this.navigation.getCurrentPage?.() === 'airtableUpload') {
+      this._authStatusCache = null;
+      this.updateAuthIndicator(false);
+      showToast('Logged out from Airtable');
+
+      // Re-render upload view if on that page
+      const currentPage = this.navigation.getCurrentPage();
+      if (currentPage === 'airtableUpload') {
         await this.uploadView.render(false);
       }
     } catch (error) {
       console.error('[AirtableController] Logout error:', error);
-      showToast('Failed to sign out of Airtable');
+      showToast('Failed to logout from Airtable');
+    }
+  }
+
+  /**
+   * Get cached auth status or fetch fresh
+   * @returns {Promise<{configured: boolean, authenticated: boolean}>}
+   */
+  async getAuthStatus() {
+    const now = Date.now();
+    if (this._authStatusCache && (now - this._authStatusCacheTime) < this._AUTH_CACHE_TTL) {
+      return this._authStatusCache;
+    }
+
+    try {
+      const status = await this.airtableService.getAuthStatus();
+      this._authStatusCache = status;
+      this._authStatusCacheTime = now;
+      return status;
+    } catch (error) {
+      console.error('[AirtableController] Error getting auth status:', error);
+      return { configured: false, authenticated: false };
     }
   }
 
@@ -151,61 +178,28 @@ export class AirtableController {
    * Refresh auth status and update UI
    */
   async refreshAuthStatus() {
-    try {
-      const status = await this.airtableService.getAuthStatus();
-      this._isAuthenticated = status.authenticated;
-      return status;
-    } catch (error) {
-      console.error('[AirtableController] Error refreshing auth status:', error);
-      this._isAuthenticated = false;
-      return { authenticated: false };
+    this._authStatusCache = null; // Force fresh fetch
+    const status = await this.getAuthStatus();
+    this.updateAuthIndicator(status.authenticated);
+    return status;
+  }
+
+  /**
+   * Update the auth indicator in the dashboard header
+   * @param {boolean} isAuthenticated
+   */
+  updateAuthIndicator(isAuthenticated) {
+    const indicator = document.getElementById('airtableAuthIndicator');
+    if (!indicator) return;
+
+    if (isAuthenticated) {
+      indicator.classList.remove('unauthenticated');
+      indicator.classList.add('authenticated');
+      indicator.title = 'Connected to Airtable';
+    } else {
+      indicator.classList.remove('authenticated');
+      indicator.classList.add('unauthenticated');
+      indicator.title = 'Not connected to Airtable';
     }
-  }
-
-  /**
-   * Get list of accessible Airtable bases
-   */
-  async getBases() {
-    return this.airtableService.getBases();
-  }
-
-  /**
-   * Get tables in a base
-   */
-  async getTables(baseId) {
-    return this.airtableService.getTables(baseId);
-  }
-
-  /**
-   * Get table schema (fields)
-   */
-  async getTableSchema(baseId, tableId) {
-    return this.airtableService.getTableSchema(baseId, tableId);
-  }
-
-  /**
-   * Upload thumbnails from ZIP file
-   * @param {File} zipFile - The ZIP file containing thumbnails
-   * @param {Object} config - Upload configuration
-   * @param {boolean} config.dryRun - Preview matches without uploading
-   * @param {string} config.baseId - Airtable base ID
-   * @param {string} config.tableId - Airtable table ID
-   * @param {string} config.partNumberField - Field name for part number matching
-   * @param {string} config.thumbnailField - Field name for thumbnail attachment
-   * @param {function} config.onProgress - Progress callback
-   * @returns {Promise<Object>} Upload results
-   */
-  async uploadThumbnails(zipFile, config) {
-    return this.airtableService.uploadThumbnails(zipFile, config);
-  }
-
-  /**
-   * Capture current state for history
-   */
-  captureState() {
-    if (this.uploadView && typeof this.uploadView.captureState === 'function') {
-      return this.uploadView.captureState();
-    }
-    return null;
   }
 }

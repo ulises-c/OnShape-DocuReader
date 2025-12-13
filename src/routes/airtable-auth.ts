@@ -32,6 +32,10 @@ router.get('/login', (req: Request, res: Response): void => {
     req.session.airtableCodeVerifier = codeVerifier;
     req.session.airtableOauthState = state;
 
+    // Store the return path from query parameter (default to documents list)
+    const returnTo = (req.query.returnTo as string) || '/#/documents';
+    req.session.airtableReturnTo = returnTo;
+
     // Generate authorization URL
     const authUrl = airtableOAuthService.generateAuthUrl(state, codeChallenge);
 
@@ -50,24 +54,33 @@ router.get('/login', (req: Request, res: Response): void => {
 router.get('/callback', async (req: Request, res: Response): Promise<void> => {
   const { code, state, error, error_description } = req.query;
 
+  // Helper to build redirect URL (respects dev vs production)
+  const buildRedirectUrl = (path: string): string => {
+    if (process.env.NODE_ENV === 'production') {
+      return path;
+    }
+    // In development, redirect to Vite dev server
+    return `http://localhost:5173${path}`;
+  };
+
   // Handle OAuth errors
   if (error) {
     console.error('[Airtable Auth] OAuth error:', error, error_description);
-    res.redirect('/#/airtable-error?error=' + encodeURIComponent(String(error_description || error)));
+    res.redirect(buildRedirectUrl('/#/airtable-error?error=' + encodeURIComponent(String(error_description || error))));
     return;
   }
 
   // Verify state parameter
   if (!state || state !== req.session.airtableOauthState) {
     console.error('[Airtable Auth] State mismatch');
-    res.redirect('/#/airtable-error?error=state_mismatch');
+    res.redirect(buildRedirectUrl('/#/airtable-error?error=state_mismatch'));
     return;
   }
 
   // Verify code is present
   if (!code || typeof code !== 'string') {
     console.error('[Airtable Auth] Missing authorization code');
-    res.redirect('/#/airtable-error?error=missing_code');
+    res.redirect(buildRedirectUrl('/#/airtable-error?error=missing_code'));
     return;
   }
 
@@ -75,7 +88,7 @@ router.get('/callback', async (req: Request, res: Response): Promise<void> => {
   const codeVerifier = req.session.airtableCodeVerifier;
   if (!codeVerifier) {
     console.error('[Airtable Auth] Missing code verifier in session');
-    res.redirect('/#/airtable-error?error=session_expired');
+    res.redirect(buildRedirectUrl('/#/airtable-error?error=session_expired'));
     return;
   }
 
@@ -91,17 +104,19 @@ router.get('/callback', async (req: Request, res: Response): Promise<void> => {
       scope: tokens.scope,
     };
 
-    // Clear OAuth state from session
+    // Get return path and clear OAuth state from session
+    const returnPath = req.session.airtableReturnTo || '/#/documents';
     delete req.session.airtableCodeVerifier;
     delete req.session.airtableOauthState;
+    delete req.session.airtableReturnTo;
 
     console.log('[Airtable Auth] Successfully authenticated');
 
-    // Redirect back to dashboard
-    res.redirect('/#/documents');
+    // Redirect back to the app
+    res.redirect(buildRedirectUrl(returnPath));
   } catch (error: any) {
     console.error('[Airtable Auth] Token exchange error:', error);
-    res.redirect('/#/airtable-error?error=' + encodeURIComponent(error.message));
+    res.redirect(buildRedirectUrl('/#/airtable-error?error=' + encodeURIComponent(error.message)));
   }
 });
 
@@ -183,6 +198,7 @@ router.post('/logout', (req: Request, res: Response): void => {
   delete req.session.airtable;
   delete req.session.airtableCodeVerifier;
   delete req.session.airtableOauthState;
+  delete req.session.airtableReturnTo;
 
   console.log('[Airtable Auth] Logged out');
   res.json({ success: true });

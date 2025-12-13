@@ -3,7 +3,7 @@
  */
 
 import { BaseView } from './base-view.js';
-import { escapeHtml, qs, on } from '../utils/dom-helpers.js';
+import { escapeHtml } from '../utils/dom-helpers.js';
 import { showToast } from '../utils/toast-notification.js';
 
 export class AirtableUploadView extends BaseView {
@@ -11,511 +11,328 @@ export class AirtableUploadView extends BaseView {
     super(containerSelector);
     this.controller = controller;
     this.airtableService = airtableService;
-    
     this._selectedFile = null;
-    this._config = {
-      dryRun: true,
-      baseId: '',
-      tableId: '',
-      partNumberField: 'Part number',
-      thumbnailField: 'CAD_Thumbnail'
-    };
-    this._bases = [];
-    this._tables = [];
     this._isUploading = false;
+    this._lastResults = null; // Store results for report download
   }
 
   /**
-   * Render the upload view
-   * @param {boolean} isAuthenticated - Whether user is authenticated with Airtable
+   * Render the upload view based on authentication status
+   * @param {boolean} isAuthenticated
    */
   async render(isAuthenticated) {
+    this.ensureContainer();
     this.clear();
-    
+
     if (!isAuthenticated) {
       this._renderUnauthenticated();
-      return;
+    } else {
+      await this._renderAuthenticated();
     }
-    
-    this._renderAuthenticated();
-    await this._loadBases();
+
+    this.bind();
   }
 
-  /**
-   * Render unauthenticated state
-   */
   _renderUnauthenticated() {
-    const container = this.getContainer();
-    if (!container) return;
-
-    container.innerHTML = `
-      <div class="airtable-upload-panel">
-        <div class="airtable-auth-section">
-          <div class="auth-icon">🔐</div>
-          <h3>Connect to Airtable</h3>
-          <p>Sign in to Airtable to upload thumbnails to your records.</p>
-          <button class="btn btn-primary" id="airtable-login-btn">
-            Sign in with Airtable
-          </button>
+    const html = `
+      <div class="airtable-auth-required">
+        <div class="auth-required-icon">🔐</div>
+        <h3>Airtable Authentication Required</h3>
+        <p>Sign in to Airtable to upload CAD thumbnails to your records.</p>
+        <button id="airtableLoginBtn" class="btn btn-primary">
+          Sign in with Airtable
+        </button>
+        <div class="auth-note">
+          <small>This will open Airtable's OAuth page. Your OnShape session will remain active.</small>
         </div>
       </div>
     `;
+    this.renderHtml(html);
+    this._bindLoginButton();
+  }
 
-    // Bind login button
-    const loginBtn = container.querySelector('#airtable-login-btn');
+  async _renderAuthenticated() {
+    // Get configuration info
+    let config = { configured: false, databaseConfigured: false };
+    try {
+      config = await this.airtableService.getConfiguration();
+    } catch (error) {
+      console.warn('[AirtableUploadView] Could not get config:', error);
+    }
+
+    const configWarning = !config.databaseConfigured
+      ? `<div class="config-warning">
+          <strong>⚠️ Database not fully configured</strong>
+          <p>Set AIRTABLE_BASE_ID and AIRTABLE_TABLE_ID in environment variables, or provide them in the form below.</p>
+        </div>`
+      : '';
+
+    const html = `
+      <div class="airtable-upload-panel">
+        <div class="upload-header">
+          <h3>📤 Upload Thumbnails to Airtable</h3>
+          <button id="airtableLogoutBtn" class="btn btn-secondary btn-sm">Logout</button>
+        </div>
+
+        ${configWarning}
+
+        <div class="upload-instructions">
+          <h4>Instructions</h4>
+          <p>Upload a ZIP file containing thumbnail images. The filename format should be:</p>
+          <code>{bom_item}_{part_number}_{name}.png</code>
+          <p>Example: <code>001_PRT-12345_Widget.png</code></p>
+          <p>The service will match part numbers to Airtable records and upload the thumbnails.</p>
+        </div>
+
+        <div class="upload-dropzone" id="airtableDropzone">
+          <input type="file" id="zipFileInput" accept=".zip" hidden />
+          <div class="dropzone-content">
+            <div class="dropzone-icon">📁</div>
+            <p class="dropzone-text">Drop ZIP file here or click to browse</p>
+            <p class="dropzone-hint">Supports: .zip files up to 100MB</p>
+          </div>
+          <div class="selected-file" id="selectedFileInfo" style="display: none;">
+            <span class="file-icon">📦</span>
+            <span class="file-name" id="selectedFileName"></span>
+            <span class="file-size" id="selectedFileSize"></span>
+            <button class="btn-clear-file" id="clearFileBtn" title="Remove file">✕</button>
+          </div>
+        </div>
+
+        <div class="upload-options">
+          <label class="dry-run-label">
+            <input type="checkbox" id="dryRunCheckbox" checked />
+            Dry Run (preview matches without uploading)
+          </label>
+        </div>
+
+        <div class="upload-actions">
+          <button id="startUploadBtn" class="btn btn-primary" disabled>
+            Upload Thumbnails
+          </button>
+        </div>
+
+        <div class="upload-progress" id="uploadProgress" style="display: none;">
+          <div class="progress-header">
+            <span class="progress-phase" id="progressPhase">Uploading...</span>
+            <button id="cancelUploadBtn" class="btn btn-danger btn-sm">Cancel</button>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="uploadProgressFill" style="width: 0%"></div>
+          </div>
+          <div class="progress-text" id="uploadProgressText">0%</div>
+        </div>
+
+        <div class="upload-results" id="uploadResults" style="display: none;">
+          <h4>Results</h4>
+          <div class="results-summary" id="resultsSummary"></div>
+          <div class="results-download-buttons" id="resultsDownloadButtons">
+            <button id="downloadJsonBtn" class="btn btn-primary btn-sm">📥 Download JSON Report</button>
+            <button id="downloadCsvBtn" class="btn btn-success btn-sm">📥 Download CSV Report</button>
+          </div>
+          <div class="results-table-container">
+            <table class="results-table" id="resultsTable">
+              <thead>
+                <tr>
+                  <th>Part Number</th>
+                  <th>Filename</th>
+                  <th>Status</th>
+                  <th>Details</th>
+                </tr>
+              </thead>
+              <tbody id="resultsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    `;
+    this.renderHtml(html);
+    this._bindEvents();
+    this._bindDropzone();
+  }
+
+  _bindLoginButton() {
+    const loginBtn = document.getElementById('airtableLoginBtn');
     if (loginBtn) {
       loginBtn.addEventListener('click', () => this.controller.login());
     }
   }
 
-  /**
-   * Render authenticated state with upload UI
-   */
-  _renderAuthenticated() {
-    const container = this.getContainer();
-    if (!container) return;
-
-    container.innerHTML = `
-      <div class="airtable-upload-panel">
-        <div class="airtable-header">
-          <div class="airtable-status">
-            <span class="status-indicator connected"></span>
-            <span>Connected to Airtable</span>
-          </div>
-          <button class="btn btn-secondary btn-sm" id="airtable-logout-btn">
-            Sign Out
-          </button>
-        </div>
-
-        <div class="upload-section">
-          <h3>Upload Thumbnails to Airtable</h3>
-          
-          <div class="upload-requirements">
-            <h4>ZIP File Requirements</h4>
-            <ul>
-              <li>Contains a <code>thumbnails/</code> folder (or images at root)</li>
-              <li>Image filenames: <code>{bomItem}_{partNumber}_{name}.png</code></li>
-              <li>Example: <code>1_PRT-123456_Widget.png</code></li>
-            </ul>
-          </div>
-
-          <div class="config-section">
-            <h4>Configuration</h4>
-            
-            <div class="config-row">
-              <label for="airtable-base-select">Base:</label>
-              <select id="airtable-base-select" class="form-select">
-                <option value="">Loading bases...</option>
-              </select>
-            </div>
-
-            <div class="config-row">
-              <label for="airtable-table-select">Table:</label>
-              <select id="airtable-table-select" class="form-select" disabled>
-                <option value="">Select a base first</option>
-              </select>
-            </div>
-
-            <div class="config-row">
-              <label for="part-number-field">Part Number Field:</label>
-              <input type="text" id="part-number-field" class="form-input" 
-                     value="${escapeHtml(this._config.partNumberField)}" 
-                     placeholder="Part number">
-            </div>
-
-            <div class="config-row">
-              <label for="thumbnail-field">Thumbnail Field:</label>
-              <input type="text" id="thumbnail-field" class="form-input" 
-                     value="${escapeHtml(this._config.thumbnailField)}" 
-                     placeholder="CAD_Thumbnail">
-            </div>
-          </div>
-
-          <div class="upload-dropzone" id="airtable-dropzone">
-            <input type="file" id="zip-file-input" accept=".zip" hidden />
-            <div class="dropzone-content">
-              <div class="dropzone-icon">📦</div>
-              <p>Drop ZIP file here or <button class="btn-link" id="browse-zip-btn">browse</button></p>
-              <p class="dropzone-hint">Supports .zip files up to 50MB</p>
-            </div>
-          </div>
-
-          <div class="selected-file" id="selected-file-display" style="display: none;">
-            <span class="file-icon">📄</span>
-            <span class="file-name" id="selected-file-name"></span>
-            <span class="file-size" id="selected-file-size"></span>
-            <button class="btn-icon" id="clear-file-btn" title="Remove file">✕</button>
-          </div>
-
-          <div class="upload-options">
-            <label class="checkbox-label">
-              <input type="checkbox" id="dry-run-checkbox" checked />
-              <span>Dry Run (preview matches without uploading)</span>
-            </label>
-          </div>
-
-          <div class="upload-actions">
-            <button class="btn btn-primary" id="start-upload-btn" disabled>
-              Upload Thumbnails
-            </button>
-          </div>
-        </div>
-
-        <div class="upload-progress" id="upload-progress-section" style="display: none;">
-          <h4>Upload Progress</h4>
-          <div class="progress-bar-container">
-            <div class="progress-bar">
-              <div class="progress-fill" id="upload-progress-fill" style="width: 0%"></div>
-            </div>
-            <span class="progress-text" id="upload-progress-text">0%</span>
-          </div>
-          <p class="progress-status" id="upload-status-text">Preparing...</p>
-          <button class="btn btn-secondary" id="cancel-upload-btn">Cancel</button>
-        </div>
-
-        <div class="upload-results" id="upload-results-section" style="display: none;">
-          <h4>Results</h4>
-          <div class="results-summary" id="results-summary"></div>
-          <div class="results-details" id="results-details"></div>
-        </div>
-      </div>
-    `;
-
-    this._bindEvents();
-  }
-
-  /**
-   * Bind event listeners
-   */
   _bindEvents() {
-    const container = this.getContainer();
-    if (!container) return;
-
     // Logout button
-    const logoutBtn = container.querySelector('#airtable-logout-btn');
+    const logoutBtn = document.getElementById('airtableLogoutBtn');
     if (logoutBtn) {
       logoutBtn.addEventListener('click', () => this.controller.logout());
     }
 
-    // Base select
-    const baseSelect = container.querySelector('#airtable-base-select');
-    if (baseSelect) {
-      baseSelect.addEventListener('change', (e) => this._handleBaseChange(e.target.value));
+    // Clear file button
+    const clearBtn = document.getElementById('clearFileBtn');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => this._clearFile());
     }
 
-    // Table select
-    const tableSelect = container.querySelector('#airtable-table-select');
-    if (tableSelect) {
-      tableSelect.addEventListener('change', (e) => {
-        this._config.tableId = e.target.value;
-        this._updateUploadButton();
-      });
-    }
-
-    // Field inputs
-    const partNumberField = container.querySelector('#part-number-field');
-    if (partNumberField) {
-      partNumberField.addEventListener('input', (e) => {
-        this._config.partNumberField = e.target.value;
-      });
-    }
-
-    const thumbnailField = container.querySelector('#thumbnail-field');
-    if (thumbnailField) {
-      thumbnailField.addEventListener('input', (e) => {
-        this._config.thumbnailField = e.target.value;
-      });
-    }
-
-    // File input and dropzone
-    this._bindDropzone();
-
-    // Dry run checkbox
-    const dryRunCheckbox = container.querySelector('#dry-run-checkbox');
-    if (dryRunCheckbox) {
-      dryRunCheckbox.addEventListener('change', (e) => {
-        this._config.dryRun = e.target.checked;
-        this._updateUploadButtonText();
-      });
-    }
-
-    // Upload button
-    const uploadBtn = container.querySelector('#start-upload-btn');
+    // Start upload button
+    const uploadBtn = document.getElementById('startUploadBtn');
     if (uploadBtn) {
       uploadBtn.addEventListener('click', () => this._startUpload());
     }
 
-    // Cancel button
-    const cancelBtn = container.querySelector('#cancel-upload-btn');
+    // Cancel upload button
+    const cancelBtn = document.getElementById('cancelUploadBtn');
     if (cancelBtn) {
       cancelBtn.addEventListener('click', () => this._cancelUpload());
     }
 
-    // Clear file button
-    const clearBtn = container.querySelector('#clear-file-btn');
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => this._clearFile());
+    // Download report buttons
+    const downloadJsonBtn = document.getElementById('downloadJsonBtn');
+    if (downloadJsonBtn) {
+      downloadJsonBtn.addEventListener('click', () => this._downloadReport('json'));
+    }
+
+    const downloadCsvBtn = document.getElementById('downloadCsvBtn');
+    if (downloadCsvBtn) {
+      downloadCsvBtn.addEventListener('click', () => this._downloadReport('csv'));
     }
   }
 
-  /**
-   * Bind dropzone events
-   */
   _bindDropzone() {
-    const container = this.getContainer();
-    const dropzone = container?.querySelector('#airtable-dropzone');
-    const fileInput = container?.querySelector('#zip-file-input');
-    const browseBtn = container?.querySelector('#browse-zip-btn');
+    const dropzone = document.getElementById('airtableDropzone');
+    const fileInput = document.getElementById('zipFileInput');
 
     if (!dropzone || !fileInput) return;
 
-    // Browse button
-    if (browseBtn) {
-      browseBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        fileInput.click();
-      });
-    }
-
-    // Click on dropzone
+    // Click to browse
     dropzone.addEventListener('click', (e) => {
-      if (e.target === dropzone || e.target.closest('.dropzone-content')) {
+      if (e.target.id !== 'clearFileBtn' && !this._selectedFile) {
         fileInput.click();
       }
     });
 
     // File input change
     fileInput.addEventListener('change', (e) => {
-      if (e.target.files?.length) {
-        this._handleFileSelect(e.target.files[0]);
-      }
+      const file = e.target.files?.[0];
+      if (file) this._handleFileSelect(file);
     });
 
-    // Drag and drop
+    // Drag and drop events
     dropzone.addEventListener('dragover', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       dropzone.classList.add('dragover');
     });
 
     dropzone.addEventListener('dragleave', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       dropzone.classList.remove('dragover');
     });
 
     dropzone.addEventListener('drop', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       dropzone.classList.remove('dragover');
-      
-      const files = e.dataTransfer?.files;
-      if (files?.length) {
-        const file = files[0];
+
+      const file = e.dataTransfer?.files?.[0];
+      if (file) {
         if (file.name.endsWith('.zip')) {
           this._handleFileSelect(file);
         } else {
-          showToast('Please select a ZIP file');
+          showToast('Please drop a ZIP file');
         }
       }
     });
   }
 
-  /**
-   * Handle file selection
-   */
   _handleFileSelect(file) {
+    // Validate file
     if (!file.name.endsWith('.zip')) {
       showToast('Please select a ZIP file');
       return;
     }
 
-    if (file.size > 50 * 1024 * 1024) {
-      showToast('File too large. Maximum size is 50MB');
+    const maxSize = 100 * 1024 * 1024; // 100MB
+    if (file.size > maxSize) {
+      showToast('File too large. Maximum size is 100MB');
       return;
     }
 
     this._selectedFile = file;
-    
-    // Update UI
-    const container = this.getContainer();
-    const dropzone = container?.querySelector('#airtable-dropzone');
-    const fileDisplay = container?.querySelector('#selected-file-display');
-    const fileName = container?.querySelector('#selected-file-name');
-    const fileSize = container?.querySelector('#selected-file-size');
 
-    if (dropzone) dropzone.style.display = 'none';
-    if (fileDisplay) fileDisplay.style.display = 'flex';
+    // Update UI
+    const dropzone = document.getElementById('airtableDropzone');
+    const fileInfo = document.getElementById('selectedFileInfo');
+    const dropzoneContent = dropzone?.querySelector('.dropzone-content');
+    const fileName = document.getElementById('selectedFileName');
+    const fileSize = document.getElementById('selectedFileSize');
+    const uploadBtn = document.getElementById('startUploadBtn');
+
+    if (dropzoneContent) dropzoneContent.style.display = 'none';
+    if (fileInfo) fileInfo.style.display = 'flex';
     if (fileName) fileName.textContent = file.name;
     if (fileSize) fileSize.textContent = this._formatFileSize(file.size);
+    if (uploadBtn) uploadBtn.disabled = false;
 
-    this._updateUploadButton();
+    // Add selected class to dropzone
+    if (dropzone) dropzone.classList.add('has-file');
   }
 
-  /**
-   * Clear selected file
-   */
   _clearFile() {
     this._selectedFile = null;
-    
-    const container = this.getContainer();
-    const dropzone = container?.querySelector('#airtable-dropzone');
-    const fileDisplay = container?.querySelector('#selected-file-display');
-    const fileInput = container?.querySelector('#zip-file-input');
 
-    if (dropzone) dropzone.style.display = 'block';
-    if (fileDisplay) fileDisplay.style.display = 'none';
+    // Reset UI
+    const dropzone = document.getElementById('airtableDropzone');
+    const fileInfo = document.getElementById('selectedFileInfo');
+    const dropzoneContent = dropzone?.querySelector('.dropzone-content');
+    const fileInput = document.getElementById('zipFileInput');
+    const uploadBtn = document.getElementById('startUploadBtn');
+
+    if (dropzoneContent) dropzoneContent.style.display = 'flex';
+    if (fileInfo) fileInfo.style.display = 'none';
     if (fileInput) fileInput.value = '';
-
-    this._updateUploadButton();
+    if (uploadBtn) uploadBtn.disabled = true;
+    if (dropzone) dropzone.classList.remove('has-file');
   }
 
-  /**
-   * Format file size for display
-   */
-  _formatFileSize(bytes) {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  }
-
-  /**
-   * Load available Airtable bases
-   */
-  async _loadBases() {
-    const container = this.getContainer();
-    const baseSelect = container?.querySelector('#airtable-base-select');
-    
-    if (!baseSelect) return;
-
-    try {
-      const response = await this.airtableService.getBases();
-      this._bases = response.bases || [];
-
-      if (this._bases.length === 0) {
-        baseSelect.innerHTML = '<option value="">No bases available</option>';
-        return;
-      }
-
-      baseSelect.innerHTML = '<option value="">Select a base...</option>' +
-        this._bases.map(base => 
-          `<option value="${escapeHtml(base.id)}">${escapeHtml(base.name)}</option>`
-        ).join('');
-
-    } catch (error) {
-      console.error('[AirtableUploadView] Error loading bases:', error);
-      baseSelect.innerHTML = '<option value="">Error loading bases</option>';
-      showToast('Failed to load Airtable bases');
-    }
-  }
-
-  /**
-   * Handle base selection change
-   */
-  async _handleBaseChange(baseId) {
-    this._config.baseId = baseId;
-    this._config.tableId = '';
-    
-    const container = this.getContainer();
-    const tableSelect = container?.querySelector('#airtable-table-select');
-    
-    if (!tableSelect) return;
-
-    if (!baseId) {
-      tableSelect.innerHTML = '<option value="">Select a base first</option>';
-      tableSelect.disabled = true;
-      this._updateUploadButton();
-      return;
-    }
-
-    tableSelect.innerHTML = '<option value="">Loading tables...</option>';
-    tableSelect.disabled = true;
-
-    try {
-      const response = await this.airtableService.getTables(baseId);
-      this._tables = response.tables || [];
-
-      if (this._tables.length === 0) {
-        tableSelect.innerHTML = '<option value="">No tables available</option>';
-        return;
-      }
-
-      tableSelect.innerHTML = '<option value="">Select a table...</option>' +
-        this._tables.map(table => 
-          `<option value="${escapeHtml(table.id)}">${escapeHtml(table.name)}</option>`
-        ).join('');
-      tableSelect.disabled = false;
-
-    } catch (error) {
-      console.error('[AirtableUploadView] Error loading tables:', error);
-      tableSelect.innerHTML = '<option value="">Error loading tables</option>';
-      showToast('Failed to load tables');
-    }
-
-    this._updateUploadButton();
-  }
-
-  /**
-   * Update upload button state
-   */
-  _updateUploadButton() {
-    const container = this.getContainer();
-    const uploadBtn = container?.querySelector('#start-upload-btn');
-    
-    if (!uploadBtn) return;
-
-    const isReady = this._selectedFile && 
-                    this._config.baseId && 
-                    this._config.tableId &&
-                    this._config.partNumberField &&
-                    this._config.thumbnailField;
-
-    uploadBtn.disabled = !isReady || this._isUploading;
-    this._updateUploadButtonText();
-  }
-
-  /**
-   * Update upload button text based on dry run setting
-   */
-  _updateUploadButtonText() {
-    const container = this.getContainer();
-    const uploadBtn = container?.querySelector('#start-upload-btn');
-    
-    if (!uploadBtn) return;
-
-    if (this._isUploading) {
-      uploadBtn.textContent = 'Uploading...';
-    } else if (this._config.dryRun) {
-      uploadBtn.textContent = 'Preview Matches';
-    } else {
-      uploadBtn.textContent = 'Upload Thumbnails';
-    }
-  }
-
-  /**
-   * Start the upload process
-   */
   async _startUpload() {
     if (!this._selectedFile || this._isUploading) return;
 
     this._isUploading = true;
-    this._updateUploadButton();
-    this._showProgress();
+    this._lastResults = null;
+    const dryRun = document.getElementById('dryRunCheckbox')?.checked ?? true;
+
+    // Show progress UI
+    const progressEl = document.getElementById('uploadProgress');
+    const resultsEl = document.getElementById('uploadResults');
+    const uploadBtn = document.getElementById('startUploadBtn');
+
+    if (progressEl) progressEl.style.display = 'block';
+    if (resultsEl) resultsEl.style.display = 'none';
+    if (uploadBtn) uploadBtn.disabled = true;
+
+    this._updateProgress('Uploading...', 0);
 
     try {
-      const result = await this.controller.uploadThumbnails(this._selectedFile, {
-        dryRun: this._config.dryRun,
-        baseId: this._config.baseId,
-        tableId: this._config.tableId,
-        partNumberField: this._config.partNumberField,
-        thumbnailField: this._config.thumbnailField,
-        onProgress: (progress) => this._updateProgress(progress)
-      });
+      const result = await this.airtableService.uploadThumbnails(
+        this._selectedFile,
+        { dryRun },
+        (progress) => {
+          if (progress.phase === 'uploading') {
+            this._updateProgress('Uploading...', progress.percent);
+          }
+        }
+      );
 
-      this._showResults(result);
-      
-      if (this._config.dryRun) {
-        showToast(`Preview complete: ${result.matched || 0} matches found`);
-      } else {
-        showToast(`Upload complete: ${result.uploaded || 0} thumbnails uploaded`);
-      }
+      // Store results for report download
+      this._lastResults = {
+        ...result,
+        fileName: this._selectedFile.name,
+        dryRun,
+        timestamp: new Date().toISOString()
+      };
+
+      // Show results
+      this._showResults(result, dryRun);
+      showToast(dryRun ? 'Dry run complete!' : 'Upload complete!');
 
     } catch (error) {
       console.error('[AirtableUploadView] Upload error:', error);
@@ -523,169 +340,228 @@ export class AirtableUploadView extends BaseView {
       this._hideProgress();
     } finally {
       this._isUploading = false;
-      this._updateUploadButton();
+      if (uploadBtn) uploadBtn.disabled = !this._selectedFile;
     }
   }
 
-  /**
-   * Cancel upload (placeholder - actual cancellation requires AbortController)
-   */
   _cancelUpload() {
-    // For now, just hide progress and reset state
+    // TODO: Implement actual cancellation if using streaming upload
     this._isUploading = false;
     this._hideProgress();
-    this._updateUploadButton();
     showToast('Upload cancelled');
   }
 
-  /**
-   * Show progress section
-   */
-  _showProgress() {
-    const container = this.getContainer();
-    const progressSection = container?.querySelector('#upload-progress-section');
-    const resultsSection = container?.querySelector('#upload-results-section');
-    
-    if (progressSection) progressSection.style.display = 'block';
-    if (resultsSection) resultsSection.style.display = 'none';
+  _updateProgress(phase, percent) {
+    const phaseEl = document.getElementById('progressPhase');
+    const fillEl = document.getElementById('uploadProgressFill');
+    const textEl = document.getElementById('uploadProgressText');
+
+    if (phaseEl) phaseEl.textContent = phase;
+    if (fillEl) fillEl.style.width = `${percent}%`;
+    if (textEl) textEl.textContent = `${percent}%`;
   }
 
-  /**
-   * Hide progress section
-   */
   _hideProgress() {
-    const container = this.getContainer();
-    const progressSection = container?.querySelector('#upload-progress-section');
-    if (progressSection) progressSection.style.display = 'none';
+    const progressEl = document.getElementById('uploadProgress');
+    if (progressEl) progressEl.style.display = 'none';
   }
 
-  /**
-   * Update progress display
-   */
-  _updateProgress(progress) {
-    const container = this.getContainer();
-    const progressFill = container?.querySelector('#upload-progress-fill');
-    const progressText = container?.querySelector('#upload-progress-text');
-    const statusText = container?.querySelector('#upload-status-text');
+  _showResults(result, dryRun) {
+    this._hideProgress();
 
-    const pct = progress.total > 0 
-      ? Math.round((progress.processed / progress.total) * 100) 
-      : 0;
+    const resultsEl = document.getElementById('uploadResults');
+    const summaryEl = document.getElementById('resultsSummary');
+    const tableBody = document.getElementById('resultsTableBody');
 
-    if (progressFill) progressFill.style.width = `${pct}%`;
-    if (progressText) progressText.textContent = `${pct}%`;
-    if (statusText) {
-      statusText.textContent = progress.currentFile 
-        ? `Processing: ${progress.currentFile}` 
-        : `${progress.processed} of ${progress.total} files processed`;
-    }
-  }
+    if (!resultsEl || !summaryEl || !tableBody) return;
 
-  /**
-   * Show results section
-   */
-  _showResults(result) {
-    const container = this.getContainer();
-    const progressSection = container?.querySelector('#upload-progress-section');
-    const resultsSection = container?.querySelector('#upload-results-section');
-    const summaryEl = container?.querySelector('#results-summary');
-    const detailsEl = container?.querySelector('#results-details');
+    resultsEl.style.display = 'block';
 
-    if (progressSection) progressSection.style.display = 'none';
-    if (resultsSection) resultsSection.style.display = 'block';
-
-    if (summaryEl) {
-      const isDryRun = this._config.dryRun;
-      summaryEl.innerHTML = `
-        <div class="summary-stats">
-          <div class="stat">
-            <span class="stat-value">${result.total || 0}</span>
-            <span class="stat-label">Files in ZIP</span>
-          </div>
-          <div class="stat">
-            <span class="stat-value">${result.matched || 0}</span>
-            <span class="stat-label">Matches Found</span>
-          </div>
-          ${!isDryRun ? `
-            <div class="stat stat-success">
-              <span class="stat-value">${result.uploaded || 0}</span>
-              <span class="stat-label">Uploaded</span>
-            </div>
-            <div class="stat stat-error">
-              <span class="stat-value">${result.errors || 0}</span>
-              <span class="stat-label">Errors</span>
-            </div>
-          ` : `
-            <div class="stat stat-info">
-              <span class="stat-value">${result.skipped || 0}</span>
-              <span class="stat-label">No Match</span>
-            </div>
-          `}
+    // Render summary
+    const summary = result.summary || {};
+    const modeLabel = dryRun ? 'Dry Run' : 'Upload';
+    summaryEl.innerHTML = `
+      <div class="summary-grid">
+        <div class="summary-item">
+          <span class="summary-label">Mode</span>
+          <span class="summary-value ${dryRun ? 'mode-dry' : 'mode-live'}">${modeLabel}</span>
         </div>
+        <div class="summary-item">
+          <span class="summary-label">Total Files</span>
+          <span class="summary-value">${summary.total || 0}</span>
+        </div>
+        <div class="summary-item summary-success">
+          <span class="summary-label">${dryRun ? 'Would Upload' : 'Uploaded'}</span>
+          <span class="summary-value">${summary.uploaded || 0}</span>
+        </div>
+        <div class="summary-item summary-skipped">
+          <span class="summary-label">Skipped</span>
+          <span class="summary-value">${summary.skipped || 0}</span>
+        </div>
+        <div class="summary-item summary-nomatch">
+          <span class="summary-label">No Match</span>
+          <span class="summary-value">${summary.noMatch || 0}</span>
+        </div>
+        <div class="summary-item summary-error">
+          <span class="summary-label">Errors</span>
+          <span class="summary-value">${summary.errors || 0}</span>
+        </div>
+      </div>
+    `;
+
+    // Render results table
+    const results = result.results || [];
+    tableBody.innerHTML = results.map(r => {
+      const statusClass = this._getStatusClass(r.status);
+      const statusIcon = this._getStatusIcon(r.status);
+      return `
+        <tr class="${statusClass}">
+          <td>${escapeHtml(r.partNumber || '—')}</td>
+          <td class="filename-cell" title="${escapeHtml(r.filename || '')}">${escapeHtml(r.filename || '—')}</td>
+          <td><span class="status-badge ${statusClass}">${statusIcon} ${escapeHtml(r.status)}</span></td>
+          <td class="details-cell">${escapeHtml(r.error || r.recordId || '—')}</td>
+        </tr>
       `;
+    }).join('');
+  }
+
+  /**
+   * Download report in specified format
+   * @param {string} format - 'json' or 'csv'
+   */
+  _downloadReport(format) {
+    if (!this._lastResults) {
+      showToast('No results to download');
+      return;
     }
 
-    if (detailsEl && result.results?.length) {
-      const maxDisplay = 100;
-      const displayResults = result.results.slice(0, maxDisplay);
-      
-      detailsEl.innerHTML = `
-        <table class="results-table">
-          <thead>
-            <tr>
-              <th>File</th>
-              <th>Part Number</th>
-              <th>Status</th>
-              <th>Details</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${displayResults.map(r => `
-              <tr class="result-${r.status}">
-                <td>${escapeHtml(r.filename || '')}</td>
-                <td>${escapeHtml(r.partNumber || '-')}</td>
-                <td><span class="status-badge status-${r.status}">${r.status}</span></td>
-                <td>${escapeHtml(r.error || r.recordId || '-')}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-        ${result.results.length > maxDisplay ? 
-          `<p class="results-truncated">Showing ${maxDisplay} of ${result.results.length} results</p>` : ''}
-      `;
-    } else if (detailsEl) {
-      detailsEl.innerHTML = '<p class="no-results">No detailed results available</p>';
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const modeLabel = this._lastResults.dryRun ? 'dryrun' : 'upload';
+
+    if (format === 'json') {
+      this._downloadJson(this._lastResults, `airtable-${modeLabel}-report-${timestamp}.json`);
+    } else if (format === 'csv') {
+      const csv = this._resultsToCSV(this._lastResults);
+      this._downloadCsv(csv, `airtable-${modeLabel}-report-${timestamp}.csv`);
     }
   }
 
   /**
-   * Capture state for navigation
+   * Convert results to CSV format
+   * @param {Object} results - Results object
+   * @returns {string} CSV string
    */
+  _resultsToCSV(results) {
+    const headers = ['Part Number', 'Filename', 'Status', 'Record ID', 'Error'];
+    const rows = (results.results || []).map(r => [
+      r.partNumber || '',
+      r.filename || '',
+      r.status || '',
+      r.recordId || '',
+      r.error || ''
+    ]);
+
+    // Escape CSV values
+    const escapeCSV = (val) => {
+      const str = String(val);
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const csvLines = [
+      `# Airtable Thumbnail Upload Report`,
+      `# Generated: ${results.timestamp || new Date().toISOString()}`,
+      `# File: ${results.fileName || 'Unknown'}`,
+      `# Mode: ${results.dryRun ? 'Dry Run' : 'Live Upload'}`,
+      `# Total: ${results.summary?.total || 0}, Uploaded: ${results.summary?.uploaded || 0}, Skipped: ${results.summary?.skipped || 0}, No Match: ${results.summary?.noMatch || 0}, Errors: ${results.summary?.errors || 0}`,
+      '',
+      headers.map(escapeCSV).join(','),
+      ...rows.map(row => row.map(escapeCSV).join(','))
+    ];
+
+    return csvLines.join('\n');
+  }
+
+  /**
+   * Download data as JSON file
+   * @param {Object} data - Data to download
+   * @param {string} filename - Filename
+   */
+  _downloadJson(data, filename) {
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    this._triggerDownload(blob, filename);
+  }
+
+  /**
+   * Download string as CSV file
+   * @param {string} csv - CSV content
+   * @param {string} filename - Filename
+   */
+  _downloadCsv(csv, filename) {
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    this._triggerDownload(blob, filename);
+  }
+
+  /**
+   * Trigger browser download
+   * @param {Blob} blob - Data blob
+   * @param {string} filename - Filename
+   */
+  _triggerDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast(`Downloaded: ${filename}`);
+  }
+
+  _getStatusClass(status) {
+    switch (status) {
+      case 'uploaded': return 'status-uploaded';
+      case 'skipped': return 'status-skipped';
+      case 'no_match': return 'status-nomatch';
+      case 'error': return 'status-error';
+      default: return '';
+    }
+  }
+
+  _getStatusIcon(status) {
+    switch (status) {
+      case 'uploaded': return '✅';
+      case 'skipped': return '⏭️';
+      case 'no_match': return '❓';
+      case 'error': return '❌';
+      default: return '';
+    }
+  }
+
+  _formatFileSize(bytes) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  // State capture/restore for router navigation
   captureState() {
     return {
-      config: { ...this._config },
-      hasFile: !!this._selectedFile
+      selectedFileName: this._selectedFile?.name || null,
+      dryRun: document.getElementById('dryRunCheckbox')?.checked ?? true
     };
   }
 
-  /**
-   * Restore state from navigation
-   */
   restoreState(state) {
-    if (state?.config) {
-      this._config = { ...this._config, ...state.config };
-      
-      // Update form fields
-      const container = this.getContainer();
-      if (container) {
-        const partField = container.querySelector('#part-number-field');
-        const thumbField = container.querySelector('#thumbnail-field');
-        const dryRun = container.querySelector('#dry-run-checkbox');
-        
-        if (partField) partField.value = this._config.partNumberField;
-        if (thumbField) thumbField.value = this._config.thumbnailField;
-        if (dryRun) dryRun.checked = this._config.dryRun;
-      }
+    if (!state) return;
+    
+    const dryRunCheckbox = document.getElementById('dryRunCheckbox');
+    if (dryRunCheckbox && typeof state.dryRun === 'boolean') {
+      dryRunCheckbox.checked = state.dryRun;
     }
   }
 }

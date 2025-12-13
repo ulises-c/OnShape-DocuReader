@@ -3,9 +3,12 @@
  * 
  * Handles processing ZIP files containing thumbnails and uploading them
  * to matching Airtable records based on part number.
+ * Uses parallel processing with controlled concurrency for better performance.
+ * Implements rate limiting to avoid Airtable's 5 req/sec limit.
  */
 
 import JSZip from 'jszip';
+import pLimit from 'p-limit';
 import { AirtableApiClient } from './airtable-api-client.ts';
 import type { AirtableRecord } from './airtable-api-client.ts';
 import { airtableConfig } from '../config/airtable.ts';
@@ -33,7 +36,7 @@ export interface UploadProgress {
   errors: number;
   noMatch: number;
   currentFile?: string;
-  phase: 'extracting' | 'processing' | 'complete';
+  phase: 'extracting' | 'matching' | 'uploading' | 'complete';
 }
 
 export interface ThumbnailServiceConfig {
@@ -149,18 +152,21 @@ export class AirtableThumbnailService {
   }
 
   /**
-   * Process ZIP file and upload thumbnails to matching Airtable records
+   * Process ZIP file and upload thumbnails to matching Airtable records.
+   * Uses parallel processing for matching phase with rate limiting delays.
+   * Sequential uploads to respect Airtable's content API rate limits.
    * 
    * @param zipBuffer - ZIP file content as Buffer
    * @param onProgress - Optional callback for progress updates
    * @param dryRun - If true, only reports matches without uploading
+   * @param workerCount - Number of parallel workers for matching (default: 4)
    */
   async processZipFile(
     zipBuffer: Buffer,
     onProgress?: (progress: UploadProgress) => void,
-    dryRun: boolean = false
+    dryRun: boolean = false,
+    workerCount: number = 8
   ): Promise<ThumbnailUploadResult[]> {
-    const results: ThumbnailUploadResult[] = [];
     const progress: UploadProgress = {
       total: 0,
       processed: 0,
@@ -195,99 +201,179 @@ export class AirtableThumbnailService {
     });
 
     progress.total = thumbnailFiles.length;
-    progress.phase = 'processing';
-    onProgress?.(progress);
-
     console.log(`[AirtableThumbnail] Found ${thumbnailFiles.length} thumbnail files in ZIP`);
 
-    // Airtable rate limit: 5 requests/second per base
-    const RATE_LIMIT_DELAY = 250; // 250ms between requests = 4/second (safe margin)
+    // Parse all filenames first (synchronous, fast)
+    const parsedFiles: Array<{
+      name: string;
+      file: JSZip.JSZipObject;
+      parsed: ParsedFilename | null;
+    }> = thumbnailFiles.map(({ name, file }) => ({
+      name,
+      file,
+      parsed: this.parseFilename(name),
+    }));
 
-    // Process each thumbnail
-    for (const { name, file } of thumbnailFiles) {
+    // Separate files with valid filenames from invalid ones
+    const validFiles = parsedFiles.filter(f => f.parsed !== null);
+    const invalidFiles = parsedFiles.filter(f => f.parsed === null);
+
+    // Handle invalid filenames immediately (no API call needed)
+    const results: ThumbnailUploadResult[] = invalidFiles.map(({ name }) => {
+      progress.processed++;
+      progress.skipped++;
+      return {
+        partNumber: '',
+        filename: name,
+        status: 'skipped' as const,
+        error: 'Filename does not match expected pattern: {bom#}_{part#}_{name}.{ext}',
+      };
+    });
+
+    if (invalidFiles.length > 0) {
+      console.log(`[AirtableThumbnail] Skipped ${invalidFiles.length} files with invalid filename patterns`);
+      onProgress?.(progress);
+    }
+
+    // Phase 1: Parallel matching - find Airtable records for each part number
+    // Use limited concurrency with rate limiting delays to avoid 429 errors
+    progress.phase = 'matching';
+    onProgress?.(progress);
+    
+    // Airtable rate limit: 5 requests/second per base
+    // Use conservative concurrency with delays to stay well under limit
+    const matchLimit = pLimit(Math.min(workerCount, 2)); // Max 2 concurrent matches
+    const MATCH_DELAY = 250; // 250ms delay between match requests (allows ~4 req/sec)
+
+    console.log(`[AirtableThumbnail] Starting parallel matching with ${Math.min(workerCount, 2)} workers, ${MATCH_DELAY}ms delay`);
+
+    // Track matched files with their records for upload phase
+    const matchedFiles: Array<{
+      name: string;
+      file: JSZip.JSZipObject;
+      parsed: ParsedFilename;
+      record: AirtableRecord | null;
+    }> = [];
+
+    // Use atomic counter for progress tracking
+    let matchedCount = 0;
+
+    // Process matching with controlled concurrency and delays
+    await Promise.all(
+      validFiles.map(({ name, file, parsed }, index) =>
+        matchLimit(async () => {
+          progress.currentFile = name;
+          onProgress?.(progress);
+
+          // Stagger requests with delay (based on execution order, not array index)
+          await new Promise(resolve => setTimeout(resolve, MATCH_DELAY));
+
+          try {
+            const record = await this.findRecordByPartNumber(parsed!.partNumber);
+            
+            // Atomic increment of matched count
+            matchedCount++;
+            progress.processed = invalidFiles.length + matchedCount;
+            
+            if (!record) {
+              console.log(`[AirtableThumbnail] No record found for part number: ${parsed!.partNumber}`);
+              results.push({
+                partNumber: parsed!.partNumber,
+                filename: name,
+                status: 'no_match',
+                error: `No Airtable record found with part number "${parsed!.partNumber}"`,
+              });
+              progress.noMatch++;
+            } else {
+              // Store for upload phase (don't count as processed yet for upload)
+              matchedFiles.push({ name, file, parsed: parsed!, record });
+            }
+            
+            onProgress?.(progress);
+          } catch (error: any) {
+            // Atomic increment even on error
+            matchedCount++;
+            progress.processed = invalidFiles.length + matchedCount;
+            
+            console.error(`[AirtableThumbnail] Error matching "${name}":`, error.message);
+            
+            // Check for rate limit error
+            const isRateLimit = error.response?.status === 429;
+            results.push({
+              partNumber: parsed!.partNumber,
+              filename: name,
+              status: 'error',
+              error: isRateLimit 
+                ? 'Rate limit exceeded. Try again later or reduce batch size.'
+                : `Match error: ${error.message}`,
+            });
+            progress.errors++;
+            onProgress?.(progress);
+          }
+        })
+      )
+    );
+
+    console.log(`[AirtableThumbnail] Matching complete: ${matchedFiles.length} matches found`);
+
+    // Phase 2: Sequential uploads (or dry run reporting)
+    // Uploads are done sequentially with delays due to strict Airtable rate limits on content API
+    progress.phase = 'uploading';
+    // Reset processed counter for upload phase - now we track upload progress separately
+    // The total should reflect total files, processed tracks how many we've handled
+    onProgress?.(progress);
+
+    const UPLOAD_DELAY = 300; // 300ms between uploads for rate limiting (content API is stricter)
+
+    for (const { name, file, parsed, record } of matchedFiles) {
       progress.currentFile = name;
       onProgress?.(progress);
 
-      // Parse filename to get part number
-      const parsed = this.parseFilename(name);
-      
-      if (!parsed) {
-        console.log(`[AirtableThumbnail] Skipping "${name}" - filename doesn't match expected pattern`);
-        results.push({
-          partNumber: '',
-          filename: name,
-          status: 'skipped',
-          error: 'Filename does not match expected pattern: {bom#}_{part#}_{name}.{ext}',
-        });
-        progress.processed++;
-        progress.skipped++;
-        onProgress?.(progress);
-        continue;
-      }
-
       try {
-        // Rate limiting delay
-        await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY));
-
-        // Find matching record
-        const record = await this.findRecordByPartNumber(parsed.partNumber);
-
-        if (!record) {
-          console.log(`[AirtableThumbnail] No record found for part number: ${parsed.partNumber}`);
-          results.push({
-            partNumber: parsed.partNumber,
-            filename: name,
-            status: 'no_match',
-            error: `No Airtable record found with part number "${parsed.partNumber}"`,
-          });
-          progress.processed++;
-          progress.noMatch++;
-          onProgress?.(progress);
-          continue;
-        }
-
         if (dryRun) {
           // Dry run - just report the match
-          console.log(`[AirtableThumbnail] [DRY RUN] Would upload "${name}" to record ${record.id}`);
+          console.log(`[AirtableThumbnail] [DRY RUN] Would upload "${name}" to record ${record!.id}`);
           results.push({
             partNumber: parsed.partNumber,
             filename: name,
             status: 'skipped',
-            recordId: record.id,
+            recordId: record!.id,
           });
-          progress.processed++;
           progress.skipped++;
         } else {
           // Extract file content and upload
           const imageBuffer = await file.async('nodebuffer');
           
-          // Another rate limit delay before upload
-          await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY));
+          // Rate limit delay before upload
+          await new Promise(resolve => setTimeout(resolve, UPLOAD_DELAY));
           
-          await this.uploadThumbnail(record.id, imageBuffer, parsed.fullMatch);
+          await this.uploadThumbnail(record!.id, imageBuffer, parsed.fullMatch);
           
-          console.log(`[AirtableThumbnail] Uploaded "${name}" to record ${record.id}`);
+          console.log(`[AirtableThumbnail] Uploaded "${name}" to record ${record!.id}`);
           results.push({
             partNumber: parsed.partNumber,
             filename: name,
             status: 'uploaded',
-            recordId: record.id,
+            recordId: record!.id,
           });
-          progress.processed++;
           progress.uploaded++;
         }
         
         onProgress?.(progress);
 
       } catch (error: any) {
-        console.error(`[AirtableThumbnail] Error processing "${name}":`, error.message);
+        console.error(`[AirtableThumbnail] Error uploading "${name}":`, error.message);
+        
+        // Check for rate limit error
+        const isRateLimit = error.response?.status === 429;
         results.push({
           partNumber: parsed.partNumber,
           filename: name,
           status: 'error',
-          error: error.message,
+          error: isRateLimit 
+            ? 'Rate limit exceeded during upload. Try again later.'
+            : error.message,
         });
-        progress.processed++;
         progress.errors++;
         onProgress?.(progress);
       }

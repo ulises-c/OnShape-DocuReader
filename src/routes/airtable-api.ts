@@ -132,9 +132,12 @@ router.get('/bases/:baseId/tables/:tableId/records', async (req: Request, res: R
  * 
  * Body (multipart/form-data):
  *   - file: ZIP file containing thumbnails
+ * 
+ * Query params:
  *   - dryRun: boolean (optional) - if true, only reports matches without uploading
  *   - baseId: string (optional) - override default base
  *   - tableId: string (optional) - override default table
+ *   - workers: number (optional) - number of parallel workers for matching (default: 4)
  */
 router.post(
   '/upload-thumbnails',
@@ -159,8 +162,9 @@ router.post(
 
       const service = new AirtableThumbnailService(client, config);
       const dryRun = req.query.dryRun === 'true';
+      const workerCount = Math.max(1, Math.min(8, parseInt(String(req.query.workers || '4'), 10)));
 
-      console.log(`[Airtable API] Processing thumbnail upload (dryRun=${dryRun})`);
+      console.log(`[Airtable API] Processing thumbnail upload (dryRun=${dryRun}, workers=${workerCount})`);
 
       const results = await service.processZipFile(
         req.body as Buffer,
@@ -168,7 +172,8 @@ router.post(
           // Progress callback - could be used for SSE in future
           console.log(`[Airtable API] Progress: ${progress.processed}/${progress.total} (${progress.phase})`);
         },
-        dryRun
+        dryRun,
+        workerCount
       );
 
       const summary = {

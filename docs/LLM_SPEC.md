@@ -178,8 +178,9 @@ Backend (Express)
 - **Part Number Matching**: Filenames parsed as `{bomItem}_{partNumber}_{name}.png`
 - **Direct Upload**: Uses Airtable's content upload API (requires field ID from schema)
 - **Dry Run Mode**: Preview matches without uploading
-- **Progress Tracking**: Real-time upload progress via callbacks
-- **Rate Limiting**: 5 requests/second per base (Airtable limit)
+- **Progress Tracking**: Real-time upload progress via callbacks with phase indicators
+- **Parallel Processing**: Matching phase uses p-limit for concurrent API calls (configurable workers)
+- **Rate Limiting**: 5 requests/second per base (Airtable limit), uploads sequential
 
 ### Import Notes
 
@@ -190,6 +191,24 @@ import type { AirtableRecord } from './airtable-api-client.ts';
 ```
 
 This ensures proper ESM compatibility with TypeScript's NodeNext module resolution.
+
+### Frontend Components
+
+**AirtableController** (`public/js/controllers/airtable-controller.js`)
+- Orchestrates Airtable authentication and upload workflows
+- Manages auth status cache and header indicator updates
+- Handles navigation to/from upload page
+- Methods: `showUploadPage()`, `login()`, `logout()`, `refreshAuthStatus()`
+
+**AirtableUploadView** (`public/js/views/airtable-upload-view.js`)
+- Renders upload UI with drag-drop zone for ZIP files
+- Shows auth-required state when not authenticated
+- Displays progress during upload and results table on completion
+- Supports dry-run mode to preview matches without uploading
+
+**AirtableService** (`public/js/services/airtable-service.js`)
+- Frontend API client for Airtable routes
+- Methods: `getAuthStatus()`, `getConfiguration()`, `login()`, `logout()`, `uploadThumbnails()`
 
 ### AirtableApiClient Methods
 
@@ -206,6 +225,13 @@ This ensures proper ESM compatibility with TypeScript's NodeNext module resoluti
 | `findRecordsByField(baseId, tableId, fieldName, value, options?)` | Find records by field value |
 | `findRecordByField(baseId, tableId, fieldName, value)` | Find single record by field |
 | `findRecordByPartNumber(baseId, tableId, partNumber, partNumberField?)` | Find record by part number |
+
+### Rate Limiting
+
+- Airtable API limit: 5 requests/second per base
+- Matching phase: Max 2 concurrent workers with 250ms staggered delays (~4 req/sec)
+- Upload phase: Sequential with 300ms delay between uploads (content API is stricter)
+- 429 errors are caught and reported with user-friendly messages
 
 ### Routes
 
@@ -236,13 +262,38 @@ AIRTABLE_PART_NUMBER_FIELD=Part number
 AIRTABLE_THUMBNAIL_FIELD=CAD_Thumbnail
 ```
 
+### CSS Styles
+
+Airtable upload styles in `public/css/views/airtable-upload.css`:
+- Auth-required state with login prompt
+- Dropzone with drag-drop support  
+- Progress bar and status indicators
+- Results table with status badges
+- Summary grid with upload statistics
+- Status badges for uploaded/skipped/no_match/error
+- Responsive layout for mobile
+
+### Auth Indicator
+
+The dashboard header includes an Airtable auth indicator:
+- Green dot when authenticated (`authenticated` class)
+- Gray dot when not authenticated (`unauthenticated` class)
+- Located in `#airtableAuthIndicator` element within `#airtableUploadBtn`
+
 ### Data Flow
 
 1. **Configuration Check**: Frontend calls `/api/airtable/config` to verify server setup
 2. **Authentication**: User clicks Airtable button → OAuth flow with PKCE → tokens stored in session
+   - In development, OAuth callback redirects to Vite dev server (port 5173)
+   - In production, redirects to Express server origin
+   - Return path stored in session to restore navigation after auth
 3. **Upload Flow**:
    - User uploads ZIP file containing thumbnails
-   - Server extracts ZIP, parses filenames for part numbers
-   - Server queries Airtable for matching records by part number
-   - Server uploads attachments using direct upload API
-   - Progress reported back to frontend
+   - **Phase 1 (Extracting)**: Server extracts ZIP, parses filenames for part numbers
+   - **Phase 2 (Matching)**: Parallel queries to Airtable for matching records (max 2 workers, 250ms delays)
+   - **Phase 3 (Uploading)**: Sequential uploads using direct upload API (300ms delays)
+   - Progress reported back to frontend with phase indicators
+4. **Report Download**:
+   - After processing completes, results stored in view state
+   - User can download JSON or CSV report with full results
+   - CSV includes metadata header with timestamp, file name, mode, and summary

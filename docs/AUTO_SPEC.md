@@ -1,27 +1,24 @@
-# OnShape-DocuReader - Project Specification
+# onshape-docureader
 
-> Generated: 2025-12-12 15:31:24
+Generated: 2025-12-12 17:11
 
-**Using OnShape API to gather information about documents**
+Using OnShape API to gather information about documents
 
 ## Scripts
 
-| Command | Action |
-|---------|--------|
-| `npm run build` | `tsc && vite build` |
-| `npm run start` | `node dist/index.js` |
-| `npm run dev` | `concurrently "nodemon src/index.ts" "vite" "npm ru...` |
-| `npm run open-browser` | `sh -c 'sleep 3 && wslview http://localhost:5173'` |
-| `npm run clean` | `rimraf dist` |
-| `npm run prebuild` | `npm run clean && npm run spec` |
-| `npm run test` | `echo "Error: no test specified" && exit 1` |
-| `npm run spec` | `python project_tools/generate_spec.py . -o docs/AU...` |
-| `npm run spec:preview` | `python project_tools/generate_spec.py . --stdout -...` |
+- `build`: tsc && vite build
+- `start`: node dist/index.js
+- `dev`: concurrently "nodemon src/index.ts" "vite" "npm run open-bro...
+- `open-browser`: sh -c 'sleep 3 && wslview http://localhost:5173'
+- `clean`: rimraf dist
+- `prebuild`: npm run clean && npm run spec
+- `test`: echo "Error: no test specified" && exit 1
+- `spec`: python project_tools/generate_spec.py . -o docs/AUTO_SPEC.md...
 
-## Directory Structure
+## Structure
 
 ```
-OnShape-DocuReader/
+onshape-docureader/
 ├── public/
 │   ├── css/
 │   │   ├── base/
@@ -54,24 +51,20 @@ OnShape-DocuReader/
 │   │   │   ├── airtable-controller.js
 │   │   │   ├── app-controller.js
 │   │   │   ├── document-controller.js
-│   │   │   ├── export-controller.js
-│   │   │   └── SPEC.min.md
+│   │   │   └── export-controller.js
 │   │   ├── router/
 │   │   │   ├── Router.js
-│   │   │   ├── routes.js
-│   │   │   └── SPEC.min.md
+│   │   │   └── routes.js
 │   │   ├── services/
 │   │   │   ├── airtable-service.js
 │   │   │   ├── api-client.js
 │   │   │   ├── auth-service.js
 │   │   │   ├── document-service.js
 │   │   │   ├── export-service.js
-│   │   │   ├── SPEC.min.md
 │   │   │   └── thumbnail-service.js
 │   │   ├── state/
 │   │   │   ├── app-state.js
-│   │   │   ├── HistoryState.js
-│   │   │   └── SPEC.min.md
+│   │   │   └── HistoryState.js
 │   │   ├── utils/
 │   │   │   ├── aggregateBomToCSV.js
 │   │   │   ├── bomToCSV.js
@@ -84,18 +77,15 @@ OnShape-DocuReader/
 │   │   │   ├── getCSV.js
 │   │   │   ├── getFilteredCSV.js
 │   │   │   ├── massCSVExporter.js
-│   │   │   ├── SPEC.min.md
 │   │   │   └── toast-notification.js
 │   │   ├── views/
 │   │   │   ├── actions/
 │   │   │   │   ├── document-actions.js
-│   │   │   │   ├── element-actions.js
-│   │   │   │   └── SPEC.min.md
+│   │   │   │   └── element-actions.js
 │   │   │   ├── helpers/
 │   │   │   │   ├── document-info-renderer.js
 │   │   │   │   ├── element-list-renderer.js
-│   │   │   │   ├── pagination-renderer.js
-│   │   │   │   └── SPEC.min.md
+│   │   │   │   └── pagination-renderer.js
 │   │   │   ├── airtable-upload-view.js
 │   │   │   ├── base-view.js
 │   │   │   ├── document-detail-view.js
@@ -108,24 +98,19 @@ OnShape-DocuReader/
 │   │   │   ├── modal-manager.js
 │   │   │   ├── navigation.js
 │   │   │   ├── part-detail-view.js
-│   │   │   ├── SPEC.min.md
 │   │   │   └── workspace-view.js
-│   │   ├── app.js
-│   │   └── SPEC.min.md
+│   │   └── app.js
 │   ├── dashboard.html
-│   ├── index.html
-│   └── SPEC.min.md
+│   └── index.html
 ├── src/
 │   ├── config/
 │   │   ├── airtable.ts
-│   │   ├── oauth.ts
-│   │   └── SPEC.min.md
+│   │   └── oauth.ts
 │   ├── routes/
 │   │   ├── airtable-api.ts
 │   │   ├── airtable-auth.ts
 │   │   ├── api.ts
-│   │   ├── auth.ts
-│   │   └── SPEC.min.md
+│   │   └── auth.ts
 │   ├── services/
 │   │   ├── airtable-api-client.ts
 │   │   ├── airtable-oauth-service.ts
@@ -135,16 +120,13 @@ OnShape-DocuReader/
 │   │   ├── oauth-service.ts
 │   │   ├── onshape-api-client.ts
 │   │   ├── session-storage.ts
-│   │   ├── SPEC.min.md
 │   │   └── usage-db.ts
 │   ├── types/
 │   │   ├── airtable.d.ts
 │   │   ├── onshape.ts
 │   │   ├── session.d.ts
-│   │   ├── SPEC.min.md
 │   │   └── usage.d.ts
-│   ├── index.ts
-│   └── SPEC.min.md
+│   └── index.ts
 ├── LICENSE
 ├── nodemon.json
 ├── package-lock.json
@@ -152,867 +134,845 @@ OnShape-DocuReader/
 ├── README.md
 ├── tsconfig.json
 └── vite.config.js
-
 ```
 
-## Overview
+## Stats
 
-- **Files:** 66
-- **Lines:** 14,697
-- **Routes:** 53
-- **TODOs:** 1
+Files: 60 | Lines: 13,729 | Routes: 44 | TODOs: 4
 
-## API Routes
+## Routes
 
-- `USE /auth (src/index.ts)`
-- `USE /auth/airtable (src/index.ts)`
-- `USE /api (src/index.ts)`
-- `USE /api/airtable (src/index.ts)`
-- `GET / (src/index.ts)`
-- `GET /dashboard (src/index.ts)`
-- `GET /config (src/routes/airtable-api.ts)`
-- `GET /bases (src/routes/airtable-api.ts)`
-- `GET /bases/:baseId/tables (src/routes/airtable-api.ts)`
-- `GET /bases/:baseId/tables/:tableId/schema (src/routes/airtable-api.ts)`
-- `GET /bases/:baseId/tables/:tableId/records (src/routes/airtable-api.ts)`
-- `POST /upload-thumbnails (src/routes/airtable-api.ts)`
-- `POST /find-record (src/routes/airtable-api.ts)`
-- `GET /login (src/routes/airtable-auth.ts)`
-- `GET /callback (src/routes/airtable-auth.ts)`
-- `GET /status (src/routes/airtable-auth.ts)`
-- `POST /logout (src/routes/airtable-auth.ts)`
-- `POST /refresh (src/routes/airtable-auth.ts)`
-- `GET /user (src/routes/api.ts)`
-- `GET /documents (src/routes/api.ts)`
-- `GET /documents/:id (src/routes/api.ts)`
-- `GET /documents/:id/versions (src/routes/api.ts)`
-- `GET /documents/:id/branches (src/routes/api.ts)`
-- `GET /documents/:id/branches (src/routes/api.ts)`
-- `GET /documents/:id/combined-history (src/routes/api.ts)`
-- `GET /documents/:id/history (src/routes/api.ts)`
-- `GET /documents/:id/comprehensive (src/routes/api.ts)`
-- `GET /documents/:id/parent (src/routes/api.ts)`
-- `GET /documents/:id/workspaces/:wid/elements (src/routes/api.ts)`
-- `GET /documents/:id/versions/:vid/elements (src/routes/api.ts)`
-- `GET /documents/:id/workspaces/:wid/elements/:eid/parts (src/routes/api.ts)`
-- `GET /documents/:id/workspaces/:wid/elements/:eid/assemblies (src/routes/api.ts)`
-- `GET /documents/:id/workspaces/:wid/elements/:eid/bom (src/routes/api.ts)`
-- `GET /documents/:id/workspaces/:wid/elements/:eid/metadata (src/routes/api.ts)`
-- `GET /documents/:id/workspaces/:wid/elements/:eid/parts/:pid/mass-properties (src/routes/api.ts)`
-- `GET /onshape/folders (src/routes/api.ts)`
-- `GET /onshape/folders/:id (src/routes/api.ts)`
-- `GET /export/all (src/routes/api.ts)`
-- `GET /export/stream (src/routes/api.ts)`
-- `GET /export/directory-stats (src/routes/api.ts)`
-- `POST /export/prepare-assemblies (src/routes/api.ts)`
-- `GET /export/aggregate-bom-stream (src/routes/api.ts)`
-- `GET /export/aggregate-bom (src/routes/api.ts)`
-- `GET /thumbnail-proxy (src/routes/api.ts)`
-- `GET /usage/stats (src/routes/api.ts)`
-- `GET /login (src/routes/auth.ts)`
-- `GET /callback (src/routes/auth.ts)`
-- `GET /status (src/routes/auth.ts)`
-- `POST /logout (src/routes/auth.ts)`
-- `GET /meta/bases (src/services/airtable-api-client.ts)`
-- ... and 3 more
+- USE /auth
+- USE /auth/airtable
+- USE /api
+- USE /api/airtable
+- GET /
+- GET /dashboard
+- GET /config
+- GET /bases
+- GET /bases/:baseId/tables
+- GET /bases/:baseId/tables/:tableId/schema
+- GET /bases/:baseId/tables/:tableId/records
+- POST /upload-thumbnails
+- POST /find-record
+- GET /login
+- GET /callback
+- GET /status
+- POST /logout
+- POST /refresh
+- GET /user
+- GET /documents
+- GET /documents/:id
+- GET /documents/:id/versions
+- GET /documents/:id/branches
+- GET /documents/:id/combined-history
+- GET /documents/:id/history
+- GET /documents/:id/comprehensive
+- GET /documents/:id/parent
+- GET /documents/:id/workspaces/:wid/elements
+- GET /documents/:id/versions/:vid/elements
+- GET /documents/:id/workspaces/:wid/elements/:eid/parts
+- GET /documents/:id/workspaces/:wid/elements/:eid/assemblies
+- GET /documents/:id/workspaces/:wid/elements/:eid/bom
+- GET /documents/:id/workspaces/:wid/elements/:eid/metadata
+- GET /documents/:id/workspaces/:wid/elements/:eid/parts/:pid/mass-properties
+- GET /onshape/folders
+- GET /onshape/folders/:id
+- GET /export/all
+- GET /export/stream
+- GET /export/directory-stats
+- POST /export/prepare-assemblies
+- GET /export/aggregate-bom-stream
+- GET /export/aggregate-bom
+- GET /thumbnail-proxy
+- GET /usage/stats
 
-## Active TODOs
+## TODOs
 
-- TODO: Check for edge cases, e.g. commas, quotes in values (bomToCSV.js)
+- [bomToCSV.js] TODO: Check for edge cases, e.g. commas, quotes in values
+- [airtable-upload-view.js] TODO: Implement actual cancellation if using streaming upload
+- [document-detail-view.js] NOTE: We fetch elements via the version endpoint
+- [api-call-cost.ts] NOTE: These are estimates and may not reflect actual costs incurred by Onshape
 
 ## Modules
 
-### 📁 Root
+### Configs
 
-#### 📄 `vite.config.js` (36 lines)
+#### src/config/airtable.ts
 
-**Dependencies:** `vite, url, path`
+Airtable OAuth & API Configuration Configuration for Airtable OAuth 2.0 integration and API access. Requires environment variables to be set for credentials and database IDs.
 
-### 📁 public/js
+**interface AirtableConfig** {
+  clientId: string
+  clientSecret: string
+  redirectUri: string
+  scopes: string[]
+  authorizationUrl: string
+  tokenUrl: string
+  apiBaseUrl: string
+  contentBaseUrl: string
+  baseId: string
+  tableId: string
+}
 
-#### ⭐ `app.js` (213 lines)
+Functions:
+- `isAirtableConfigured() -> boolean`
+- `isAirtableDatabaseConfigured() -> boolean`
 
-### 📁 public/js/controllers
+Imports: dotenv
 
-#### 📄 `airtable-controller.js` (211 lines)
+#### src/config/oauth.ts
 
-_AirtableController - handles Airtable authentication and thumbnail upload workflows_
+**interface OAuthConfig** {
+  clientId: string
+  clientSecret: string
+  redirectUri: string
+  baseApiUrl: string
+  oauthBaseUrl: string
+  scope: string
+}
+
+Functions:
+- `validateConfig() -> void`
+
+Imports: dotenv
+
+### Routes
+
+#### src/routes/airtable-api.ts
+
+Airtable API Routes Proxy routes for Airtable API operations. Requires Airtable authentication (separate from OnShape auth).
+
+Routes: GET /config, GET /bases, GET /bases/:baseId/tables, GET /bases/:baseId/tables/:tableId/schema, GET /bases/:baseId/tables/:tableId/records
+
+Imports: express
+
+#### src/routes/airtable-auth.ts
+
+Airtable Authentication Routes Handles OAuth 2.0 flow for Airtable authentication. Separate from OnShape auth to allow independent login/logout.
+
+Routes: GET /login, GET /callback, GET /status, POST /logout, POST /refresh
+
+Imports: express
+
+#### src/routes/api.ts
+
+Routes: GET /user, GET /documents, GET /documents/:id, GET /documents/:id/versions, GET /documents/:id/branches
+
+Imports: express
+
+#### src/routes/auth.ts
+
+Routes: GET /login, GET /callback, GET /status, POST /logout
+
+Imports: express
+
+### Controllers
+
+#### public/js/controllers/airtable-controller.js
+
+AirtableController - handles Airtable authentication and thumbnail upload workflows
 
 **class AirtableController**
-Methods:
-  - `_bindDashboardEvents()`
-  - `_escapeHandler(e)`
-  - `_handleAirtableButtonClick()`
-  - `show(restoredState = null)`
-  - `_navigateBack()`
-  - `login()`
-  - `logout()`
-  - `refreshAuthStatus()`
+  constructor(state, services, navigation)
+  Methods:
+    - _bindDashboardEvents()
+    - _escapeHandler(e)
+    - async _handleAirtableButtonClick()
+    - async showUploadPage(restoredState = null)
+    - async show(restoredState = null)
+    - _navigateBack()
+    - login()
+    - async logout()
 
-#### 📄 `app-controller.js` (118 lines)
+#### public/js/controllers/app-controller.js
 
 **class AppController**
-Properties: `isAuthenticated: !!status.authenticated,`, `isAuthenticated: false,`, `user: null,`, `documents: [],`, `selectedDocuments: [],`
-Methods:
-  - `init()`
-  - `bindGlobalEvents()`
-  - `updateAuthUI(state)`
+  constructor(state, services, navigation, controllers)
+  Methods:
+    - async init()
+    - bindGlobalEvents()
+    - updateAuthUI(state)
 
-#### 📄 `document-controller.js` (974 lines)
+#### public/js/controllers/document-controller.js
 
-_DocumentController - orchestrates document flows_
+DocumentController - orchestrates document flows
 
 **class DocumentController**
-Properties: `currentPage: 1,`, `pageSize: 20,`, `totalCount: 0,`, `totalPages: 0,`, `currentFolderId: null,`
-Methods:
-  - `_bindDashboardEvents()`
-  - `navigateToDocument(documentId)`
-  - `showDocument(documentId, restoredState)`
-  - `showList(restoredState)`
-  - `_initializeWorkspace(restoredState)`
-  - `loadWorkspaceRoot()`
-  - `loadFolder(folderId, updateBreadcrumbs = true, folderName = null)`
-  - `navigateToFolder(folderId, folderName)`
+  constructor(
+    state,
+    services,
+    navigation,
+    thumbnailService,
+    router,
+    historyState
+  )
+  Methods:
+    - _bindDashboardEvents()
+    - navigateToDocument(documentId)
+    - async showDocument(documentId, restoredState)
+    - async showList(restoredState)
+    - async _initializeWorkspace(restoredState)
+    - async loadWorkspaceRoot()
+    - async loadFolder(folderId, updateBreadcrumbs = true, folderName = null)
+    - navigateToFolder(folderId, folderName)
 
-#### 📄 `export-controller.js` (65 lines)
+#### public/js/controllers/export-controller.js
 
-_ExportController - orchestrates export workflow_
+ExportController - orchestrates export workflow
 
 **class ExportController**
-Properties: `onStartExport: (options)`, `onCancelExport: ()`
-Methods:
-  - `showExportModal(selectedDocuments = null)`
-  - `startExport(options)`
-  - `cancelExport()`
+  constructor(state, services, modalManager)
+  Methods:
+    - showExportModal(selectedDocuments = null)
+    - async startExport(options)
+    - cancelExport()
 
-### 📁 public/js/router
+### Services
 
-#### 📄 `Router.js` (374 lines)
+#### public/js/services/airtable-service.js
 
-_Lightweight hash-based Router. Responsibilities: - Register route patterns with handlers - Parse hash-based URLs and extract params and query - Manage browser history with pushState/replaceState + hashchange/popstate - Notify subscribers on route changes Notes: - Handlers receive (params, state, con_
-
-#### 📄 `routes.js` (145 lines)
-
-_Route definitions and configuration. Provides: - ROUTES map with normalized route patterns - configureRoutes(router, controllers) to bind patterns to controller handlers - pathTo(pattern, params?, query?) helper to build paths with params and query This module is framework-agnostic and uses optional_
-
-**Functions:**
-- `configureRoutes(router, controllers = {})`
-  _Route definitions and configuration. Provides: - ROUTES map with normalized route patterns - configureRoutes(router, controllers) to bind patterns to controller handlers - pathTo(pattern, params?, query?) helper to build paths with params and query This module is framework-agnostic and uses optional_
-- `pathTo(pattern, params = {}, query = undefined)`
-  _Route definitions and configuration. Provides: - ROUTES map with normalized route patterns - configureRoutes(router, controllers) to bind patterns to controller handlers - pathTo(pattern, params?, query?) helper to build paths with params and query This module is framework-agnostic and uses optional_
-
-### 📁 public/js/services
-
-#### 📄 `airtable-service.js` (136 lines)
-
-_AirtableService - handles Airtable API interactions from frontend_
+AirtableService - handles Airtable API interactions from frontend
 
 **class AirtableService**
-_AirtableService - handles Airtable API interactions from frontend_
-Properties: `method: 'POST',`, `body: formData`
-Methods:
-  - `getAuthStatus()`
-  - `login()`
-  - `logout()`
-  - `getBases()`
-  - `getTables(baseId)`
-  - `getTableSchema(baseId, tableId)`
-  - `uploadThumbnails(zipFile, config)`
-  - `startStreamingUpload(zipFile, config, onProgress)`
+  Methods:
+    - async getAuthStatus()
+    - async getConfiguration()
+    - login(returnTo = '/#/airtable/upload')
+    - async logout()
+    - async getBases()
+    - async getTables(baseId)
+    - async getTableSchema(baseId, tableId)
+    - async uploadThumbnails(zipFile, config = {}, onProgress = null)
 
-#### 📄 `api-client.js` (373 lines)
-
-_Get directory statistics (pre-scan without fetching BOMs)._
+#### public/js/services/api-client.js
 
 **class ApiClient**
-Properties: `limit: String(limit),`, `offset: String(offset)`, `delay: String(delayMs)`, `method: 'POST',`, `headers: { 'Content-Type': 'application/json' },`
-Methods:
-  - `getAuthStatus()`
-  - `logout()`
-  - `getUser()`
-  - `getDocuments(limit = 20, offset = 0)`
-  - `getDocument(documentId)`
-  - `getDocumentVersions(documentId)`
-  - `getDocumentBranches(documentId)`
-  - `getCombinedDocumentHistory(documentId)`
+  Methods:
+    - async getAuthStatus()
+    - async logout()
+    - async getUser()
+    - async getDocuments(limit = 20, offset = 0)
+    - async getDocument(documentId)
+    - async getDocumentVersions(documentId)
+    - async getDocumentBranches(documentId)
+    - async getCombinedDocumentHistory(documentId)
 
-#### 📄 `auth-service.js` (41 lines)
+#### public/js/services/auth-service.js
 
 **class AuthService**
-Methods:
-  - `checkStatus()`
-  - `login()`
-  - `logout()`
-  - `getUser()`
+  constructor(api)
+  Methods:
+    - async checkStatus()
+    - login()
+    - async logout()
+    - async getUser()
 
-#### 📄 `document-service.js` (169 lines)
+#### public/js/services/document-service.js
 
-_DocumentService - document-related operations_
+DocumentService - document-related operations
 
 **class DocumentService**
-_DocumentService - document-related operations_
-Properties: `indented: String(!flatten), // false for flattened, true for structured`, `generateIfAbsent: "false",`, `onlyVisibleColumns: "false",  // Include all columns, not just visible ones`, `ignoreSubassemblyBomBehavior: "false",  // Respect subassembly BOM behavior settings`, `includeItemMicroversions: "true",  // Include microversion info for each item`
-Methods:
-  - `getAll(limit = 20, offset = 0)`
-  - `getById(documentId)`
-  - `getVersions(documentId)`
-  - `getBranches(documentId)`
-  - `getCombinedHistory(documentId)`
-  - `getElements(documentId, workspaceId)`
-  - `getParts(documentId, workspaceId, elementId)`
-  - `getAssemblies(documentId, workspaceId, elementId)`
+  constructor(api)
+  Methods:
+    - async getAll(limit = 20, offset = 0)
+    - async getById(documentId)
+    - async getVersions(documentId)
+    - async getBranches(documentId)
+    - async getCombinedHistory(documentId)
+    - async getElements(documentId, workspaceId)
+    - async getParts(documentId, workspaceId, elementId)
+    - async getAssemblies(documentId, workspaceId, elementId)
 
-#### 📄 `export-service.js` (60 lines)
+#### public/js/services/export-service.js
 
-_ExportService - executes export workflows_
+ExportService - executes export workflows
 
 **class ExportService**
-_ExportService - executes export workflows_
-Properties: `format: options.format ?? 'json',`, `includeBasicInfo: String(!!options.includeBasicInfo),`, `includeElements: String(!!options.includeElements),`, `includeParts: String(!!options.includeParts),`, `includeAssemblies: String(!!options.includeAssemblies),`
-Methods:
-  - `execute(options)`
-  - `stream(options, handlers)`
+  constructor(api)
+  Methods:
+    - async execute(options)
+    - stream(options, handlers)
 
-#### 📄 `thumbnail-service.js` (43 lines)
+#### public/js/services/thumbnail-service.js
 
-_ThumbnailService - image handling and fallbacks_
+ThumbnailService - image handling and fallbacks
 
 **class ThumbnailService**
-_ThumbnailService - image handling and fallbacks_
-Methods:
-  - `setup(docId, originalUrl, proxyUrl)`
+  Methods:
+    - setup(docId, originalUrl, proxyUrl)
 
-### 📁 public/js/state
+#### src/services/airtable-api-client.ts
 
-#### 📄 `HistoryState.js` (355 lines)
-
-_HistoryState - manages capture/restore of view/application state for navigation. Design: - Works with browser history.state to persist lightweight, serializable view state. - Captures scroll positions and optionally view-specific state via injected strategies. - Integrates with an external state man_
-
-#### 📄 `app-state.js` (115 lines)
-
-**class AppState**
-Properties: `exportSelection: {`, `documentIds: newIds`, `exportSelection: {`, `folderIds: newIds`, `exportSelection: {`
-Methods:
-  - `subscribe(listener)`
-  - `getState()`
-  - `setState(patch)`
-  - `replaceState(newState)`
-  - `toggleDocumentSelection(documentId)`
-  - `toggleFolderSelection(folderId)`
-  - `clearExportSelection()`
-  - `getExportSelectionCount()`
-
-### 📁 public/js/utils
-
-#### 📄 `aggregateBomToCSV.js` (116 lines)
-
-_Convert aggregate BOM export result to flattened CSV. Adds source metadata columns and handles multi-assembly header merging._
-
-**Functions:**
-- `aggregateBomToCSV(aggregateResult, options = {})`
-  _Convert aggregate BOM export result to flattened CSV. Adds source metadata columns and handles multi-assembly header merging._
-
-#### 📄 `bomToCSV.js` (54 lines)
-
-_Convert Onshape BOM JSON to CSV._
-
-**Functions:**
-- `bomToCSV(bomJson)`
-
-#### 📄 `clipboard.js` (25 lines)
-
-_Clipboard utilities_
-
-**Functions:**
-- `async copyToClipboard(text)`
-  _Clipboard utilities_
-
-#### 📄 `dom-helpers.js` (34 lines)
-
-_DOM helpers and safe HTML utilities_
-
-**Functions:**
-- `qs(selector, root = document)`
-  _DOM helpers and safe HTML utilities_
-- `qsa(selector, root = document)`
-- `on(el, event, handler, options)`
-- `delegate(root, selector, eventName, handler)`
-- `escapeHtml(text)`
-
-#### 📄 `download.js` (16 lines)
-
-_Download helpers_
-
-**Functions:**
-- `downloadJson(data, filenamePrefix = 'onshape-export')`
-  _Download helpers_
-
-#### 📄 `file-download.js` (33 lines)
-
-_Generic file download utilities_
-
-**Functions:**
-- `downloadJson(data, filename)`
-  _Generic file download utilities_
-- `downloadCsv(csvString, filename)`
-- `createDownloadLink(blob, filename)`
-
-#### 📄 `format-helpers.js` (24 lines)
-
-_Formatting helpers (pure functions)_
-
-**Functions:**
-- `formatDateWithUser(dateStr, userObj)`
-  _Formatting helpers (pure functions)_
-
-#### 📄 `fullAssemblyExporter.js` (699 lines)
-
-_Full Assembly Exporter Exports a complete assembly package including: - Flattened BOM as JSON - Flattened BOM as CSV - Thumbnails for each BOM item - All packaged in a ZIP file_
-
-**Functions:**
-- `sanitizeForFilename(str, maxLength = MAX_FILENAME_LENGTH)`
-  _Full Assembly Exporter Exports a complete assembly package including: - Flattened BOM as JSON - Flattened BOM as CSV - Thumbnails for each BOM item - All packaged in a ZIP file / import { bomToCSV } from "./bomToCSV.js"; import JSZip from "jszip"; // =================================================_
-- `buildThumbnailFilename(rowData)`
-  _Full Assembly Exporter Exports a complete assembly package including: - Flattened BOM as JSON - Flattened BOM as CSV - Thumbnails for each BOM item - All packaged in a ZIP file / import { bomToCSV } from "./bomToCSV.js"; import JSZip from "jszip"; // =================================================_
-- `parseBomRow(row, headerMap, index)`
-  _Full Assembly Exporter Exports a complete assembly package including: - Flattened BOM as JSON - Flattened BOM as CSV - Thumbnails for each BOM item - All packaged in a ZIP file / import { bomToCSV } from "./bomToCSV.js"; import JSZip from "jszip"; // =================================================_
-- `buildThumbnailUrl(info, size = THUMBNAIL_SIZE)`
-  _Full Assembly Exporter Exports a complete assembly package including: - Flattened BOM as JSON - Flattened BOM as CSV - Thumbnails for each BOM item - All packaged in a ZIP file / import { bomToCSV } from "./bomToCSV.js"; import JSZip from "jszip"; // =================================================_
-- `async fullAssemblyExtract(options)`
-  _Full Assembly Exporter Exports a complete assembly package including: - Flattened BOM as JSON - Flattened BOM as CSV - Thumbnails for each BOM item - All packaged in a ZIP file / import { bomToCSV } from "./bomToCSV.js"; import JSZip from "jszip"; // =================================================_
-
-**Dependencies:** `jszip`
-
-#### 📄 `getCSV.js` (51 lines)
-
-_Generate CSV from parts data, filtering for ASM/PRT part numbers. Filters parts whose "Part number" property contains ASM or PRT patterns. Supports various formats: ASM-XXXXXX, PRT-XXXXXX, with/without dash/underscore._
-
-**Functions:**
-- `getCSV(parts)`
-  _Generate CSV from parts data, filtering for ASM/PRT part numbers. Filters parts whose "Part number" property contains ASM or PRT patterns. Supports various formats: ASM-XXXXXX, PRT-XXXXXX, with/without dash/underscore._
-
-#### 📄 `getFilteredCSV.js` (8 lines)
-
-#### 📄 `massCSVExporter.js` (324 lines)
-
-_Mass export all documents as CSV files (filtered for ASM/PRT parts) with thumbnails. Provides two export modes: 1. exportAllDocumentsAsZip - Single ZIP file (recommended, gesture-safe) 2. exportAllDocuments - Multiple files (fallback, may be blocked by browser)_
-
-**Functions:**
-- `async exportAllDocumentsAsZip(apiClient, documentService)`
-  _Mass export all documents as CSV files (filtered for ASM/PRT parts) with thumbnails. Provides two export modes: 1. exportAllDocumentsAsZip - Single ZIP file (recommended, gesture-safe) 2. exportAllDocuments - Multiple files (fallback, may be blocked by browser) / import { getCSV } from "./getCSV.js"_
-- `async exportAllDocuments(apiClient, documentService)`
-  _Mass export all documents as CSV files (filtered for ASM/PRT parts) with thumbnails. Provides two export modes: 1. exportAllDocumentsAsZip - Single ZIP file (recommended, gesture-safe) 2. exportAllDocuments - Multiple files (fallback, may be blocked by browser) / import { getCSV } from "./getCSV.js"_
-
-**Dependencies:** `jszip`
-
-#### 📄 `toast-notification.js` (39 lines)
-
-_Centralized toast notification system_
-
-**Functions:**
-- `showToast(message, duration = 2500)`
-
-### 📁 public/js/views
-
-#### 📄 `airtable-upload-view.js` (691 lines)
-
-_AirtableUploadView - UI for uploading thumbnails to Airtable_
-
-**class AirtableUploadView** extends `BaseView`
-Properties: `dryRun: true,`, `baseId: '',`, `tableId: '',`, `partNumberField: 'Part number',`, `thumbnailField: 'CAD_Thumbnail'`
-Methods:
-  - `render(isAuthenticated)`
-  - `_renderUnauthenticated()`
-  - `_renderAuthenticated()`
-  - `_bindEvents()`
-  - `_bindDropzone()`
-  - `_handleFileSelect(file)`
-  - `_clearFile()`
-  - `_formatFileSize(bytes)`
-
-#### 📄 `base-view.js` (33 lines)
-
-_BaseView - abstract base with common helpers_
-
-**class BaseView**
-Methods:
-  - `ensureContainer()`
-  - `clear()`
-  - `renderHtml(html)`
-  - `bind()`
-  - `unbind()`
-
-#### 📄 `document-detail-view.js` (647 lines)
-
-_DocumentDetailView - slim orchestration layer_
-
-**class DocumentDetailView** extends `BaseView`
-Properties: `scroll: {`, `windowY: typeof window !`, `containerTop: container ? container.scrollTop || 0 : 0,`, `containerKey: container?.getAttribute?.("data-scroll-key") || null,`
-Methods:
-  - `render(docData, elements)`
-  - `_renderTopBar(docData)`
-  - `_renderHistorySelector(docData)`
-  - `_bindHistorySelector(docData)`
-  - `_handleLoadHistory(documentId)`
-  - `_renderHistoryDropdown(history, documentId)`
-  - `_bindHistoryDropdown(documentId)`
-  - `_displayHistoryDetails(documentId, item)`
-
-#### 📄 `document-list-view.js` (275 lines)
-
-_DocumentListView - renders document grid/table_
-
-**class DocumentListView** extends `BaseView`
-Properties: `scroll: {`, `windowY: typeof window !`, `containerTop: scrollContainer ? (scrollContainer.scrollTop || 0) : 0,`, `containerKey: scrollContainer?.getAttribute?.('data-scroll-key') || null`, `selectAll: !!(selectAllEl && selectAllEl.checked),`
-Methods:
-  - `render(documents, pagination = null)`
-  - `bind()`
-  - `_bindPaginationControls()`
-  - `_notifySelectionChanged()`
-  - `_delegate(selector, eventName, handler)`
-  - `unbind()`
-  - `captureState()`
-  - `restoreState(state)`
-
-#### 📄 `element-detail-view.js` (227 lines)
-
-**class ElementDetailView** extends `BaseView`
-Properties: `scroll: {`, `windowY: typeof window !`, `containerTop: container ? (container.scrollTop || 0) : 0,`, `containerKey: container?.getAttribute?.('data-scroll-key') || null`, `scroll: { windowY: 0, containerTop: 0, containerKey: null },`
-Methods:
-  - `render(element)`
-  - `_bindBackButton()`
-  - `captureState()`
-  - `restoreState(state)`
-
-#### 📄 `export-filter-modal.js` (244 lines)
-
-_Modal for configuring export filters before pre-scan. Allows filtering by folder prefix to limit scope of export._
-
-**class ExportFilterModal**
-Properties: `json: formatJsonCheck?.checked ?? true,`, `csv: formatCsvCheck?.checked ?? true`, `prtAsmOnly: filterPrtAsmCheck?.checked ?? false`
-Methods:
-  - `prompt()`
-  - `_show()`
-  - `hide()`
-  - `_handleKeyDown(e)`
-  - `_renderContent()`
-  - `_handleConfirm()`
-  - `_handleCancel()`
-
-#### 📄 `export-progress-modal.js` (468 lines)
-
-_Modal view for displaying real-time export progress. Connects to SSE endpoint and shows progress bar, ETA, status._
-
-**class ExportProgressModal**
-Properties: `onProgress: (event)`, `onComplete: (result)`, `onError: (error)`
-Methods:
-  - `show({ stats, workers = 4, delay = 100, onComplete, onCancel, onError, startExport })`
-  - `renderInitialContent(stats)`
-  - `handleProgress(event)`
-  - `logProgress(event)`
-  - `updatePhase(phase, fetch)`
-  - `updateProgressBar(percent)`
-  - `updateCount(type, value)`
-  - `updateCurrentItem(text)`
-
-#### 📄 `export-stats-modal.js` (639 lines)
-
-_Modal view for displaying pre-scan export statistics. Shows before starting full aggregate BOM export. Enhanced with live stats, root folder visualization, and cancel/resume capability._
-
-**class ExportStatsModal**
-Properties: `startTime: null,`, `elapsedInterval: null,`, `rootFolders: [],`, `checkpoint: null,`, `elementCounts: {`
-Methods:
-  - `show(stats, { onConfirm, onCancel, isPartial = false, selectionCount = 0, prefixFilter = null })`
-  - `hide()`
-  - `clearCheckpointOnSuccess()`
-  - `_handleKeyDown(e)`
-  - `renderModalContent(stats, { isPartial = false, selectionCount = 0, prefixFilter = null } = {})`
-  - `handleConfirm()`
-  - `handleCancel()`
-  - `showLoading()`
-
-#### 📄 `full-extract-modal.js` (360 lines)
-
-_Full Extract Progress Modal Displays progress for the Full Assembly Extraction feature. Shows phases, progress bar, and status messages._
-
-**Functions:**
-- `showModal(assemblyName)`
-  _Full Extract Progress Modal Displays progress for the Full Assembly Extraction feature. Shows phases, progress bar, and status messages. / import { ExportPhase } from '../utils/fullAssemblyExporter.js'; // ============================================================================ // Modal State //_
-- `hideModal()`
-  _Full Extract Progress Modal Displays progress for the Full Assembly Extraction feature. Shows phases, progress bar, and status messages. / import { ExportPhase } from '../utils/fullAssemblyExporter.js'; // ============================================================================ // Modal State //_
-- `isModalVisible()`
-  _Full Extract Progress Modal Displays progress for the Full Assembly Extraction feature. Shows phases, progress bar, and status messages. / import { ExportPhase } from '../utils/fullAssemblyExporter.js'; // ============================================================================ // Modal State //_
-- `updateProgress(progress)`
-  _Full Extract Progress Modal Displays progress for the Full Assembly Extraction feature. Shows phases, progress bar, and status messages. / import { ExportPhase } from '../utils/fullAssemblyExporter.js'; // ============================================================================ // Modal State //_
-
-#### 📄 `modal-manager.js` (164 lines)
-
-_ModalManager - controls export and progress modals_
-
-**class ModalManager**
-Properties: `onStartExport: null,`, `onCancelExport: null`, `includeBasicInfo: getChecked('exportBasicInfo', true),`, `includeElements: getChecked('exportElements', true),`, `includeParts: getChecked('exportParts', false),`
-Methods:
-  - `setHandlers(handlers)`
-  - `showExport()`
-  - `hideExport()`
-  - `showProgress()`
-  - `hideProgress()`
-  - `bindExportModalEvents()`
-  - `bindProgressModalEvents()`
-  - `readExportOptions()`
-
-#### 📄 `navigation.js` (29 lines)
-
-_Navigation - page transitions_
-
-**class Navigation**
-_Navigation - page transitions_
-Methods:
-  - `navigateTo(pageId)`
-  - `getCurrentPage()`
-
-#### 📄 `part-detail-view.js` (211 lines)
-
-_PartDetailView - renders part details and mass properties_
-
-**class PartDetailView**
-Properties: `label: "Mass",`, `value: `${body.mass[0]} ${props.units?.mass || "kg"}`,`, `label: "Volume",`, `value: `${body.volume[0]} ${props.units?.volume || "m³"}`,`, `label: "Centroid (X, Y, Z)",`
-Methods:
-  - `render(part)`
-  - `_bindBackButton()`
-  - `captureState()`
-  - `restoreState(state)`
-
-#### 📄 `workspace-view.js` (205 lines)
-
-_WorkspaceView - renders folder tree and document exploration_
-
-**class WorkspaceView** extends `BaseView`
-_WorkspaceView - renders folder tree and document exploration_
-Methods:
-  - `bind()`
-  - `showLoading()`
-  - `hideLoading()`
-  - `showError(msg)`
-  - `hideError()`
-  - `render(items, breadcrumbs)`
-  - `_renderBreadcrumbs(path)`
-  - `_renderGrid(items)`
-
-### 📁 public/js/views/actions
-
-#### 📄 `document-actions.js` (97 lines)
-
-_Action handlers for document-level operations_
-
-**class DocumentActions**
-Methods:
-  - `handleGetDocument(docId)`
-  - `handleGetJson(docData)`
-  - `handleCopyJson(docData)`
-  - `handleLoadHierarchy(docId, controller)`
-  - `handleExportCsv(docData, elements)`
-
-#### 📄 `element-actions.js` (124 lines)
-
-_Action handlers for element-level operations_
-
-**class ElementActions**
-Properties: `documentService: service,`, `onProgress: (progress)`, `assembly: progress.assemblyName,`, `bomRows: progress.bomRows,`, `thumbnails: progress.thumbnailsDownloaded,`
-Methods:
-  - `handleCopyElementJson(element, controller)`
-  - `handleFetchBomJson(element, documentId, workspaceId, service)`
-  - `handleDownloadBomCsv(element, documentId, workspaceId, service)`
-  - `handleFullExtract(element, documentId, workspaceId, service)`
-
-### 📁 public/js/views/helpers
-
-#### 📄 `document-info-renderer.js` (157 lines)
-
-_Pure rendering functions for document metadata sections_
-
-**Functions:**
-- `renderDocumentInfo(docData)`
-- `renderThumbnailSection(docData)`
-- `renderTagsAndLabels(docData)`
-
-#### 📄 `element-list-renderer.js` (69 lines)
-
-_Pure rendering for elements list_
-
-**Functions:**
-- `renderElementsList(elements)`
-- `renderElementItem(element)`
-- `renderElementActions(element)`
-
-#### 📄 `pagination-renderer.js` (96 lines)
-
-_Pure rendering functions for pagination controls_
-
-**Functions:**
-- `renderPaginationControls(pagination)`
-  _Pure rendering functions for pagination controls / import { escapeHtml } from '../../utils/dom-helpers.js'; /** Render pagination controls HTML_
-- `renderDocumentRows(documents)`
-  _Pure rendering functions for pagination controls / import { escapeHtml } from '../../utils/dom-helpers.js'; /** Render pagination controls HTML / export function renderPaginationControls(pagination) { const { currentPage, pageSize, totalCount, totalPages } = pagination; const startItem = totalCount _
-
-### 📁 src
-
-#### ⭐ `index.ts` (146 lines)
-
-**Dependencies:** `url, express, cors, helmet, morgan, cookie-parser, express-session, path`
-
-**Routes:** `USE /auth, USE /auth/airtable, USE /api, USE /api/airtable, GET /`
-
-### 📁 src/config
-
-#### 📄 `airtable.ts` (69 lines)
-
-_Airtable OAuth & API Configuration Configuration for Airtable OAuth 2.0 integration and API access. Requires environment variables to be set for credentials and database IDs._
-
-**Functions:**
-- `isAirtableConfigured() → boolean`
-  _Airtable OAuth & API Configuration Configuration for Airtable OAuth 2.0 integration and API access. Requires environment variables to be set for credentials and database IDs. / import dotenv from 'dotenv'; dotenv.config(); export interface AirtableConfig { // OAuth settings clientId: string; clientS_
-- `isAirtableDatabaseConfigured() → boolean`
-  _Airtable OAuth & API Configuration Configuration for Airtable OAuth 2.0 integration and API access. Requires environment variables to be set for credentials and database IDs. / import dotenv from 'dotenv'; dotenv.config(); export interface AirtableConfig { // OAuth settings clientId: string; clientS_
-
-**Types:** `AirtableConfig`
-
-**Dependencies:** `dotenv`
-
-#### 📄 `oauth.ts` (40 lines)
-
-**Functions:**
-- `validateConfig() → void`
-
-**Types:** `OAuthConfig`
-
-**Dependencies:** `dotenv`
-
-### 📁 src/routes
-
-#### 📄 `airtable-api.ts` (227 lines)
-
-_Airtable API Routes Proxy routes for Airtable API operations. Requires Airtable authentication (separate from OnShape auth)._
-
-**Dependencies:** `express, express`
-
-**Routes:** `GET /config, GET /bases, GET /bases/:baseId/tables, GET /bases/:baseId/tables/:tableId/schema, GET /bases/:baseId/tables/:tableId/records`
-
-#### 📄 `airtable-auth.ts` (223 lines)
-
-_Airtable Authentication Routes Handles OAuth 2.0 flow for Airtable authentication. Separate from OnShape auth to allow independent login/logout._
-
-**Dependencies:** `express`
-
-**Routes:** `GET /login, GET /callback, GET /status, POST /logout, POST /refresh`
-
-#### 📄 `api.ts` (927 lines)
-
-_GET /api/export/directory-stats Pre-scan the workspace tree to gather statistics. Fast alternative to full export - doesn't fetch BOMs. Returns assembly list for subsequent parallel BOM fetching. Query params: - delay: Delay between API calls in ms (default: 100) - scope: 'full' | 'partial' (default_
-
-**Dependencies:** `express, express`
-
-**Routes:** `GET /user, GET /documents, GET /documents/:id, GET /documents/:id/versions, GET /documents/:id/branches`
-
-#### 📄 `auth.ts` (103 lines)
-
-**Dependencies:** `express`
-
-**Routes:** `GET /login, GET /callback, GET /status, POST /logout`
-
-### 📁 src/services
-
-#### 📄 `airtable-api-client.ts` (364 lines)
-
-_Airtable API Client Provides methods for interacting with Airtable's REST API. Handles record operations, schema retrieval, and attachment uploads._
+Airtable API Client Provides methods for interacting with Airtable's REST API. Handles record operations, schema retrieval, and attachment uploads.
 
 **class AirtableApiClient**
-Properties: `axiosInstance: AxiosInstance`, `accessToken: string`, `baseURL: 'https://api.airtable.com/v0',`, `timeout: 30000,`, `headers: {`
-Methods:
-  - `listBases() → Promise<AirtableBasesResponse>`
-  - `listTables(baseId: string) → Promise<`
-  - `getTables(baseId: string) → Promise<`
-  - `listRecords(
-    baseId: string,
-    tableId: string,
-    options?: {
+  constructor(accessToken: string)
+  Properties: axiosInstance: AxiosInstance, accessToken: string
+  Methods:
+    - async listBases() -> Promise<AirtableBasesResponse>
+    - async listTables(baseId: string) -> Promise<
+    - async getTables(baseId: string) -> Promise<
+    - async listRecords(baseId: string, tableId: string, options?: {
       filterByFormula?: string;
       fields?: string[];
       maxRecords?: number;
       pageSize?: number;
       offset?: string;
       sort?: Array<{ field: string; direction?: 'asc' | 'desc' }>;
-    }
-  ) → Promise<AirtableListResponse>`
-  - `getRecord(baseId: string, tableId: string, recordId: string) → Promise<AirtableRecord>`
-  - `updateRecord(
-    baseId: string,
-    tableId: string,
-    recordId: string,
-    fields: Record<string, unknown>
-  ) → Promise<AirtableRecord>`
-  - `getTableSchema(baseId: string, tableId: string) → Promise<TableSchema>`
-  - `getFieldId(baseId: string, tableId: string, fieldName: string) → Promise<string | null>`
+    }) -> Promise<AirtableListResponse>
+    - async getRecord(baseId: string, tableId: string, recordId: string) -> Promise<AirtableRecord>
+    - async updateRecord(baseId: string, tableId: string, recordId: string, fields: Record<string, unknown>) -> Promise<AirtableRecord>
+    - async getTableSchema(baseId: string, tableId: string) -> Promise<TableSchema>
+    - async getFieldId(baseId: string, tableId: string, fieldName: string) -> Promise<string | null>
 
-**Types:** `AirtableRecord, AirtableListResponse, TableField, TableSchema, AttachmentResult, AirtableBase, AirtableBasesResponse`
+Imports: axios
 
-**Dependencies:** `axios`
+#### src/services/airtable-oauth-service.ts
 
-**Routes:** `GET /meta/bases`
-
-#### 📄 `airtable-oauth-service.ts` (179 lines)
-
-_Airtable OAuth 2.0 Service Handles OAuth 2.0 Authorization Code flow with PKCE for Airtable. Similar pattern to OnShape OAuth service but adapted for Airtable's OAuth implementation._
+Airtable OAuth 2.0 Service Handles OAuth 2.0 Authorization Code flow with PKCE for Airtable. Similar pattern to OnShape OAuth service but adapted for Airtable's OAuth implementation.
 
 **class AirtableOAuthService**
-Properties: `clientId: string`, `clientSecret: string`, `redirectUri: string`, `scopes: string[]`, `authorizationUrl: string`
-Methods:
-  - `generateRandomString(length: number = 32) → string`
-  - `generateCodeVerifier() → string`
-  - `generateCodeChallenge(verifier: string) → string`
-  - `generateAuthUrl(state: string, codeChallenge: string) → string`
-  - `exchangeCodeForTokens(code: string, codeVerifier: string) → Promise<AirtableTokenResponse>`
-  - `refreshAccessToken(refreshToken: string) → Promise<AirtableTokenResponse>`
-  - `isTokenExpired(expiresAt: number) → boolean`
+  Properties: clientId: string, clientSecret: string, redirectUri: string, scopes: string[], authorizationUrl: string, tokenUrl: string
+  Methods:
+    - generateRandomString(length: number = 32) -> string
+    - generateCodeVerifier() -> string
+    - generateCodeChallenge(verifier: string) -> string
+    - generateAuthUrl(state: string, codeChallenge: string) -> string
+    - async exchangeCodeForTokens(code: string, codeVerifier: string) -> Promise<AirtableTokenResponse>
+    - async refreshAccessToken(refreshToken: string) -> Promise<AirtableTokenResponse>
+    - isTokenExpired(expiresAt: number) -> boolean
 
-**Types:** `AirtableTokens, AirtableTokenResponse`
+Imports: axios, crypto
 
-**Dependencies:** `axios, crypto`
+#### src/services/airtable-thumbnail-service.ts
 
-#### 📄 `airtable-thumbnail-service.ts` (302 lines)
-
-_Airtable Thumbnail Upload Service Handles processing ZIP files containing thumbnails and uploading them to matching Airtable records based on part number._
+Airtable Thumbnail Upload Service Handles processing ZIP files containing thumbnails and uploading them to matching Airtable records based on part number.
 
 **class AirtableThumbnailService**
-Properties: `apiClient: AirtableApiClient`, `config: ThumbnailServiceConfig`, `thumbnailFieldId: string | null`, `baseId: config?.baseId || airtableConfig.baseId,`, `tableId: config?.tableId || airtableConfig.tableId,`
-Methods:
-  - `parseFilename(filename: string) → ParsedFilename | null`
-  - `findRecordByPartNumber(partNumber: string) → Promise<AirtableRecord | null>`
-  - `uploadThumbnail(
-    recordId: string,
-    imageBuffer: Buffer,
-    filename: string
-  ) → Promise<void>`
+  constructor(apiClient: AirtableApiClient, config?: Partial<ThumbnailServiceConfig>)
+  Properties: apiClient: AirtableApiClient, config: ThumbnailServiceConfig, thumbnailFieldId: string | null = null
+  Methods:
+    - parseFilename(filename: string) -> ParsedFilename | null
+    - async findRecordByPartNumber(partNumber: string) -> Promise<AirtableRecord | null>
+    - async uploadThumbnail(recordId: string, imageBuffer: Buffer, filename: string) -> Promise<void>
 
-**Types:** `ParsedFilename, ThumbnailUploadResult, UploadProgress, ThumbnailServiceConfig`
+Imports: jszip, p-limit
 
-**Dependencies:** `jszip`
+#### src/services/api-call-cost.ts
 
-#### 📄 `api-call-cost.ts` (18 lines)
+Functions:
+- `estimateCost(endpoint: string) -> number`
 
-**Functions:**
-- `estimateCost(endpoint: string) → number`
-
-#### 📄 `api-usage-tracker.ts` (242 lines)
+#### src/services/api-usage-tracker.ts
 
 **class ApiUsageTracker**
-Properties: `logFile: string`, `dataDir: string`, `timeWindow: `${hours} hours`,`, `summary: {`, `totalRequests: entries.length,`
-Methods:
-  - `log(entry: UsageEntry) → Promise<void>`
-  - `getStats(hours: number = 24) → Promise<UsageStats>`
-  - `getEndpointBreakdown() → Promise<EndpointStats[]>`
-  - `estimateCosts(
-    costMap: Record<string, number> = {}
-  ) → Promise<CostEstimate>`
+  constructor(logFile = ".data/api-usage.jsonl")
+  Properties: logFile: string, dataDir: string
+  Methods:
+    - async log(entry: UsageEntry) -> Promise<void>
+    - async getStats(hours: number = 24) -> Promise<UsageStats>
+    - async getEndpointBreakdown() -> Promise<EndpointStats[]>
+    - async estimateCosts(costMap: Record<string, number> = {}) -> Promise<CostEstimate>
 
-**Dependencies:** `fs/promises, path`
+Imports: fs/promises, path
 
-#### 📄 `oauth-service.ts` (160 lines)
-
-_Generate OAuth authorization URL for OnShape_
+#### src/services/oauth-service.ts
 
 **class OAuthService**
-Properties: `response_type: "code",`, `client_id: oauthConfig.clientId,`, `redirect_uri: oauthConfig.redirectUri,`, `scope: oauthConfig.scope,`, `state: state,`
+  Properties: instance: OAuthService
 
-**Types:** `OAuthTokens, OAuthState`
+Imports: axios, uuid
 
-**Dependencies:** `uuid, axios`
-
-#### 📄 `onshape-api-client.ts` (1597 lines)
-
-_Get document history (alias for getDocumentVersions for backward compatibility). For combined versions + branches, use getCombinedDocumentHistory instead._
+#### src/services/onshape-api-client.ts
 
 **class OnShapeApiClient**
-Properties: `axiosInstance: AxiosInstance`, `accessToken: string`, `usageTracker: ApiUsageTracker`, `userId: string`, `baseApiRoot: string`
-Methods:
-  - `getCurrentUser() → Promise<OnShapeUser>`
-  - `getDocuments(
-    limit: number = 20,
-    offset: number = 0
-  ) → Promise<`
-  - `getDocument(documentId: string) → Promise<OnShapeDocumentInfo>`
-  - `getDocumentVersions(documentId: string) → Promise<any[]>`
-  - `getDocumentBranches(documentId: string) → Promise<any[]>`
-  - `getDocumentHistory(documentId: string) → Promise<any[]>`
-  - `getCombinedDocumentHistory(documentId: string) → Promise<`
-  - `getComprehensiveDocument(
-    documentId: string,
-    params: any
-  ) → Promise<any>`
+  constructor(
+    accessToken: string,
+    userId?: string,
+    tracker?: ApiUsageTracker
+  )
+  Properties: axiosInstance: AxiosInstance, accessToken: string, usageTracker?: ApiUsageTracker, userId?: string, baseApiRoot: string
+  Methods:
+    - async getCurrentUser() -> Promise<OnShapeUser>
+    - async getDocuments(limit: number = 20, offset: number = 0) -> Promise<
+    - async getDocument(documentId: string) -> Promise<OnShapeDocumentInfo>
+    - async getDocumentVersions(documentId: string) -> Promise<any[]>
+    - async getDocumentBranches(documentId: string) -> Promise<any[]>
+    - async getDocumentHistory(documentId: string) -> Promise<any[]>
+    - async getCombinedDocumentHistory(documentId: string) -> Promise<
+    - async getComprehensiveDocument(documentId: string, params: any) -> Promise<any>
 
-**Types:** `OnShapeUser, OnShapeDocument, OnShapeDocumentElement, OnShapeDocumentInfo, AxiosRequestConfig`
+Imports: axios, p-limit, events
 
-**Dependencies:** `events, axios, p-limit`
+#### src/services/session-storage.ts
 
-**Routes:** `GET /users/sessioninfo, GET /documents, GET /documents`
+**class SessionStorage extends Store**
+  Properties: instance: SessionStorage, sessionsFilePath: string, sessions: Record<string, any>
 
-#### 📄 `session-storage.ts` (136 lines)
+Imports: fs, path, express-session
 
-**class SessionStorage** extends `Store`
-Properties: `sessionsFilePath: string`, `sessions: Record<string, any>`, `lastAccess: new Date().toISOString(),`
-
-**Dependencies:** `express-session, fs, path`
-
-#### 📄 `usage-db.ts` (77 lines)
+#### src/services/usage-db.ts
 
 **class UsageDatabase**
-Properties: `db: Database.Database`, `total: this.db`, `byEndpoint: this.db`, `byUser: this.db`, `avgResponseTime: this.db`
-Methods:
-  - `logRequest(entry: UsageEntry)`
-  - `getStats(hours = 24)`
+  constructor(dbPath = ".data/api-usage.db")
+  Properties: db: Database.Database
+  Methods:
+    - logRequest(entry: UsageEntry)
+    - getStats(hours = 24)
 
-**Dependencies:** `better-sqlite3`
+Imports: better-sqlite3
 
-### 📁 src/types
+### States
 
-#### 📄 `airtable.d.ts` (19 lines)
+#### public/js/state/app-state.js
 
-_Airtable Type Definitions Type definitions for Airtable session data and API structures._
+**class AppState**
+  Methods:
+    - subscribe(listener)
+    - getState()
+    - setState(patch)
+    - replaceState(newState)
+    - toggleDocumentSelection(documentId)
+    - toggleFolderSelection(folderId)
+    - clearExportSelection()
+    - getExportSelectionCount()
 
-**Types:** `AirtableSessionData, AirtableOAuthState`
+### Views
 
-#### 📄 `onshape.ts` (205 lines)
+#### public/js/views/actions/document-actions.js
 
-_OnShape API Types Shared type definitions for OnShape API responses and internal data structures_
+Action handlers for document-level operations
 
-**Types:** `OnShapeElementType, OnShapeUser, AssemblyReference, AssemblyBomFetchResult, DirectoryStats, ExportScopeParams, ExportMetadata, AggregateBomResult, ExportPhase, RootFolderStatus`
+**class DocumentActions**
+  constructor(controller)
+  Methods:
+    - async handleGetDocument(docId)
+    - async handleGetJson(docData)
+    - async handleCopyJson(docData)
+    - async handleLoadHierarchy(docId, controller)
+    - async handleExportCsv(docData, elements)
 
-#### 📄 `session.d.ts` (21 lines)
+#### public/js/views/actions/element-actions.js
 
-#### 📄 `usage.d.ts` (55 lines)
+Action handlers for element-level operations
 
-**Types:** `UsageEntry, UsageStats, EndpointStats, UserStats, CostEstimate, UsageQueryOptions`
+**class ElementActions**
+  constructor(controller, documentService)
+  Methods:
+    - async handleCopyElementJson(element, controller)
+    - async handleFetchBomJson(element, documentId, workspaceId, service)
+    - async handleDownloadBomCsv(element, documentId, workspaceId, service)
+    - async handleFullExtract(element, documentId, workspaceId, service)
 
-## External Dependencies
+#### public/js/views/airtable-upload-view.js
+
+AirtableUploadView - UI for uploading thumbnails to Airtable
+
+**class AirtableUploadView extends BaseView**
+  constructor(containerSelector, controller, airtableService)
+  Methods:
+    - async render(isAuthenticated)
+    - _renderUnauthenticated()
+    - async _renderAuthenticated()
+    - _bindLoginButton()
+    - _bindEvents()
+    - _bindDropzone()
+    - _handleFileSelect(file)
+    - _clearFile()
+
+#### public/js/views/base-view.js
+
+BaseView - abstract base with common helpers
+
+**class BaseView**
+  constructor(containerSelector)
+  Methods:
+    - ensureContainer()
+    - clear()
+    - renderHtml(html)
+    - bind()
+    - unbind()
+
+#### public/js/views/document-detail-view.js
+
+DocumentDetailView - slim orchestration layer
+
+**class DocumentDetailView extends BaseView**
+  constructor(containerSelector, controller, thumbnailService)
+  Methods:
+    - render(docData, elements)
+    - _renderTopBar(docData)
+    - _renderHistorySelector(docData)
+    - _bindHistorySelector(docData)
+    - async _handleLoadHistory(documentId)
+    - _renderHistoryDropdown(history, documentId)
+    - _bindHistoryDropdown(documentId)
+    - _displayHistoryDetails(documentId, item)
+
+#### public/js/views/document-list-view.js
+
+DocumentListView - renders document grid/table
+
+**class DocumentListView extends BaseView**
+  constructor(containerSelector, controller)
+  Methods:
+    - render(documents, pagination = null)
+    - bind()
+    - _bindPaginationControls()
+    - _notifySelectionChanged()
+    - _delegate(selector, eventName, handler)
+    - unbind()
+    - captureState()
+    - restoreState(state)
+
+#### public/js/views/element-detail-view.js
+
+**class ElementDetailView extends BaseView**
+  constructor(containerSelector, controller)
+  Methods:
+    - render(element)
+    - _bindBackButton()
+    - captureState()
+    - restoreState(state)
+
+#### public/js/views/export-filter-modal.js
+
+Modal for configuring export filters before pre-scan. Allows filtering by folder prefix to limit scope of export.
+
+**class ExportFilterModal**
+  Methods:
+    - prompt()
+    - _show()
+    - hide()
+    - _handleKeyDown(e)
+    - _renderContent()
+    - _handleConfirm()
+    - _handleCancel()
+
+#### public/js/views/export-progress-modal.js
+
+Modal view for displaying real-time export progress. Connects to SSE endpoint and shows progress bar, ETA, status.
+
+**class ExportProgressModal**
+  Methods:
+    - show({ stats, workers = 4, delay = 100, onComplete, onCancel, onError, startExport })
+    - renderInitialContent(stats)
+    - handleProgress(event)
+    - logProgress(event)
+    - updatePhase(phase, fetch)
+    - updateProgressBar(percent)
+    - updateCount(type, value)
+    - updateCurrentItem(text)
+
+#### public/js/views/export-stats-modal.js
+
+Modal view for displaying pre-scan export statistics. Shows before starting full aggregate BOM export. Enhanced with live stats, root folder visualization, and cancel/resume capability.
+
+**class ExportStatsModal**
+  Methods:
+    - show(stats, { onConfirm, onCancel, isPartial = false, selectionCount = 0, prefixFilter = null })
+    - hide()
+    - clearCheckpointOnSuccess()
+    - _handleKeyDown(e)
+    - renderModalContent(stats, { isPartial = false, selectionCount = 0, prefixFilter = null } = {})
+    - handleConfirm()
+    - handleCancel()
+    - showLoading()
+
+#### public/js/views/full-extract-modal.js
+
+Full Extract Progress Modal Displays progress for the Full Assembly Extraction feature. Shows phases, progress bar, and status messages.
+
+Functions:
+- `showModal(assemblyName)`
+- `hideModal()`
+- `isModalVisible()`
+- `updateProgress(progress)`
+
+#### public/js/views/helpers/document-info-renderer.js
+
+Pure rendering functions for document metadata sections
+
+Functions:
+- `renderDocumentInfo(docData)`
+- `renderThumbnailSection(docData)`
+- `renderTagsAndLabels(docData)`
+
+#### public/js/views/helpers/element-list-renderer.js
+
+Pure rendering for elements list
+
+Functions:
+- `renderElementsList(elements)`
+- `renderElementItem(element)`
+- `renderElementActions(element)`
+
+#### public/js/views/helpers/pagination-renderer.js
+
+Pure rendering functions for pagination controls
+
+Functions:
+- `renderPaginationControls(pagination) -> string`
+- `renderDocumentRows(documents) -> string`
+
+#### public/js/views/modal-manager.js
+
+ModalManager - controls export and progress modals
+
+**class ModalManager**
+  Methods:
+    - setHandlers(handlers)
+    - showExport()
+    - hideExport()
+    - showProgress()
+    - hideProgress()
+    - bindExportModalEvents()
+    - bindProgressModalEvents()
+    - readExportOptions()
+
+#### public/js/views/navigation.js
+
+Navigation - page transitions
+
+**class Navigation**
+  Methods:
+    - navigateTo(pageId)
+    - getCurrentPage()
+
+#### public/js/views/part-detail-view.js
+
+PartDetailView - renders part details and mass properties
+
+**class PartDetailView**
+  Methods:
+    - render(part)
+    - _bindBackButton()
+    - captureState()
+    - restoreState(state)
+
+#### public/js/views/workspace-view.js
+
+WorkspaceView - renders folder tree and document exploration
+
+**class WorkspaceView extends BaseView**
+  constructor(containerSelector, controller)
+  Methods:
+    - bind()
+    - showLoading()
+    - hideLoading()
+    - showError(msg)
+    - hideError()
+    - render(items, breadcrumbs)
+    - _renderBreadcrumbs(path)
+    - _renderGrid(items)
+
+### Utils
+
+#### public/js/utils/aggregateBomToCSV.js
+
+Convert aggregate BOM export result to flattened CSV. Adds source metadata columns and handles multi-assembly header merging.
+
+Functions:
+- `aggregateBomToCSV(aggregateResult, options) -> string`
+
+#### public/js/utils/bomToCSV.js
+
+Convert Onshape BOM JSON to CSV.
+
+Functions:
+- `bomToCSV(bomJson)`
+
+#### public/js/utils/clipboard.js
+
+Clipboard utilities
+
+Functions:
+- `async copyToClipboard(text)`
+
+#### public/js/utils/dom-helpers.js
+
+DOM helpers and safe HTML utilities
+
+Functions:
+- `qs(selector, root)`
+- `qsa(selector, root)`
+- `on(el, event, handler, options)`
+- `delegate(root, selector, eventName, handler)`
+- `escapeHtml(text)`
+
+#### public/js/utils/download.js
+
+Download helpers
+
+Functions:
+- `downloadJson(data, filenamePrefix)`
+
+#### public/js/utils/file-download.js
+
+Generic file download utilities
+
+Functions:
+- `downloadJson(data, filename)`
+- `downloadCsv(csvString, filename)`
+- `createDownloadLink(blob, filename)`
+
+#### public/js/utils/format-helpers.js
+
+Formatting helpers (pure functions)
+
+Functions:
+- `formatDateWithUser(dateStr, userObj)`
+
+#### public/js/utils/fullAssemblyExporter.js
+
+Full Assembly Exporter Exports a complete assembly package including: - Flattened BOM as JSON - Flattened BOM as CSV - Thumbnails for each BOM item - All packaged in a ZIP file
+
+Functions:
+- `sanitizeForFilename(str, maxLength) -> string`
+- `buildThumbnailFilename(rowData) -> string`
+- `parseBomRow(row, headerMap, index) -> Object`
+- `buildThumbnailUrl(info, size) -> string|null`
+- `async fullAssemblyExtract(options)`
+
+Imports: jszip
+
+#### public/js/utils/getCSV.js
+
+Generate CSV from parts data, filtering for ASM/PRT part numbers. Filters parts whose "Part number" property contains ASM or PRT patterns. Supports various formats: ASM-XXXXXX, PRT-XXXXXX,...
+
+Functions:
+- `getCSV(parts) -> string`
+
+#### public/js/utils/massCSVExporter.js
+
+Mass export all documents as CSV files (filtered for ASM/PRT parts) with thumbnails. Provides two export modes: 1. exportAllDocumentsAsZip - Single ZIP file (recommended, gesture-safe) 2.
+
+Functions:
+- `async exportAllDocumentsAsZip(apiClient, documentService)`
+- `async exportAllDocuments(apiClient, documentService)`
+
+Imports: jszip
+
+#### public/js/utils/toast-notification.js
+
+Centralized toast notification system
+
+Functions:
+- `showToast(message, duration)`
+
+### Types
+
+#### src/types/airtable.d.ts
+
+Airtable Type Definitions Type definitions for Airtable session data and API structures.
+
+**interface AirtableSessionData** {
+  accessToken: string
+  refreshToken: string
+  tokenExpiry: number
+  scope: string
+}
+
+**interface AirtableOAuthState** {
+  codeVerifier: string
+  state: string
+}
+
+#### src/types/onshape.ts
+
+OnShape API Types Shared type definitions for OnShape API responses and internal data structures
+
+**type OnShapeElementType**
+
+**interface OnShapeUser** {
+  id: string
+  name: string
+  email: string
+  firstName?: string
+  lastName?: string
+}
+
+**interface AssemblyReference** {
+  documentId: string
+  documentName: string
+  workspaceId: string
+  elementId: string
+  elementName: string
+  folderPath: string[]
+}
+
+**interface AssemblyBomFetchResult** {
+  source: {...}
+  assembly: {...}
+  bom: {...}
+  error?: string
+  fetchDurationMs?: number
+}
+
+**interface DirectoryStats** {
+  scanDate: string
+  scanDurationMs: number
+  summary: {...}
+  elementTypes: {...}
+  estimates: {...}
+  assemblies: AssemblyReference[]
+}
+
+#### src/types/usage.d.ts
+
+**interface UsageEntry** {
+  timestamp: string
+  endpoint: string
+  method: string
+  userId?: string
+  responseTime: number
+  status: number
+  cached?: boolean
+}
+
+**interface UsageStats** {
+  timeWindow: string
+  summary: {...}
+  byEndpoint: EndpointStats[]
+  byUser: UserStats[]
+  responseTimePercentiles: {...}
+}
+
+**interface EndpointStats** {
+  endpoint: string
+  count: number
+  avgResponseTime: number
+  errorRate: number
+}
+
+**interface UserStats** {
+  userId: string
+  count: number
+  avgResponseTime: number
+}
+
+**interface CostEstimate** {
+  totalEstimatedCost: number
+  costByEndpoint: Array<{...}>
+}
+
+### Modules
+
+#### public/js/router/routes.js
+
+Route definitions and configuration. Provides: - ROUTES map with normalized route patterns - configureRoutes(router, controllers) to bind patterns to controller handlers
+
+Functions:
+- `configureRoutes(router, controllers)`
+- `pathTo(pattern, params, query) -> string`
+
+#### src/index.ts [entry]
+
+Routes: USE /auth, USE /auth/airtable, USE /api, USE /api/airtable, GET /
+
+Imports: express, cors, helmet, morgan, cookie-parser, express-session, path, url
+
+## Dependencies
 
 axios, better-sqlite3, cookie-parser, cors, crypto-js, dotenv, express, express-session, helmet, jszip, morgan, p-limit, uuid
-
-## Internal Dependencies
-
-Files and what imports them:
-
-- `public/js/controllers/airtable-controller.js` ← `public/js/app.js`
-- `public/js/controllers/app-controller.js` ← `public/js/app.js`
-- `public/js/controllers/document-controller.js` ← `public/js/app.js`
-- `public/js/controllers/export-controller.js` ← `public/js/app.js`
-- `public/js/router/Router.js` ← `public/js/app.js`
-- `public/js/router/routes.js` ← `public/js/app.js`, `public/js/controllers/airtable-controller.js`, `public/js/controllers/document-controller.js`
-- `public/js/services/airtable-service.js` ← `public/js/app.js`
-- `public/js/services/api-client.js` ← `public/js/app.js`, `src/routes/airtable-api.ts`, `src/routes/api.ts`
-- `public/js/services/auth-service.js` ← `public/js/app.js`, `src/routes/airtable-auth.ts`, `src/routes/auth.ts`
-- `public/js/services/document-service.js` ← `public/js/app.js`
-- `public/js/services/export-service.js` ← `public/js/app.js`
-- `public/js/services/thumbnail-service.js` ← `public/js/app.js`, `src/routes/airtable-api.ts`
-- `public/js/state/HistoryState.js` ← `public/js/app.js`
-- `public/js/state/app-state.js` ← `public/js/app.js`
-- `public/js/utils/aggregateBomToCSV.js` ← `public/js/controllers/document-controller.js`

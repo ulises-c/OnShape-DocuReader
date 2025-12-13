@@ -17,5 +17,6 @@ declare module 'express-session' {
     };
     airtableCodeVerifier?: string;
     airtableOauthState?: string;
+    airtableReturnTo?: string;
   }
 }
