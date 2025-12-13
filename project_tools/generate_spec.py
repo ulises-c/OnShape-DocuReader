@@ -350,8 +350,36 @@ def parse_jsdoc(jsdoc: str) -> tuple[str, list[ParamInfo], str]:
         elif not line.startswith('@'):
             description_parts.append(line)
     
-    description = ' '.join(description_parts)[:200]
+    description = ' '.join(description_parts)
+    description = truncate_at_sentence(description, 200)
     return description, params, return_type
+
+
+def truncate_at_sentence(text: str, max_length: int) -> str:
+    """Truncate text at sentence boundary, not mid-word."""
+    if len(text) <= max_length:
+        return text
+    
+    # Try to find a sentence boundary before max_length
+    truncated = text[:max_length]
+    
+    # Look for sentence endings: . ! ? followed by space or end
+    for i in range(len(truncated) - 1, max(0, len(truncated) - 60), -1):
+        if truncated[i] in '.!?' and (i == len(truncated) - 1 or truncated[i + 1] == ' '):
+            return truncated[:i + 1]
+    
+    # No sentence boundary - try to break at list item boundary (common in JSDoc)
+    # Look for " - " which often separates list items
+    last_dash = truncated.rfind(' - ')
+    if last_dash > max_length - 60:
+        return truncated[:last_dash]
+    
+    # Try to break at word boundary
+    last_space = truncated.rfind(' ')
+    if last_space > max_length - 30:
+        return truncated[:last_space] + '...'
+    
+    return truncated + '...'
 
 
 def extract_jsdoc_before(content: str, pos: int) -> str:
@@ -879,8 +907,25 @@ def format_class(cls: ClassInfo, verbosity: Verbosity) -> list[str]:
         decl += f" implements {cls.implements}"
     lines.append(f"**{decl}**")
     
+    # Add description only if it's not just repeating the class name
     if verbosity != Verbosity.MINIMAL and cls.description:
-        lines.append(f"  {cls.description}")
+        desc = cls.description.strip()
+        # Skip if description is just the class name or "ClassName - " pattern
+        desc_lower = desc.lower()
+        name_lower = cls.name.lower()
+        # Also create spaced version of camelCase name (SessionService -> session service)
+        name_spaced = re.sub(r'([a-z])([A-Z])', r'\1 \2', cls.name).lower()
+        
+        is_redundant = (
+            desc_lower == name_lower or 
+            desc_lower.startswith(f"{name_lower} -") or
+            desc_lower.startswith(f"{name_lower}:") or
+            desc_lower == f"{name_lower} class" or
+            desc_lower.startswith(f"{name_spaced} ") or
+            desc_lower == name_spaced
+        )
+        if not is_redundant:
+            lines.append(f"  {desc}")
     
     # Constructor
     if cls.constructor_params and cls.constructor_params != "()":
@@ -975,13 +1020,11 @@ def generate_spec(project: ProjectSpec, verbosity: Verbosity) -> str:
         "",
     ])
     
-    # Routes
+    # Routes - show all (important for API work)
     if project.all_routes:
         lines.extend(["## Routes", ""])
-        for route in project.all_routes[:25]:
+        for route in project.all_routes:
             lines.append(f"- {route.method} {route.path}")
-        if len(project.all_routes) > 25:
-            lines.append(f"- ... +{len(project.all_routes) - 25} more")
         lines.append("")
     
     # TODOs (condensed)
@@ -1117,15 +1160,15 @@ def scan_project(root: Path, ignore_patterns: set, include_snippets: bool, max_s
             if file_path.suffix in CODE_EXTENSIONS:
                 info = extract_file_info(file_path, root, include_snippets, max_snippet_lines)
                 if info:
-                    # Skip empty files (no meaningful content to document)
-                    has_content = (
-                        info.exports or 
+                    # Skip files with no meaningful content to document
+                    # (must have functions, classes, interfaces, or routes - not just exports/imports)
+                    has_meaningful_content = (
                         info.functions or 
                         info.classes or 
                         info.interfaces or 
                         info.routes
                     )
-                    if has_content:
+                    if has_meaningful_content:
                         files.append(info)
     
     return sorted(files, key=lambda x: x.relative_path)
