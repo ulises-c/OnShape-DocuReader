@@ -317,10 +317,12 @@ export class AirtableUploadView extends BaseView {
         { dryRun },
         (progress) => {
           if (progress.phase === 'uploading') {
-            this._updateProgress('Uploading...', progress.percent);
+            this._updateProgress('Uploading ZIP...', progress.percent);
           }
         }
       );
+
+      console.log('[AirtableUploadView] Upload result:', result);
 
       // Store results for report download
       this._lastResults = {
@@ -329,6 +331,8 @@ export class AirtableUploadView extends BaseView {
         dryRun,
         timestamp: new Date().toISOString()
       };
+
+      console.log('[AirtableUploadView] Stored results for download:', this._lastResults.summary);
 
       // Show results
       this._showResults(result, dryRun);
@@ -430,6 +434,8 @@ export class AirtableUploadView extends BaseView {
    * @param {string} format - 'json' or 'csv'
    */
   _downloadReport(format) {
+    console.log('[AirtableUploadView] Download report requested:', format, 'hasResults:', !!this._lastResults);
+    
     if (!this._lastResults) {
       showToast('No results to download');
       return;
@@ -437,6 +443,8 @@ export class AirtableUploadView extends BaseView {
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     const modeLabel = this._lastResults.dryRun ? 'dryrun' : 'upload';
+
+    console.log('[AirtableUploadView] Generating', format, 'report with', this._lastResults.results?.length || 0, 'items');
 
     if (format === 'json') {
       this._downloadJson(this._lastResults, `airtable-${modeLabel}-report-${timestamp}.json`);

@@ -1,6 +1,6 @@
 # onshape-docureader
 
-Generated: 2025-12-12 17:11
+Generated: 2025-12-12 17:33
 
 Using OnShape API to gather information about documents
 
@@ -138,7 +138,7 @@ onshape-docureader/
 
 ## Stats
 
-Files: 60 | Lines: 13,729 | Routes: 44 | TODOs: 4
+Files: 60 | Lines: 13,743 | Routes: 44 | TODOs: 4
 
 ## Routes
 

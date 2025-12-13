@@ -242,8 +242,9 @@ export class AirtableThumbnailService {
     
     // Airtable rate limit: 5 requests/second per base
     // Use conservative concurrency with delays to stay well under limit
-    const matchLimit = pLimit(Math.min(workerCount, 2)); // Max 2 concurrent matches
-    const MATCH_DELAY = 250; // 250ms delay between match requests (allows ~4 req/sec)
+    // With 1 worker at 300ms delay = ~3.3 req/sec (safe margin)
+    const matchLimit = pLimit(2); // Single worker to ensure sequential processing
+    const MATCH_DELAY = 350; // 300ms delay between match requests (allows ~3.3 req/sec)
 
     console.log(`[AirtableThumbnail] Starting parallel matching with ${Math.min(workerCount, 2)} workers, ${MATCH_DELAY}ms delay`);
 
