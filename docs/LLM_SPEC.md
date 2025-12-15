@@ -238,19 +238,16 @@ This ensures proper ESM compatibility with TypeScript's NodeNext module resoluti
 
 The Airtable attachment upload uses a two-step process via the content API:
 
-**Step 1: Request Upload URL**
+**Single-Step Direct Upload (Base64)**
 ```
 POST https://content.airtable.com/v0/{baseId}/{recordId}/{fieldName}/uploadAttachment
 Content-Type: application/json
 Authorization: Bearer {token}
-Body: { "contentType": "image/png", "filename": "example.png" }
-```
-
-**Step 2: Upload File to Presigned URL**
-```
-PUT {uploadUrl}
-Content-Type: image/png
-Body: <binary file data>
+Body: { 
+  "contentType": "image/png", 
+  "file": "<base64-encoded-file-content>",
+  "filename": "example.png" 
+}
 ```
 
 Key requirements:
@@ -258,9 +255,8 @@ Key requirements:
   - Example: Use `CAD_Thumbnail` NOT `fldtYjisBei9dSlPT`
   - The field name is case-sensitive and must match exactly
   - Do NOT URL-encode the field name (underscores stay as underscores)
-- Step 1 returns `uploadUrl` and `id` (attachment ID)
-- Step 2 uses the presigned URL directly (no auth header needed)
-- Attachment is automatically associated with the record after upload
+- File content must be **base64 encoded** in the `file` field
+- Response contains the updated record with the new attachment
 - **OAuth Scope Required**: `data.records:write` scope is required for attachment uploads
 - If you get 400 BAD_REQUEST errors, re-authenticate to get a token with updated scopes
 

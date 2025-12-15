@@ -239,16 +239,17 @@ export class AirtableApiClient {
   // ─────────────────────────────────────────────────────────────────────────────
 
   /**
-   * Upload an attachment to an Airtable record.
+   * Upload an attachment to an Airtable record using the direct upload API.
    * 
-   * Airtable attachments can be uploaded via:
-   * 1. URL-based: Provide a publicly accessible URL (Airtable downloads it)
-   * 2. Direct upload: Use the content API (requires specific endpoint format)
+   * Uses the content.airtable.com endpoint with base64-encoded file data.
+   * Endpoint: POST https://content.airtable.com/v0/{baseId}/{recordId}/{fieldIdOrName}/uploadAttachment
    * 
-   * This method uses the direct upload approach with the content API.
-   * The endpoint format is: POST https://content.airtable.com/v0/{baseId}/{recordId}/{fieldName}/uploadAttachment
-   * 
-   * IMPORTANT: The endpoint uses the field NAME (e.g., "CAD_Thumbnail"), NOT the field ID (e.g., "fldXXX").
+   * Body format:
+   * {
+   *   "contentType": "image/png",
+   *   "file": "<base64-encoded-file>",
+   *   "filename": "example.png"
+   * }
    * 
    * @param baseId - Airtable base ID
    * @param tableId - Table ID or name (not used in direct upload, kept for compatibility)
@@ -267,27 +268,30 @@ export class AirtableApiClient {
     filename: string,
     contentType: string
   ): Promise<AttachmentResult> {
-    console.log(`[Airtable API] Uploading attachment via two-step process`);
+    console.log(`[Airtable API] Uploading attachment via direct base64 upload`);
     console.log(`[Airtable API]   Base: ${baseId}, Table: ${tableId}, Record: ${recordId}`);
     console.log(`[Airtable API]   Field Name: ${fieldName}, Filename: ${filename}`);
     console.log(`[Airtable API]   Content-Type: ${contentType}, Size: ${fileBuffer.length} bytes`);
 
     try {
-      // Step 1: Request upload URL from Airtable Content API
-      // CRITICAL: The endpoint uses field NAME in the path, NOT field ID
-      // Format: POST https://content.airtable.com/v0/{baseId}/{recordId}/{fieldName}/uploadAttachment
-      // 
-      // The field name should NOT be URL encoded in the path (Airtable expects exact field name)
-      // Example: CAD_Thumbnail stays as CAD_Thumbnail, not CAD%5FThumbnail
-      const uploadRequestUrl = `https://content.airtable.com/v0/${baseId}/${recordId}/${fieldName}/uploadAttachment`;
+      // Convert file buffer to base64
+      const base64File = fileBuffer.toString('base64');
       
-      const requestBody = { contentType, filename };
-      console.log(`[Airtable API] Step 1: Requesting upload URL from ${uploadRequestUrl}`);
-      console.log(`[Airtable API]   Request body:`, JSON.stringify(requestBody));
+      // Build the upload URL
+      // Format: POST https://content.airtable.com/v0/{baseId}/{recordId}/{fieldIdOrName}/uploadAttachment
+      const uploadUrl = `https://content.airtable.com/v0/${baseId}/${recordId}/${fieldName}/uploadAttachment`;
       
-      const uploadRequestResponse = await axios.post(
-        uploadRequestUrl,
-        requestBody,
+      console.log(`[Airtable API] POST ${uploadUrl}`);
+      console.log(`[Airtable API]   Base64 length: ${base64File.length} characters`);
+      
+      // Make the request with base64-encoded file in body
+      const response = await axios.post(
+        uploadUrl,
+        {
+          contentType,
+          file: base64File,
+          filename,
+        },
         {
           headers: {
             'Authorization': `Bearer ${this.accessToken}`,
@@ -296,31 +300,24 @@ export class AirtableApiClient {
         }
       );
 
-      const { uploadUrl, id: attachmentId } = uploadRequestResponse.data;
+      console.log(`[Airtable API] Upload successful, record updated`);
       
-      if (!uploadUrl) {
-        throw new Error('No upload URL returned from Airtable');
-      }
-
-      console.log(`[Airtable API] Step 2: Uploading file to presigned URL (${fileBuffer.length} bytes)`);
+      // The response contains the updated record with the new attachment
+      const updatedRecord = response.data;
       
-      // Step 2: Upload file content to the presigned URL
-      await axios.put(uploadUrl, fileBuffer, {
-        headers: {
-          'Content-Type': contentType,
-        },
-        maxBodyLength: Infinity,
-        maxContentLength: Infinity,
-      });
-
-      console.log(`[Airtable API] Upload successful, attachment ID: ${attachmentId}`);
+      // Extract attachment info from the response if available
+      const attachments = updatedRecord?.fields?.[fieldName];
+      const newAttachment = Array.isArray(attachments) ? attachments[attachments.length - 1] : null;
       
       return {
-        id: attachmentId,
-        url: '', // URL will be populated by Airtable after processing
+        id: newAttachment?.id || `att_${Date.now()}`,
+        url: newAttachment?.url || '',
         filename,
         size: fileBuffer.length,
         type: contentType,
+        ...(newAttachment?.width && { width: newAttachment.width }),
+        ...(newAttachment?.height && { height: newAttachment.height }),
+        ...(newAttachment?.thumbnails && { thumbnails: newAttachment.thumbnails }),
       };
     } catch (error: any) {
       // Log detailed error information
