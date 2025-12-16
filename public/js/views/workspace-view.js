@@ -142,19 +142,27 @@ export class WorkspaceView extends BaseView {
   _renderBreadcrumbs(path) {
     if (!this.breadcrumbsContainer) return;
 
+    // Only show breadcrumbs when navigating into folders (path has items)
+    // At root level (empty path), show nothing since section header already shows "Workspace"
+    if (!Array.isArray(path) || path.length === 0) {
+      this.breadcrumbsContainer.innerHTML = '';
+      this.breadcrumbsContainer.style.display = 'none';
+      return;
+    }
+
+    // Show breadcrumbs with root link when inside a folder
+    this.breadcrumbsContainer.style.display = 'block';
     let html = '<span class="breadcrumb-item" data-id="root">Workspace</span>';
 
-    if (Array.isArray(path) && path.length > 0) {
-      path.forEach((p, index) => {
-        html += ' <span class="breadcrumb-separator">/</span> ';
-        const isLast = index === path.length - 1;
-        if (isLast) {
-          html += `<span class="breadcrumb-item active">${escapeHtml(p.name)}</span>`;
-        } else {
-          html += `<span class="breadcrumb-item" data-id="${escapeHtml(p.id)}">${escapeHtml(p.name)}</span>`;
-        }
-      });
-    }
+    path.forEach((p, index) => {
+      html += ' <span class="breadcrumb-separator">/</span> ';
+      const isLast = index === path.length - 1;
+      if (isLast) {
+        html += `<span class="breadcrumb-item active">${escapeHtml(p.name)}</span>`;
+      } else {
+        html += `<span class="breadcrumb-item" data-id="${escapeHtml(p.id)}">${escapeHtml(p.name)}</span>`;
+      }
+    });
 
     this.breadcrumbsContainer.innerHTML = html;
   }

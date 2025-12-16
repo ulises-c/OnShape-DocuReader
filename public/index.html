@@ -63,8 +63,8 @@
                     <!-- Workspace Section -->
                     <div class="section-workspace">
                         <div class="section-header">
-                            <h3>Workspace</h3>
-                            <span id="workspaceName" class="workspace-name"></span>
+                            <h3>Workspace <span id="workspaceName" class="workspace-name"></span></h3>
+                            <button id="reloadWorkspaceBtn" class="btn btn-sm btn-outline" title="Reload workspace folders">↻ Reload Workspace</button>
                         </div>
                         <div class="workspace-container" id="workspaceContainer" data-scroll-preserve data-scroll-key="workspace-section">
                             <div id="workspaceBreadcrumbs" class="breadcrumbs"></div>
@@ -78,7 +78,7 @@
                     <div class="section-recent" id="recentSection">
                         <div class="section-header" id="recentSectionHeader">
                             <h3>Recently Updated Documents</h3>
-                            <span class="toggle-icon">▼</span>
+                            <button id="reloadDocumentsBtn" class="btn btn-sm btn-outline" title="Reload recent documents">↻ Reload Documents</button>
                         </div>
                         <div class="section-content">
                             <div class="scroll-hint-text">← Scroll horizontally to see more columns →</div>

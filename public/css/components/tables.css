@@ -1,7 +1,6 @@
 /* Document Details Table */
 .doc-details-table {
   width: 100%;
-  min-width: 80vw;
   border-collapse: separate;
   border-spacing: 0;
   background: white;
@@ -10,7 +9,8 @@
   overflow: hidden;
   margin: 0 auto var(--spacing-xl) auto;
   font-size: clamp(0.85rem, 0.9vw, 1.1rem);
-  table-layout: fixed;
+  table-layout: auto; /* Fixed layout for predictable column widths */
+  min-width: 100%; /* Ensure table fills container width */
 }
 
 .doc-details-table th,
@@ -56,33 +56,42 @@
   hyphens: none;
 }
 
-/* Column Width Distribution - 7 columns without checkbox */
+/* Location column styling */
+.doc-location {
+  color: var(--color-text-light);
+  font-size: 0.9em;
+  /* Allow breaks at path separators */
+  word-break: normal;
+  overflow-wrap: break-word;
+  hyphens: none;
+  white-space: normal;
+}
+
+/* Column Width Distribution - 4 columns: Name, Date Modified, Modified By, Location */
+/* Fixed percentages that add up to 100% for table-layout: fixed */
 .doc-details-table th:nth-child(1),
-.doc-details-table td:nth-child(1) { width: 22%; } /* Name */
+.doc-details-table td:nth-child(1) { width: 30%; } /* Name - generous space for document names */
 
 .doc-details-table th:nth-child(2),
-.doc-details-table td:nth-child(2) { width: 12%; } /* Creator */
+.doc-details-table td:nth-child(2) { width: 15%; } /* Date Modified */
 
 .doc-details-table th:nth-child(3),
-.doc-details-table td:nth-child(3) { width: 15%; } /* Date Created */
+.doc-details-table td:nth-child(3) { width: 15%; } /* Modified By */
 
 .doc-details-table th:nth-child(4),
-.doc-details-table td:nth-child(4) { width: 15%; } /* Date Modified */
+.doc-details-table td:nth-child(4) { width: 40%; } /* Location - largest column to show full paths */
 
-.doc-details-table th:nth-child(5),
-.doc-details-table td:nth-child(5) { width: 12%; } /* Last Modified By */
 
-.doc-details-table th:nth-child(6),
-.doc-details-table td:nth-child(6) { width: 16%; } /* Parent */
-
-.doc-details-table th:nth-child(7),
-.doc-details-table td:nth-child(7) { width: 8%; } /* Type */
-
+/* Date modified column styling */
+.doc-date-modified {
+  white-space: nowrap;
+}
 
 @media (max-width: 48rem) {
   .doc-details-table {
     font-size: clamp(0.8rem, 2.2vw, 1rem);
-    min-width: 90vw;
+    table-layout: auto; /* Allow auto sizing on mobile */
+    min-width: 500px;
   }
   
   .doc-details-table th,

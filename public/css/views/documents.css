@@ -58,10 +58,11 @@
   border-radius: 0;
   box-shadow: none;
   overflow-x: auto;
+  overflow-y: auto;
   position: relative;
   box-sizing: border-box;
   max-height: 50vh;
-  overflow-y: auto;
+  width: 100%;
 }
 
 
@@ -197,49 +198,6 @@
   min-height: 400px;
 }
 
-/* Headers */
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--spacing-md) var(--spacing-lg);
-  background-color: var(--color-bg-gray);
-  border-bottom: 1px solid var(--color-border-light);
-  user-select: none;
-}
-
-#recentSectionHeader {
-  cursor: pointer;
-}
-
-.section-header h3 {
-  margin: 0;
-  font-size: 1.1rem;
-  color: var(--color-primary);
-}
-
-/* Toggle Icon */
-.toggle-icon {
-  font-size: 0.8rem;
-  color: var(--color-text-light);
-  transition: transform var(--transition-base);
-}
-
-.section-recent.collapsed .toggle-icon {
-  transform: rotate(-90deg);
-}
-
-/* Collapsible Content */
-.section-content {
-  transition: max-height var(--transition-base), opacity var(--transition-base);
-  max-height: 1000px; /* Large enough for content */
-  opacity: 1;
-}
-
-.section-recent.collapsed .section-content {
-  max-height: 0;
-  opacity: 0;
-}
 
 /* Scroll Hint */
 .scroll-hint-text {
@@ -260,12 +218,6 @@
   z-index: 10;
   background: var(--color-bg-gray);
   box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
-}
-
-/* Ensure table is wide enough to scroll */
-.doc-details-table {
-  min-width: 1000px;
-  overflow: visible;
 }
 
 /* Workspace Container adaptation */
@@ -353,27 +305,39 @@
   font-style: italic;
 }
 
-/* Workspace header refresh hint */
-.section-workspace .section-header {
-  cursor: pointer;
-  transition: background-color var(--transition-fast);
+/* Section header with reload buttons */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: var(--color-bg-gray);
+  border-bottom: 1px solid var(--color-border-light);
+  user-select: none;
 }
 
-.section-workspace .section-header:hover {
-  background-color: #e8eef4;
+.section-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
 }
 
-.section-workspace .section-header::after {
-  content: "↻";
-  margin-left: auto;
-  font-size: 0.9rem;
-  color: var(--color-text-muted);
-  opacity: 0;
-  transition: opacity var(--transition-fast);
+/* Outline button style for reload buttons */
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+  font-size: 0.85rem;
+  padding: 0.4rem 0.8rem;
+  transition: all var(--transition-fast);
 }
 
-.section-workspace .section-header:hover::after {
-  opacity: 1;
+.btn-outline:hover {
+  background: var(--color-primary);
+  color: white;
 }
 
 /* ================================

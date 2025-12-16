@@ -1,6 +1,6 @@
 # onshape-docureader
 
-Generated: 2025-12-16 13:02
+Generated: 2025-12-16 15:22
 
 Using OnShape API to gather information about documents
 
@@ -138,7 +138,7 @@ onshape-docureader/
 
 ## Stats
 
-Files: 60 | Lines: 13,919 | Routes: 44 | TODOs: 5
+Files: 60 | Lines: 14,053 | Routes: 44 | TODOs: 6
 
 ## Routes
 
@@ -192,6 +192,7 @@ Files: 60 | Lines: 13,919 | Routes: 44 | TODOs: 5
 - [bomToCSV.js] TODO: Check for edge cases, e.g. commas, quotes in values
 - [airtable-upload-view.js] TODO: Implement actual cancellation if using streaming upload
 - [document-detail-view.js] NOTE: We fetch elements via the version endpoint
+- [pagination-renderer.js] NOTE: OnShape's /documents endpoint doesn't include folder names directly
 - [airtable.ts] NOTE: Attachment uploads require data.records:write scope
 - [api-call-cost.ts] NOTE: These are estimates and may not reflect actual costs incurred by Onshape
 

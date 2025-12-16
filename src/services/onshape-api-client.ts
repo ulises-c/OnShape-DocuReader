@@ -177,7 +177,20 @@ export class OnShapeApiClient {
     });
 
     const data: any = response?.data || {};
-    const items: OnShapeDocument[] = Array.isArray(data.items) ? data.items : [];
+    const rawItems: any[] = Array.isArray(data.items) ? data.items : [];
+    
+    // Map items and preserve all location-related fields from OnShape response
+    const items: OnShapeDocument[] = rawItems.map((item: any) => ({
+      ...item,
+      // Preserve location/path fields that OnShape may return
+      parentId: item.parentId || null,
+      parentName: item.parentName || null,
+      pathToRoot: item.pathToRoot || null,
+      treeHref: item.treeHref || null,
+      // Include owner info for potential workspace name extraction
+      owner: item.owner || null,
+    }));
+    
     const totalFromApi =
       typeof data.totalCount === "number" ? (data.totalCount as number) : undefined;
 
@@ -531,10 +544,17 @@ export class OnShapeApiClient {
     const data = response?.data || {};
     const items = Array.isArray(data.items) ? data.items.map((it: any) => this.mapGlobalTreeNode(it)) : [];
 
+    // Extract workspace/owner name from first item if available
+    let workspaceName: string | null = null;
+    if (items.length > 0 && items[0].owner?.name) {
+      workspaceName = items[0].owner.name;
+    }
+
     return {
       href: data.href || url,
       next: data.next || null,
       items,
+      workspaceName,
       raw: options.raw ? data : undefined,
     };
   }

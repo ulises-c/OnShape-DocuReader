@@ -67,18 +67,6 @@ export class DocumentController {
   }
 
   _bindDashboardEvents() {
-    // We can bind directly because the elements are static in index.html
-    // Even if called before app init, the DOM nodes exist.
-    const header = document.getElementById("recentSectionHeader");
-    if (header) {
-      header.addEventListener("click", () => {
-        const section = document.getElementById("recentSection");
-        if (section) {
-          section.classList.toggle("collapsed");
-        }
-      });
-    }
-
     // Aggregate BOM export button
     const getAllBtn = document.getElementById("getAllBtn");
     if (getAllBtn) {
@@ -87,14 +75,19 @@ export class DocumentController {
       });
     }
 
-    // Workspace section header click to refresh workspace
-    const workspaceHeader = document.querySelector(
-      ".section-workspace .section-header"
-    );
-    if (workspaceHeader) {
-      workspaceHeader.style.cursor = "pointer";
-      workspaceHeader.addEventListener("click", () => {
-        this.refreshDashboard();
+    // Reload Workspace button
+    const reloadWorkspaceBtn = document.getElementById("reloadWorkspaceBtn");
+    if (reloadWorkspaceBtn) {
+      reloadWorkspaceBtn.addEventListener("click", () => {
+        this.loadWorkspaceRoot();
+      });
+    }
+
+    // Reload Documents button
+    const reloadDocumentsBtn = document.getElementById("reloadDocumentsBtn");
+    if (reloadDocumentsBtn) {
+      reloadDocumentsBtn.addEventListener("click", () => {
+        this.loadDocuments(1, this.pagination.pageSize);
       });
     }
   }
@@ -208,21 +201,23 @@ export class DocumentController {
       this.workspaceState.breadcrumbs = [];
       const result = await this.documentService.getGlobalTreeRootNodes();
       const items = result.items || [];
-      // Extract workspace/company name from the result if available
-      // pathToRoot typically contains the company/team name at the root level
-      let workspaceName = null;
-      if (
-        result.pathToRoot &&
-        Array.isArray(result.pathToRoot) &&
-        result.pathToRoot.length > 0
-      ) {
-        // The root of pathToRoot is typically the company/team name
+      
+      // Extract workspace/company name from the result
+      // Priority: 1) workspaceName from API (owner.name of first item)
+      //           2) pathToRoot[0].name
+      //           3) result.name
+      //           4) user.companyName from state
+      let workspaceName = result.workspaceName || null;
+      
+      if (!workspaceName && result.pathToRoot && Array.isArray(result.pathToRoot) && result.pathToRoot.length > 0) {
         workspaceName = result.pathToRoot[0].name;
-      } else if (result.name) {
+      }
+      
+      if (!workspaceName && result.name) {
         workspaceName = result.name;
       }
 
-      // If no workspace name found from pathToRoot, try to get it from user's company info
+      // Fallback to user's company info from state
       if (!workspaceName) {
         const user = this.state.getState()?.user;
         if (user?.companyName) {
@@ -230,12 +225,7 @@ export class DocumentController {
         }
       }
 
-      console.log(
-        "[DocumentController] Workspace name:",
-        workspaceName,
-        "from result:",
-        result
-      );
+      console.log("[DocumentController] Workspace name:", workspaceName);
       this.workspaceView.render(
         items,
         this.workspaceState.breadcrumbs,

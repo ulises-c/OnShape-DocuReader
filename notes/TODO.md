@@ -76,28 +76,8 @@ The numbering is just show that it's easier to keep track.
     1. Add an extra API call for the BOM that gets the version name
     2. In bomSource there is a viewHref, document
 18. Integrate AirTable into the OnShape-DocuReader project.
-    1. ✅ Currently able to sign-in to AirTable - OAuth flow working
-    2. ✅ Add a way to see both login data, AirTable should say "Login" until authenticated.
-       1. OnShape: User (Name, email) - shown in header
-       2. AirTable: Auth indicator on Airtable button (green dot when connected)
-    3. ✅ Airtable upload page with ZIP file drag-drop
-    4. ✅ Progress tracking and results display with atomic counters
-    5. ✅ Dry-run mode to preview matches
-    6. ✅ Frontend components fully implemented (AirtableService, AirtableController, AirtableUploadView)
-    7. ✅ CSS styles for upload view with responsive layout
-    8. ✅ Rate limiting with 350ms delays between matching requests (avoids 429 errors)
-    9. ✅ Report download functionality (JSON and CSV formats)
-    10. ✅ Fixed checkbox duplicate display bug
-    11. ⚠️ BLOCKING: Attachment uploads returning 400 BAD_REQUEST
-        - Content API endpoint: `https://content.airtable.com/v0/{baseId}/{recordId}/{fieldName}/uploadAttachment`
-        - Field name must be exact match (case-sensitive), not field ID
-        - Current field name being used: `CAD_Thumbnail`
-        - OAuth scopes confirmed: data.records:read, data.records:write, schema.bases:read, user.email:read
-        - Possible causes:
-          - Field name mismatch (verify exact name in Airtable UI)
-          - Field type not set to "Attachment" in Airtable
-          - Need to re-authenticate after OAuth scope changes
-    12. TODO: View bases/tables list (currently uses env config defaults)
-    13. TODO: Display Airtable user info (name, email) in upload view
-    14. TODO: Better progress tracking of matching & uploading thumbnails phase
+    1. TODO: View bases/tables list (currently uses env config defaults)
+    2. TODO: Display Airtable user info (name, email) in upload view
+    3. TODO: Better progress tracking of matching & uploading thumbnails phase
 19. Dynamic API call throttling (e.g. 5 req/sec for Airtable)
+20. Investigate why there are duplicate thumbnails

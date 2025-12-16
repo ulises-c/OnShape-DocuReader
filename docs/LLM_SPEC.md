@@ -62,9 +62,13 @@ Express Server (src/)
 - Utilities include CSV/BOM conversion, download helpers, DOM helpers, and clipboard support.
 - Dashboard displays user info (name/email), workspace name, pagination, export buttons, and detail pane navigation.
 - Table columns and folder names use word-wrap on natural separators (hyphens, underscores, periods, slashes) via zero-width space insertion BEFORE separators to prevent mid-word breaks (e.g., "PCBAs" stays together).
-- Recently Updated Documents table displays without selection checkboxes (7 columns: Name, Creator, Date Created, Date Modified, Last Modified By, Parent, Type).
-- Workspace name displayed in section header next to "Workspace" title in parentheses with italic styling.
-- Workspace section header is clickable to refresh both workspace and recent documents.
+- Recently Updated Documents table displays without selection checkboxes (3 columns: Name, Date Modified, Location). Section is not collapsible.
+- Location column shows folder info where available; OnShape's `/documents` endpoint returns `parentId` but not folder names. Full path requires additional API calls per document (not implemented for performance).
+- Column widths optimized for readability: Name (35%), Date Modified (15%), Location (50%).
+- Workspace name extracted from `owner.name` of first item returned by `globaltreenodes/magic/1` endpoint, displayed inline with "Workspace" title in parentheses with italic styling.
+- Explicit "↻ Reload Workspace" button in workspace section header to refresh workspace folders.
+- Explicit "↻ Reload Documents" button in recent documents section header to refresh the documents list.
+- Workspace breadcrumbs only displayed when navigating inside folders; hidden at root level since section header already shows "Workspace".
 - User info displayed in a styled container with name and email on separate lines, positioned near logout button.
 - Dashboard header contains: title, action buttons (Get All, Airtable), and user info container with logout.
 
