@@ -164,7 +164,7 @@ function buildLocationPath(doc) {
       doc.parentId.length > 12
         ? doc.parentId.substring(0, 12) + "..."
         : doc.parentId;
-    return `📁 ${shortId}`;
+    return `${shortId}`;
   }
 
   return "Root";

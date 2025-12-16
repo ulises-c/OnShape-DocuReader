@@ -1,8 +1,8 @@
 /* Container Layout */
 .container {
-  max-width: 90vw;
+  max-width: 100%;
   margin: 0 auto;
-  padding: 2vw;
+  padding: 1vw;
   min-height: 100vh;
   display: flex;
   flex-direction: column;

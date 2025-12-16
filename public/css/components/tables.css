@@ -90,8 +90,8 @@
 @media (max-width: 48rem) {
   .doc-details-table {
     font-size: clamp(0.8rem, 2.2vw, 1rem);
-    table-layout: auto; /* Allow auto sizing on mobile */
-    min-width: 500px;
+    table-layout: fixed; /* Allow auto sizing on mobile */
+    width: 100%;
   }
   
   .doc-details-table th,
