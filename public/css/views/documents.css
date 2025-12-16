@@ -313,10 +313,20 @@
 .item-name {
   font-size: 0.85rem;
   word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Workspace name in header */
+.workspace-name {
+  font-weight: normal;
+  font-size: 0.9rem;
+  color: var(--color-text-light);
+  margin-left: var(--spacing-sm);
 }
 
 /* ================================

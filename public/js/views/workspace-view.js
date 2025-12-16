@@ -105,13 +105,21 @@ export class WorkspaceView extends BaseView {
     if (this.errorIndicator) this.errorIndicator.style.display = 'none';
   }
 
-  render(items, breadcrumbs) {
+  render(items, breadcrumbs, workspaceName = null) {
     // Ensure elements are bound
     this.bind();
     this.hideLoading();
     
     this._renderBreadcrumbs(breadcrumbs);
     this._renderGrid(items);
+    this._updateWorkspaceName(workspaceName);
+  }
+
+  _updateWorkspaceName(name) {
+    const workspaceNameEl = document.getElementById('workspaceName');
+    if (workspaceNameEl) {
+      workspaceNameEl.textContent = name || '';
+    }
   }
 
   _renderBreadcrumbs(path) {

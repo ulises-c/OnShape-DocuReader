@@ -1,6 +1,6 @@
 # onshape-docureader
 
-Generated: 2025-12-15 16:40
+Generated: 2025-12-15 16:57
 
 Using OnShape API to gather information about documents
 
@@ -138,7 +138,7 @@ onshape-docureader/
 
 ## Stats
 
-Files: 60 | Lines: 13,835 | Routes: 44 | TODOs: 5
+Files: 60 | Lines: 13,843 | Routes: 44 | TODOs: 5
 
 ## Routes
 
@@ -764,9 +764,9 @@ WorkspaceView - renders folder tree and document exploration
     - hideLoading()
     - showError(msg)
     - hideError()
-    - render(items, breadcrumbs)
+    - render(items, breadcrumbs, workspaceName = null)
+    - _updateWorkspaceName(name)
     - _renderBreadcrumbs(path)
-    - _renderGrid(items)
 
 ### Utils
 

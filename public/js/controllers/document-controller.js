@@ -176,7 +176,9 @@ export class DocumentController {
       this.workspaceState.breadcrumbs = [];
       const result = await this.documentService.getGlobalTreeRootNodes();
       const items = result.items || [];
-      this.workspaceView.render(items, this.workspaceState.breadcrumbs);
+      // Extract workspace/company name from the result if available
+      const workspaceName = result.pathToRoot?.[0]?.name || result.name || null;
+      this.workspaceView.render(items, this.workspaceState.breadcrumbs, workspaceName);
     } catch (error) {
       console.error("Error loading workspace root:", error);
       this.workspaceView.showError("Failed to load workspace");
@@ -336,15 +338,6 @@ export class DocumentController {
     const docs = this.state.getState().documents;
     const selected = docs.filter((d) => documentIds.includes(d.id));
     this.state.setState({ selectedDocuments: selected });
-
-    const btn = document.getElementById("getSelectedBtn");
-    if (btn) {
-      btn.disabled = selected.length === 0;
-      btn.textContent =
-        selected.length > 0
-          ? `Get Selected (${selected.length})`
-          : "Get Selected";
-    }
   }
 
   async search(query) {

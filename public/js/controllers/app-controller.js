@@ -111,8 +111,15 @@ export class AppController {
         : 'Not authenticated';
     }
 
-    if (userName && state.user) {
-      userName.textContent = state.user.name || 'User';
+    if (userName) {
+      if (state.user) {
+        // Display name and email if available
+        const displayName = state.user.name || state.user.firstName || 'User';
+        const email = state.user.email;
+        userName.textContent = email ? `${displayName} (${email})` : displayName;
+      } else {
+        userName.textContent = '';
+      }
     }
   }
 }

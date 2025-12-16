@@ -77,7 +77,7 @@ export function renderDocumentRows(documents) {
     const created = doc.createdAt ? new Date(doc.createdAt).toLocaleString() : '-';
     const modified = doc.modifiedAt ? new Date(doc.modifiedAt).toLocaleString() : '-';
     const lastModifiedBy = doc.modifiedBy?.name || doc.modifiedBy || '-';
-    const parent = doc.parentName || doc.parent?.name || (doc.parentId ? `Parent ID: ${doc.parentId}` : '-');
+    const parent = doc.parentName || doc.parent?.name || doc.parentId || '-';
     const type = doc.type || 'Document';
 
     return `

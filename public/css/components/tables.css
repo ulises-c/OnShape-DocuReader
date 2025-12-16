@@ -18,9 +18,10 @@
   padding: 1vh 1.5vw;
   text-align: left;
   border-bottom: 1px solid #f0f0f0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 250px;
 }
 
 .doc-details-table th {
@@ -50,6 +51,9 @@
   font-weight: 500;
   color: var(--color-primary-dark);
   width: 25%;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 /* Column Width Distribution */

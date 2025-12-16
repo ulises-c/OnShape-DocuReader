@@ -9,7 +9,7 @@ OnShape DocuReader is a secure web application that authenticates against the On
 ## Core Capabilities
 
 - OAuth 2.0 PKCE login, session management, and logout.
-- Document listing with pagination, search, selection, and thumbnail previews.
+- Document listing with pagination, search, and thumbnail previews.
 - Detail views for documents, elements, assemblies, parts, metadata, and raw JSON.
 - Aggregate export workflows: single document, selected documents, “Get All,” CSV/BOM conversion, ZIP packaging, and mass exporters.
 - Progress tracking via modals, logs, and SSE streaming.
@@ -60,7 +60,8 @@ Express Server (src/)
 - Services encapsulate all `fetch` logic; `ApiClient` exposes typed calls with optional parameters (delay, workers, pagination).
 - Views render HTML via helper modules, capture/restore UI state (HistoryState), and rely on delegation for events.
 - Utilities include CSV/BOM conversion, download helpers, DOM helpers, and clipboard support.
-- Dashboard includes pagination, selection indicators, export buttons, and detail pane navigation.
+- Dashboard displays user info (name/email), workspace name, pagination, export buttons, and detail pane navigation.
+- Table columns use word-wrap on natural separators (hyphens, underscores) to prevent awkward line breaks.
 
 ## Data Flow
 
