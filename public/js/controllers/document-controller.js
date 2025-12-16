@@ -88,7 +88,9 @@ export class DocumentController {
     }
 
     // Workspace section header click to refresh workspace
-    const workspaceHeader = document.querySelector(".section-workspace .section-header");
+    const workspaceHeader = document.querySelector(
+      ".section-workspace .section-header"
+    );
     if (workspaceHeader) {
       workspaceHeader.style.cursor = "pointer";
       workspaceHeader.addEventListener("click", () => {
@@ -102,19 +104,19 @@ export class DocumentController {
    */
   async refreshDashboard() {
     console.log("[DocumentController] Refreshing dashboard...");
-    
+
     // Reset workspace state
     this.workspaceState = {
       currentFolderId: null,
       breadcrumbs: [],
     };
-    
+
     // Reload workspace root and documents in parallel
     await Promise.all([
       this.loadWorkspaceRoot(),
-      this.loadDocuments(1, this.pagination.pageSize)
+      this.loadDocuments(1, this.pagination.pageSize),
     ]);
-    
+
     console.log("[DocumentController] Dashboard refreshed");
   }
 
@@ -188,7 +190,7 @@ export class DocumentController {
   async _initializeWorkspace(restoredState) {
     const restoredWorkspace =
       restoredState?.viewSnapshot?.workspace || restoredState?.workspace;
-    
+
     if (restoredWorkspace?.currentFolderId) {
       this.workspaceState.breadcrumbs = restoredWorkspace.breadcrumbs || [];
       await this.loadFolder(restoredWorkspace.currentFolderId, false);
@@ -209,13 +211,17 @@ export class DocumentController {
       // Extract workspace/company name from the result if available
       // pathToRoot typically contains the company/team name at the root level
       let workspaceName = null;
-      if (result.pathToRoot && Array.isArray(result.pathToRoot) && result.pathToRoot.length > 0) {
+      if (
+        result.pathToRoot &&
+        Array.isArray(result.pathToRoot) &&
+        result.pathToRoot.length > 0
+      ) {
         // The root of pathToRoot is typically the company/team name
         workspaceName = result.pathToRoot[0].name;
       } else if (result.name) {
         workspaceName = result.name;
       }
-      
+
       // If no workspace name found from pathToRoot, try to get it from user's company info
       if (!workspaceName) {
         const user = this.state.getState()?.user;
@@ -223,9 +229,18 @@ export class DocumentController {
           workspaceName = user.companyName;
         }
       }
-      
-      console.log('[DocumentController] Workspace name:', workspaceName, 'from result:', result);
-      this.workspaceView.render(items, this.workspaceState.breadcrumbs, workspaceName);
+
+      console.log(
+        "[DocumentController] Workspace name:",
+        workspaceName,
+        "from result:",
+        result
+      );
+      this.workspaceView.render(
+        items,
+        this.workspaceState.breadcrumbs,
+        workspaceName
+      );
     } catch (error) {
       console.error("Error loading workspace root:", error);
       this.workspaceView.showError("Failed to load workspace");
@@ -310,7 +325,12 @@ export class DocumentController {
         : [];
 
       // If backend does not provide a reliable totalCount, compute a heuristic total so that Next can stay enabled
-      const totalCount = this._computeTotalCount(result, items, offset, pageSize);
+      const totalCount = this._computeTotalCount(
+        result,
+        items,
+        offset,
+        pageSize
+      );
 
       // More diagnostics
       console.log("[DocumentController.loadDocuments] api result", {
@@ -448,7 +468,10 @@ export class DocumentController {
         if (elementId) {
           console.log("Element clicked:", elementId);
           if (this.router) {
-            const snap = this._captureViewState(this.detailView, "documentDetail");
+            const snap = this._captureViewState(
+              this.detailView,
+              "documentDetail"
+            );
             const path = pathTo(ROUTES.ELEMENT_DETAIL, {
               docId: doc.id,
               elementId,
@@ -487,8 +510,9 @@ export class DocumentController {
     if (!info?.items?.length) {
       return '<div style="color:#666;">No parent hierarchy available</div>';
     }
-    
-    let html = '<div style="margin-bottom: 0.5rem;"><strong>Document Hierarchy:</strong></div>';
+
+    let html =
+      '<div style="margin-bottom: 0.5rem;"><strong>Document Hierarchy:</strong></div>';
     info.items.forEach((item, index) => {
       const indent = "&nbsp;".repeat(index * 4);
       html += `<div style="font-family: monospace; font-size: 0.9rem; margin: 0.25rem 0;">
@@ -575,11 +599,7 @@ export class DocumentController {
       String(currentElement.elementType || currentElement.type).toUpperCase()
     );
     const [parts, assemblies, metadata] = await Promise.allSettled([
-      this.documentService.getParts(
-        doc.id,
-        doc.defaultWorkspace.id,
-        elementId
-      ),
+      this.documentService.getParts(doc.id, doc.defaultWorkspace.id, elementId),
       this.documentService.getAssemblies(
         doc.id,
         doc.defaultWorkspace.id,
@@ -713,13 +733,18 @@ export class DocumentController {
         includeMetadata: "true",
       });
 
-      const filename = `${doc.name.replace(/[^a-z0-9]/gi, "_")}_comprehensive.json`;
+      const filename = `${doc.name.replace(
+        /[^a-z0-9]/gi,
+        "_"
+      )}_comprehensive.json`;
       downloadJson(data, filename);
 
       showToast(`Successfully downloaded comprehensive data for "${doc.name}"`);
     } catch (e) {
       console.error("Error getting comprehensive document:", e);
-      this._showError(`Failed to get comprehensive document data: ${e.message}`);
+      this._showError(
+        `Failed to get comprehensive document data: ${e.message}`
+      );
     } finally {
       if (button) {
         button.textContent = originalText || "📦 Get Document";
@@ -743,7 +768,7 @@ export class DocumentController {
       btn.textContent = `Export Selected (${selectionCount})`;
       btn.classList.add("has-selection");
     } else {
-      btn.textContent = "Get All";
+      btn.textContent = "Full BOM Export";
       btn.classList.remove("has-selection");
     }
   }
@@ -774,7 +799,7 @@ export class DocumentController {
    */
   async exportAggregateBom() {
     const btn = document.getElementById("getAllBtn");
-    const originalText = btn?.textContent || "Get All";
+    const originalText = btn?.textContent || "Full BOM Export";
 
     // Get export scope based on selection
     const scope = this.state.getExportScope();
@@ -861,9 +886,15 @@ export class DocumentController {
     const isPartial = scope?.scope === "partial";
 
     console.log(
-      `[DocumentController] Starting ${isPartial ? "partial" : "full"} export: ` +
-      `${stats.estimates?.assembliesFound || 0} assemblies, ${workers} workers, ${delay}ms delay` +
-      (filterOptions?.prefixFilter ? `, filter="${filterOptions.prefixFilter}"` : "")
+      `[DocumentController] Starting ${
+        isPartial ? "partial" : "full"
+      } export: ` +
+        `${
+          stats.estimates?.assembliesFound || 0
+        } assemblies, ${workers} workers, ${delay}ms delay` +
+        (filterOptions?.prefixFilter
+          ? `, filter="${filterOptions.prefixFilter}"`
+          : "")
     );
 
     // Show progress modal and start export
@@ -878,13 +909,19 @@ export class DocumentController {
           ...options,
           scope,
           prefixFilter: filterOptions?.prefixFilter,
-          assemblies: stats.assemblies,  // Pass pre-scanned assemblies (hybrid approach)
+          assemblies: stats.assemblies, // Pass pre-scanned assemblies (hybrid approach)
         });
       },
 
       // Handle completion
       onComplete: (result) => {
-        this._handleExportComplete(result, btn, originalText, isPartial, filterOptions);
+        this._handleExportComplete(
+          result,
+          btn,
+          originalText,
+          isPartial,
+          filterOptions
+        );
       },
 
       // Handle cancellation
@@ -925,20 +962,33 @@ export class DocumentController {
       : "full";
 
     // Get format preferences (default to both JSON and CSV for full exports, JSON only for partial)
-    const formats = filterOptions?.formats || (isPartial ? { json: true, csv: false } : { json: true, csv: true });
+    const formats =
+      filterOptions?.formats ||
+      (isPartial ? { json: true, csv: false } : { json: true, csv: true });
     const rowFilters = filterOptions?.rowFilters || {};
 
-    const downloadedFormats = this._downloadExportResults(result, scopeLabel, timestamp, formats, rowFilters);
+    const downloadedFormats = this._downloadExportResults(
+      result,
+      scopeLabel,
+      timestamp,
+      formats,
+      rowFilters
+    );
 
     // Build success message
     const rowFilterNote = rowFilters.prtAsmOnly ? " (PRT/ASM filtered)" : "";
-    const formatText = downloadedFormats.length > 0 ? ` as ${downloadedFormats.join(" + ")}` : "";
+    const formatText =
+      downloadedFormats.length > 0
+        ? ` as ${downloadedFormats.join(" + ")}`
+        : "";
 
     // Show success toast
     showToast(
       `✅ Exported ${
         result.summary?.assembliesSucceeded || 0
-      } assemblies from ${result.summary?.documentsScanned || 0} documents${formatText}${rowFilterNote}`
+      } assemblies from ${
+        result.summary?.documentsScanned || 0
+      } documents${formatText}${rowFilterNote}`
     );
   }
 
@@ -963,7 +1013,9 @@ export class DocumentController {
         downloadCsv(csv, csvFilename);
         downloadedFormats.push("CSV");
       } else {
-        console.warn('[DocumentController] CSV conversion returned empty result');
+        console.warn(
+          "[DocumentController] CSV conversion returned empty result"
+        );
       }
     }
 
@@ -990,8 +1042,10 @@ export class DocumentController {
   }
 
   _captureViewState(view, viewType) {
-    return (typeof view?.captureState === "function" && view.captureState()) ||
-      (this.historyState?.captureState?.(viewType) ?? null);
+    return (
+      (typeof view?.captureState === "function" && view.captureState()) ||
+      (this.historyState?.captureState?.(viewType) ?? null)
+    );
   }
 
   _restoreViewState(view, restoredState) {
@@ -1002,9 +1056,10 @@ export class DocumentController {
 
   _restoreViewStateDeferred(view, restoredState) {
     if (!restoredState || typeof view?.restoreState !== "function") return;
-    
-    const restore = () => view.restoreState(restoredState.viewSnapshot || restoredState);
-    
+
+    const restore = () =>
+      view.restoreState(restoredState.viewSnapshot || restoredState);
+
     if (typeof requestAnimationFrame === "function") {
       requestAnimationFrame(restore);
     } else {
