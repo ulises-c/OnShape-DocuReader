@@ -419,13 +419,14 @@ export class AirtableUploadView extends BaseView {
     tableBody.innerHTML = results.map((r, index) => {
       const statusClass = this._getStatusClass(r.status);
       const statusIcon = this._getStatusIcon(r.status);
+      const statusText = this._getStatusText(r.status);
       const itemNumber = index + 1;
       return `
         <tr class="${statusClass}">
           <td class="item-cell">${itemNumber}</td>
           <td>${escapeHtml(r.partNumber || '—')}</td>
           <td class="filename-cell" title="${escapeHtml(r.filename || '')}">${escapeHtml(r.filename || '—')}</td>
-          <td><span class="status-badge ${statusClass}">${statusIcon} ${escapeHtml(r.status)}</span></td>
+          <td><span class="status-badge ${statusClass}"><span class="status-icon">${statusIcon}</span><span class="status-text">${statusText}</span></span></td>
           <td class="details-cell">${escapeHtml(r.error || r.recordId || '—')}</td>
         </tr>
       `;
@@ -551,6 +552,16 @@ export class AirtableUploadView extends BaseView {
       case 'no_match': return '❓';
       case 'error': return '❌';
       default: return '';
+    }
+  }
+
+  _getStatusText(status) {
+    switch (status) {
+      case 'uploaded': return 'Uploaded';
+      case 'skipped': return 'Skipped';
+      case 'no_match': return 'No Match';
+      case 'error': return 'Error';
+      default: return status || '';
     }
   }
 

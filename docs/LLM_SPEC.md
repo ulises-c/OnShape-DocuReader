@@ -307,13 +307,13 @@ Airtable upload styles in `public/css/views/airtable-upload.css`:
 - Progress bar and status indicators
 - Results table with status badges and item numbers
 - Summary grid with upload statistics
-- Status badges for uploaded/skipped/no_match/error
-- Responsive layout for mobile and large screens
-- Wide panel layout (max-width: 1400px, 95% width) for better screen utilization
-- Fixed-width columns for item# (45px), part number (130px), status (95px)
-- Flexible columns for filename (35%) and details (auto) with word-wrap
-- Large screen breakpoint (1600px+) for even wider layout
-- Scrollable table container with sticky headers (500px max-height)
+- Status badges with horizontal icon+text layout (uploaded/skipped/no_match/error)
+- Responsive layout for mobile screens
+- Full-width panel layout (no max-width constraint) for maximum screen utilization
+- Fixed-width columns for item# (50px), part number (140px), status (110px)
+- Flexible columns for filename (min-width: 250px) and details (min-width: 200px) with word-wrap
+- Scrollable table container with sticky headers (600px max-height)
+- Table uses `table-layout: auto` for dynamic column sizing based on content
 
 ### Auth Indicator
 
