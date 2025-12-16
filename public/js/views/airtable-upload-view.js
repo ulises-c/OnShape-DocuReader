@@ -134,10 +134,11 @@ export class AirtableUploadView extends BaseView {
             <table class="results-table" id="resultsTable">
               <thead>
                 <tr>
-                  <th>Part Number</th>
-                  <th>Filename</th>
-                  <th>Status</th>
-                  <th>Details</th>
+                  <th class="col-item">#</th>
+                  <th class="col-partnumber">Part Number</th>
+                  <th class="col-filename">Filename</th>
+                  <th class="col-status">Status</th>
+                  <th class="col-details">Details</th>
                 </tr>
               </thead>
               <tbody id="resultsTableBody"></tbody>
@@ -413,13 +414,15 @@ export class AirtableUploadView extends BaseView {
       </div>
     `;
 
-    // Render results table
+    // Render results table with item numbers
     const results = result.results || [];
-    tableBody.innerHTML = results.map(r => {
+    tableBody.innerHTML = results.map((r, index) => {
       const statusClass = this._getStatusClass(r.status);
       const statusIcon = this._getStatusIcon(r.status);
+      const itemNumber = index + 1;
       return `
         <tr class="${statusClass}">
+          <td class="item-cell">${itemNumber}</td>
           <td>${escapeHtml(r.partNumber || '—')}</td>
           <td class="filename-cell" title="${escapeHtml(r.filename || '')}">${escapeHtml(r.filename || '—')}</td>
           <td><span class="status-badge ${statusClass}">${statusIcon} ${escapeHtml(r.status)}</span></td>
@@ -460,8 +463,9 @@ export class AirtableUploadView extends BaseView {
    * @returns {string} CSV string
    */
   _resultsToCSV(results) {
-    const headers = ['Part Number', 'Filename', 'Status', 'Record ID', 'Error'];
-    const rows = (results.results || []).map(r => [
+    const headers = ['Item #', 'Part Number', 'Filename', 'Status', 'Record ID', 'Error'];
+    const rows = (results.results || []).map((r, index) => [
+      index + 1,
       r.partNumber || '',
       r.filename || '',
       r.status || '',

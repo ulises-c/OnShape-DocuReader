@@ -305,10 +305,15 @@ Airtable upload styles in `public/css/views/airtable-upload.css`:
 - Auth-required state with login prompt
 - Dropzone with drag-drop support  
 - Progress bar and status indicators
-- Results table with status badges
+- Results table with status badges and item numbers
 - Summary grid with upload statistics
 - Status badges for uploaded/skipped/no_match/error
-- Responsive layout for mobile
+- Responsive layout for mobile and large screens
+- Wide panel layout (max-width: 1400px, 95% width) for better screen utilization
+- Fixed-width columns for item# (45px), part number (130px), status (95px)
+- Flexible columns for filename (35%) and details (auto) with word-wrap
+- Large screen breakpoint (1600px+) for even wider layout
+- Scrollable table container with sticky headers (500px max-height)
 
 ### Auth Indicator
 
