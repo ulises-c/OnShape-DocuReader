@@ -1,6 +1,6 @@
 # onshape-docureader
 
-Generated: 2025-12-15 16:57
+Generated: 2025-12-15 17:11
 
 Using OnShape API to gather information about documents
 
@@ -138,7 +138,7 @@ onshape-docureader/
 
 ## Stats
 
-Files: 60 | Lines: 13,843 | Routes: 44 | TODOs: 5
+Files: 60 | Lines: 13,876 | Routes: 44 | TODOs: 5
 
 ## Routes
 
@@ -754,7 +754,7 @@ PartDetailView - renders part details and mass properties
 
 #### public/js/views/workspace-view.js
 
-WorkspaceView - renders folder tree and document exploration
+Insert zero-width space BEFORE natural word separators to allow line breaks This prevents breaks in the middle of words like "PCBAs" becoming "PCB" + "As" The break opportunity is placed BEFORE the...
 
 **class WorkspaceView extends BaseView**
   constructor(containerSelector, controller)

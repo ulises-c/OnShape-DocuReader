@@ -9,19 +9,19 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   margin: 0 auto var(--spacing-xl) auto;
-  font-size: clamp(0.9rem, 1vw, 1.2rem);
+  font-size: clamp(0.85rem, 0.9vw, 1.1rem);
   table-layout: fixed;
 }
 
 .doc-details-table th,
 .doc-details-table td {
-  padding: 1vh 1.5vw;
+  padding: 0.8vh 1vw;
   text-align: left;
   border-bottom: 1px solid #f0f0f0;
   white-space: normal;
-  word-break: break-word;
-  overflow-wrap: break-word;
-  max-width: 250px;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  vertical-align: middle;
 }
 
 .doc-details-table th {
@@ -50,72 +50,34 @@
 .doc-file-title {
   font-weight: 500;
   color: var(--color-primary-dark);
-  width: 25%;
-  word-break: break-word;
-  overflow-wrap: break-word;
-  hyphens: auto;
+  /* Allow breaks only at zero-width spaces inserted before separators */
+  word-break: normal;
+  overflow-wrap: anywhere;
+  hyphens: none;
 }
 
-/* Column Width Distribution */
+/* Column Width Distribution - 7 columns without checkbox */
 .doc-details-table th:nth-child(1),
-.doc-details-table td:nth-child(1) { width: 5%; text-align: center; }
+.doc-details-table td:nth-child(1) { width: 22%; } /* Name */
 
 .doc-details-table th:nth-child(2),
-.doc-details-table td:nth-child(2) { width: 22%; }
+.doc-details-table td:nth-child(2) { width: 12%; } /* Creator */
 
 .doc-details-table th:nth-child(3),
-.doc-details-table td:nth-child(3) { width: 13%; }
+.doc-details-table td:nth-child(3) { width: 15%; } /* Date Created */
 
 .doc-details-table th:nth-child(4),
-.doc-details-table td:nth-child(4) { width: 13%; }
+.doc-details-table td:nth-child(4) { width: 15%; } /* Date Modified */
 
 .doc-details-table th:nth-child(5),
-.doc-details-table td:nth-child(5) { width: 13%; }
+.doc-details-table td:nth-child(5) { width: 12%; } /* Last Modified By */
 
 .doc-details-table th:nth-child(6),
-.doc-details-table td:nth-child(6) { width: 18%; }
+.doc-details-table td:nth-child(6) { width: 16%; } /* Parent */
 
 .doc-details-table th:nth-child(7),
-.doc-details-table td:nth-child(7) { width: 16%; }
+.doc-details-table td:nth-child(7) { width: 8%; } /* Type */
 
-.doc-details-table th:nth-child(8),
-.doc-details-table td:nth-child(8) { width: 5%; }
-
-/* Selection Column */
-.select-column {
-  padding: 1vh 0.5vw !important;
-  vertical-align: middle;
-}
-
-.select-column input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  accent-color: var(--color-primary);
-  border: 2px solid #ccc;
-  border-radius: 3px;
-  background-color: white;
-  transition: all var(--transition-fast);
-}
-
-.select-column input[type="checkbox"]:hover {
-  border-color: var(--color-primary);
-  transform: scale(1.1);
-}
-
-.select-column input[type="checkbox"]:checked {
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-.select-column input[type="checkbox"]:indeterminate {
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-.select-column input[type="checkbox"] {
-  pointer-events: auto;
-}
 
 @media (max-width: 48rem) {
   .doc-details-table {

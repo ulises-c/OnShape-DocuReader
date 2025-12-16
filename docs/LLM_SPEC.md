@@ -61,7 +61,10 @@ Express Server (src/)
 - Views render HTML via helper modules, capture/restore UI state (HistoryState), and rely on delegation for events.
 - Utilities include CSV/BOM conversion, download helpers, DOM helpers, and clipboard support.
 - Dashboard displays user info (name/email), workspace name, pagination, export buttons, and detail pane navigation.
-- Table columns use word-wrap on natural separators (hyphens, underscores) to prevent awkward line breaks.
+- Table columns and folder names use word-wrap on natural separators (hyphens, underscores, periods, slashes) via zero-width space insertion BEFORE separators to prevent mid-word breaks (e.g., "PCBAs" stays together).
+- Recently Updated Documents table displays without selection checkboxes (7 columns: Name, Creator, Date Created, Date Modified, Last Modified By, Parent, Type).
+- Workspace name displayed in section header next to "Workspace" title.
+- User info (name and email) displayed in dashboard header after authentication.
 
 ## Data Flow
 

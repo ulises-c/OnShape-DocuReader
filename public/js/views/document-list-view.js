@@ -26,7 +26,6 @@ export class DocumentListView extends BaseView {
       <table class="doc-details-table">
         <thead>
           <tr>
-            <th class="select-column"><input type="checkbox" id="selectAll" title="Select All"></th>
             <th>Name</th>
             <th>Creator</th>
             <th>Date Created</th>
@@ -62,34 +61,9 @@ export class DocumentListView extends BaseView {
       })
     );
 
-    // Select all
-    const selectAll = qs('#selectAll', this.container);
-    selectAll?.addEventListener('change', (e) => {
-      const checked = e.target.checked;
-      qsa('.doc-checkbox', this.container).forEach((cb) => {
-        cb.checked = checked;
-      });
-      this._notifySelectionChanged();
-    });
-
-    // Individual checkboxes
-    qsa('.doc-checkbox', this.container).forEach((cb) => {
-      cb.addEventListener('change', () => {
-        const boxes = qsa('.doc-checkbox', this.container);
-        const checkedCount = boxes.filter((b) => b.checked).length;
-        if (selectAll) {
-          selectAll.checked = checkedCount === boxes.length;
-          selectAll.indeterminate = checkedCount > 0 && checkedCount < boxes.length;
-        }
-        this._notifySelectionChanged();
-      });
-    });
-
     // Pagination controls
     this._bindPaginationControls();
 
-    // Initialize button state
-    this._notifySelectionChanged();
   }
 
   _bindPaginationControls() {

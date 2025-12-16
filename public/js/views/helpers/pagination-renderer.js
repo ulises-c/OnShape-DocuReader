@@ -63,6 +63,18 @@ function renderPageSizeOptions(currentSize) {
 }
 
 /**
+ * Insert zero-width space BEFORE natural word separators to allow line breaks
+ * This prevents breaks in the middle of words like "PCBAs" becoming "PCB" + "As"
+ * The break opportunity is placed BEFORE the separator, so the separator stays with the following text
+ */
+function wrapAtSeparators(text) {
+  if (!text) return '';
+  // Insert zero-width space BEFORE separators (not after) to keep separator with following word
+  // This prevents "600_D01_PCBAs" from breaking as "600_D01_PCB" + "As"
+  return String(text).replace(/([_\-./])/g, '\u200B$1');
+}
+
+/**
  * Render document table rows
  * @param {Array} documents - Array of document objects
  * @returns {string} HTML string
@@ -77,13 +89,16 @@ export function renderDocumentRows(documents) {
     const created = doc.createdAt ? new Date(doc.createdAt).toLocaleString() : '-';
     const modified = doc.modifiedAt ? new Date(doc.modifiedAt).toLocaleString() : '-';
     const lastModifiedBy = doc.modifiedBy?.name || doc.modifiedBy || '-';
-    const parent = doc.parentName || doc.parent?.name || doc.parentId || '-';
+    const parent = doc.parentName || doc.parent?.name || '-';
     const type = doc.type || 'Document';
+
+    // Escape first, then wrap at separators for proper line breaking
+    const escapedName = escapeHtml(doc.name);
+    const wrappedName = wrapAtSeparators(escapedName);
 
     return `
       <tr class="document-card" data-id="${escapeHtml(doc.id)}">
-        <td class="select-column"><input type="checkbox" class="doc-checkbox" value="${escapeHtml(doc.id)}"></td>
-        <td class="doc-file-title">${escapeHtml(doc.name)}</td>
+        <td class="doc-file-title">${wrappedName}</td>
         <td>${escapeHtml(creator)}</td>
         <td>${escapeHtml(created)}</td>
         <td>${escapeHtml(modified)}</td>

@@ -177,7 +177,24 @@ export class DocumentController {
       const result = await this.documentService.getGlobalTreeRootNodes();
       const items = result.items || [];
       // Extract workspace/company name from the result if available
-      const workspaceName = result.pathToRoot?.[0]?.name || result.name || null;
+      // pathToRoot typically contains the company/team name at the root level
+      let workspaceName = null;
+      if (result.pathToRoot && Array.isArray(result.pathToRoot) && result.pathToRoot.length > 0) {
+        // The root of pathToRoot is typically the company/team name
+        workspaceName = result.pathToRoot[0].name;
+      } else if (result.name) {
+        workspaceName = result.name;
+      }
+      
+      // If no workspace name found from pathToRoot, try to get it from user's company info
+      if (!workspaceName) {
+        const user = this.state.getState()?.user;
+        if (user?.companyName) {
+          workspaceName = user.companyName;
+        }
+      }
+      
+      console.log('[DocumentController] Workspace name:', workspaceName, 'from result:', result);
       this.workspaceView.render(items, this.workspaceState.breadcrumbs, workspaceName);
     } catch (error) {
       console.error("Error loading workspace root:", error);

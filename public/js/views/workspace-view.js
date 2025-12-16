@@ -2,6 +2,17 @@ import { BaseView } from './base-view.js';
 import { escapeHtml } from '../utils/dom-helpers.js';
 
 /**
+ * Insert zero-width space BEFORE natural word separators to allow line breaks
+ * This prevents breaks in the middle of words like "PCBAs" becoming "PCB" + "As"
+ * The break opportunity is placed BEFORE the separator, so the separator stays with the following text
+ */
+function wrapAtSeparators(text) {
+  if (!text) return '';
+  // Insert zero-width space BEFORE separators (not after) to keep separator with following word
+  return String(text).replace(/([_\-./])/g, '\u200B$1');
+}
+
+/**
  * WorkspaceView - renders folder tree and document exploration
  */
 export class WorkspaceView extends BaseView {
@@ -169,6 +180,9 @@ export class WorkspaceView extends BaseView {
         : selectedDocIds.has(item.id);
       const selectedClass = isSelected ? 'export-selected' : '';
 
+      // Wrap name at natural separators for better line breaking
+      const wrappedName = wrapAtSeparators(escapeHtml(item.name));
+      
       return `
           <div class="workspace-item ${typeClass} ${selectedClass}" 
                data-id="${escapeHtml(item.id)}" 
@@ -179,7 +193,7 @@ export class WorkspaceView extends BaseView {
                 <input type="checkbox" ${isSelected ? 'checked' : ''} />
               </label>
               <div class="item-icon">${icon}</div>
-              <div class="item-name">${escapeHtml(item.name)}</div>
+              <div class="item-name">${wrappedName}</div>
           </div>
       `;
     }).join('');

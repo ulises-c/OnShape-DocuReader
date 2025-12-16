@@ -25,6 +25,16 @@ export class AppController {
       // If authenticated, proceed to load documents
       if (status.authenticated) {
         console.log('User is authenticated, loading documents...');
+        
+        // Fetch user info and update state
+        try {
+          const user = await this.authService.getUser();
+          console.log('User info loaded:', user);
+          this.state.setState({ user });
+        } catch (userError) {
+          console.warn('Failed to fetch user info:', userError);
+        }
+        
         await this.documentController.loadDocuments();
         
         const currentHash = window.location.hash;
@@ -112,11 +122,14 @@ export class AppController {
     }
 
     if (userName) {
-      if (state.user) {
+      if (state.isAuthenticated && state.user) {
         // Display name and email if available
         const displayName = state.user.name || state.user.firstName || 'User';
         const email = state.user.email;
         userName.textContent = email ? `${displayName} (${email})` : displayName;
+      } else if (state.isAuthenticated) {
+        // Authenticated but user data not yet loaded
+        userName.textContent = 'Loading user...';
       } else {
         userName.textContent = '';
       }
