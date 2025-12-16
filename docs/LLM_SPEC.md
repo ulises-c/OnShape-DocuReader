@@ -63,8 +63,10 @@ Express Server (src/)
 - Dashboard displays user info (name/email), workspace name, pagination, export buttons, and detail pane navigation.
 - Table columns and folder names use word-wrap on natural separators (hyphens, underscores, periods, slashes) via zero-width space insertion BEFORE separators to prevent mid-word breaks (e.g., "PCBAs" stays together).
 - Recently Updated Documents table displays without selection checkboxes (7 columns: Name, Creator, Date Created, Date Modified, Last Modified By, Parent, Type).
-- Workspace name displayed in section header next to "Workspace" title.
-- User info (name and email) displayed in dashboard header after authentication.
+- Workspace name displayed in section header next to "Workspace" title in parentheses with italic styling.
+- Workspace section header is clickable to refresh both workspace and recent documents.
+- User info displayed in a styled container with name and email on separate lines, positioned near logout button.
+- Dashboard header contains: title, action buttons (Get All, Airtable), and user info container with logout.
 
 ## Data Flow
 

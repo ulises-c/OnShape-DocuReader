@@ -86,6 +86,36 @@ export class DocumentController {
         this.exportAggregateBom();
       });
     }
+
+    // Workspace section header click to refresh workspace
+    const workspaceHeader = document.querySelector(".section-workspace .section-header");
+    if (workspaceHeader) {
+      workspaceHeader.style.cursor = "pointer";
+      workspaceHeader.addEventListener("click", () => {
+        this.refreshDashboard();
+      });
+    }
+  }
+
+  /**
+   * Refresh the entire dashboard: reload workspace root and recent documents
+   */
+  async refreshDashboard() {
+    console.log("[DocumentController] Refreshing dashboard...");
+    
+    // Reset workspace state
+    this.workspaceState = {
+      currentFolderId: null,
+      breadcrumbs: [],
+    };
+    
+    // Reload workspace root and documents in parallel
+    await Promise.all([
+      this.loadWorkspaceRoot(),
+      this.loadDocuments(1, this.pagination.pageSize)
+    ]);
+    
+    console.log("[DocumentController] Dashboard refreshed");
   }
 
   // ─────────────────────────────────────────────────────────────────────────────

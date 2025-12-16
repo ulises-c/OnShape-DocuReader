@@ -129,7 +129,13 @@ export class WorkspaceView extends BaseView {
   _updateWorkspaceName(name) {
     const workspaceNameEl = document.getElementById('workspaceName');
     if (workspaceNameEl) {
-      workspaceNameEl.textContent = name || '';
+      if (name) {
+        workspaceNameEl.textContent = `(${name})`;
+        workspaceNameEl.title = `Organization: ${name}`;
+      } else {
+        workspaceNameEl.textContent = '';
+        workspaceNameEl.title = '';
+      }
     }
   }
 

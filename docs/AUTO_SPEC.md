@@ -1,6 +1,6 @@
 # onshape-docureader
 
-Generated: 2025-12-15 17:11
+Generated: 2025-12-16 13:02
 
 Using OnShape API to gather information about documents
 
@@ -138,7 +138,7 @@ onshape-docureader/
 
 ## Stats
 
-Files: 60 | Lines: 13,876 | Routes: 44 | TODOs: 5
+Files: 60 | Lines: 13,919 | Routes: 44 | TODOs: 5
 
 ## Routes
 
@@ -310,13 +310,13 @@ DocumentController - orchestrates document flows
   )
   Methods:
     - _bindDashboardEvents()
+    - async refreshDashboard()
     - navigateToDocument(documentId)
     - async showDocument(documentId, restoredState)
     - async showList(restoredState)
     - async _initializeWorkspace(restoredState)
     - async loadWorkspaceRoot()
     - async loadFolder(folderId, updateBreadcrumbs = true, folderName = null)
-    - navigateToFolder(folderId, folderName)
 
 #### public/js/controllers/export-controller.js
 

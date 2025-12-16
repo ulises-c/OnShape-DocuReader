@@ -43,21 +43,20 @@
             <div id="dashboard" class="page">
                 <div class="dashboard-header">
                     <h2>OnShape Documents</h2>
-                    <div class="user-info">
-                        <span id="userName">Loading...</span>
-                        <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+                    <div class="header-actions">
+                        <button id="getAllBtn" class="btn btn-success">Get All</button>
+                        <button id="airtableUploadBtn" class="btn btn-info" title="Upload thumbnails to Airtable">
+                            📊 Airtable
+                            <span id="airtableAuthIndicator" class="auth-indicator unauthenticated" title="Not connected"></span>
+                        </button>
                     </div>
-                </div>
-
-                <div class="search-section">
-                    <input type="text" id="searchInput" placeholder="Search documents..." />
-                    <button id="searchBtn" class="btn btn-primary">Search</button>
-                    <button id="refreshBtn" class="btn btn-secondary">Refresh</button>
-                    <button id="getAllBtn" class="btn btn-success">Get All</button>
-                    <button id="airtableUploadBtn" class="btn btn-info" title="Upload thumbnails to Airtable">
-                        📊 Airtable
-                        <span id="airtableAuthIndicator" class="auth-indicator unauthenticated" title="Not connected"></span>
-                    </button>
+                    <div class="user-info-container">
+                        <div class="user-details">
+                            <span class="user-name" id="userName">Loading...</span>
+                            <span class="user-email" id="userEmail"></span>
+                        </div>
+                        <button id="logoutBtn" class="btn btn-secondary btn-sm">Logout</button>
+                    </div>
                 </div>
 
                 <div class="dashboard-layout">

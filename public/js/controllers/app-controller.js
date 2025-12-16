@@ -114,6 +114,7 @@ export class AppController {
   updateAuthUI(state) {
     const authStatus = document.getElementById('authStatus');
     const userName = document.getElementById('userName');
+    const userEmail = document.getElementById('userEmail');
 
     if (authStatus) {
       authStatus.textContent = state.isAuthenticated
@@ -123,15 +124,21 @@ export class AppController {
 
     if (userName) {
       if (state.isAuthenticated && state.user) {
-        // Display name and email if available
+        // Display name in dedicated element
         const displayName = state.user.name || state.user.firstName || 'User';
-        const email = state.user.email;
-        userName.textContent = email ? `${displayName} (${email})` : displayName;
+        userName.textContent = displayName;
+        
+        // Display email in separate element if available
+        if (userEmail && state.user.email) {
+          userEmail.textContent = state.user.email;
+        }
       } else if (state.isAuthenticated) {
         // Authenticated but user data not yet loaded
-        userName.textContent = 'Loading user...';
+        userName.textContent = 'Loading...';
+        if (userEmail) userEmail.textContent = '';
       } else {
         userName.textContent = '';
+        if (userEmail) userEmail.textContent = '';
       }
     }
   }
