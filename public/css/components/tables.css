@@ -9,7 +9,7 @@
   overflow: hidden;
   margin: 0 auto var(--spacing-xl) auto;
   font-size: clamp(0.85rem, 0.9vw, 1.1rem);
-  table-layout: auto; /* Fixed layout for predictable column widths */
+  table-layout: fixed; /* Fixed layout for predictable column widths */
   min-width: 100%; /* Ensure table fills container width */
 }
 
@@ -70,16 +70,16 @@
 /* Column Width Distribution - 4 columns: Name, Date Modified, Modified By, Location */
 /* Fixed percentages that add up to 100% for table-layout: fixed */
 .doc-details-table th:nth-child(1),
-.doc-details-table td:nth-child(1) { width: 30%; } /* Name - generous space for document names */
+.doc-details-table td:nth-child(1) { width: 35%; } /* Name - generous space for document names */
 
 .doc-details-table th:nth-child(2),
 .doc-details-table td:nth-child(2) { width: 15%; } /* Date Modified */
 
 .doc-details-table th:nth-child(3),
-.doc-details-table td:nth-child(3) { width: 15%; } /* Modified By */
+.doc-details-table td:nth-child(3) { width: 12%; } /* Modified By */
 
 .doc-details-table th:nth-child(4),
-.doc-details-table td:nth-child(4) { width: 40%; } /* Location - largest column to show full paths */
+.doc-details-table td:nth-child(4) { width: 38%; } /* Location - generous space for full paths */
 
 
 /* Date modified column styling */

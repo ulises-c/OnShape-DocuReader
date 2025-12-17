@@ -63,6 +63,7 @@
   box-sizing: border-box;
   max-height: 50vh;
   width: 100%;
+  min-width: 0; /* Allow flex item to shrink below content size */
 }
 
 
@@ -104,6 +105,7 @@
 .documents-grid {
   display: block;
   width: 100%;
+  min-width: 100%;
   overflow-x: auto;
   margin: 0;
   padding: 0;
@@ -186,11 +188,19 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  min-width: 0; /* Allow flex item to shrink below content size */
 }
 
 .section-recent {
   flex-shrink: 0;
   transition: all var(--transition-base);
+  width: 100%;
+}
+
+.section-recent .section-content {
+  width: 100%;
+  min-width: 0;
 }
 
 .section-workspace {
@@ -292,6 +302,7 @@
   /* Multi-line clamping */
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
