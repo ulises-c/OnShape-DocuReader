@@ -18,7 +18,7 @@ export class ApiClient {
     return res.json();
   }
 
-  async getDocuments(limit = 20, offset = 0) {
+  async getDocuments(limit = 50, offset = 0) {
     const params = new URLSearchParams({
       limit: String(limit),
       offset: String(offset)
@@ -329,7 +329,7 @@ export class ApiClient {
     };
   }
 
-  async getGlobalTreeNodes(limit = 20, offset = 0, getPathToRoot = false) {
+  async getGlobalTreeNodes(limit = 50, offset = 0, getPathToRoot = false) {
     const params = new URLSearchParams({
       limit: String(limit),
       offset: String(offset),
@@ -340,7 +340,7 @@ export class ApiClient {
     return res.json();
   }
 
-  async getFolderContents(folderId, limit = 20, offset = 0, getPathToRoot = false) {
+  async getFolderContents(folderId, limit = 50, offset = 0, getPathToRoot = false) {
     const params = new URLSearchParams({
       limit: String(limit),
       offset: String(offset),

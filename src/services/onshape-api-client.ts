@@ -161,7 +161,7 @@ export class OnShapeApiClient {
   }
 
   async getDocuments(
-    limit: number = 20,
+    limit: number = 50,
     offset: number = 0
   ): Promise<{ items: OnShapeDocument[]; totalCount: number }> {
     // Diagnostic: log request parameters to trace pagination behavior
@@ -493,7 +493,7 @@ export class OnShapeApiClient {
 
   async searchDocuments(
     query: string,
-    limit: number = 20
+    limit: number = 50
   ): Promise<OnShapeDocument[]> {
     const response = await this.axiosInstance.get("/documents", {
       params: {

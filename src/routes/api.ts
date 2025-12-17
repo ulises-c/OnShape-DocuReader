@@ -63,7 +63,7 @@ router.get(
   "/documents",
   async (req: Request, res: Response): Promise<Response> => {
     try {
-      const limit = parseInt(String(req.query.limit || "20"), 10);
+      const limit = parseInt(String(req.query.limit || "50"), 10);
       const offset = parseInt(String(req.query.offset || "0"), 10);
       
       process.stdout.write(`[API] GET /api/documents (limit=${limit}, offset=${offset})\n`);

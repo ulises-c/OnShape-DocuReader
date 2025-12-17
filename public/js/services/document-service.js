@@ -7,7 +7,7 @@ export class DocumentService {
     this.api = api;
   }
 
-  async getAll(limit = 20, offset = 0) {
+  async getAll(limit = 50, offset = 0) {
     return this.api.getDocuments(limit, offset);
   }
 
