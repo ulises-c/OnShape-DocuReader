@@ -126,7 +126,7 @@ def extract_cell_value(row: dict, header_id: str, property_name: str) -> str:
 
 
 def format_value(value) -> str:
-    """Format a value for CSV output."""
+    """Format a value for CSV output, handling commas and newlines appropriately."""
     if value is None:
         return ''
     if isinstance(value, bool):
@@ -134,15 +134,27 @@ def format_value(value) -> str:
     if isinstance(value, dict):
         # Handle objects like Material which might have nested structure
         if 'displayName' in value:
-            return str(value['displayName'])
-        if 'value' in value:
-            return str(value['value'])
-        if 'name' in value:
-            return str(value['name'])
-        return json.dumps(value)
-    if isinstance(value, list):
-        return ', '.join(format_value(v) for v in value)
-    return str(value)
+            formatted = str(value['displayName'])
+        elif 'value' in value:
+            formatted = str(value['value'])
+        elif 'name' in value:
+            formatted = str(value['name'])
+        else:
+            formatted = json.dumps(value)
+    elif isinstance(value, list):
+        formatted = '; '.join(format_value(v) for v in value)
+    else:
+        formatted = str(value)
+    
+    # Replace problematic characters with underscores to avoid CSV issues
+    # First replace comma-space with just space to avoid "_ " patterns
+    formatted = formatted.replace(', ', ' ')
+    # Then replace any remaining commas with underscores
+    formatted = formatted.replace(',', '_')
+    # Replace newlines and carriage returns with underscores
+    formatted = formatted.replace('\n', '_')
+    formatted = formatted.replace('\r', '_')
+    return formatted
 
 
 def convert_json_to_csv(
