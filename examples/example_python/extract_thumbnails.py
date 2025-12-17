@@ -2,12 +2,7 @@ import requests
 import os
 import json
 from dotenv import load_dotenv
-import sys
-from pathlib import Path
-
-# Import CSV conversion from json_to_csv module
-sys.path.insert(0, str(Path(__file__).parent))
-from json_to_csv import convert_json_to_csv
+from datetime import datetime
 
 # --- Constants ---
 HEADERS_JSON = {
@@ -73,8 +68,13 @@ def build_bom_api_url(version_link):
         wvm_type = parts[doc_index + 2]  # 'w', 'v', or 'm'
         wvm_id = parts[doc_index + 3]
         
-        # Element ID follows 'e' segment
-        element_id = parts[doc_index + 5].split('?')[0]  # Remove query params if present
+        # Element ID follows 'e' segment - search dynamically to handle microversions
+        try:
+            e_index = parts.index('e', doc_index)
+            element_id = parts[e_index + 1].split('?')[0]  # Remove query params if present
+        except (ValueError, IndexError):
+            print("Could not find element ID in URL (missing 'e' segment)")
+            return None, None, None, None, None
         
         print(f"Parsed IDs:")
         print(f"  Document: {document_id}")
@@ -112,13 +112,19 @@ def get_assembly_name_and_version(json_data):
     """
     Extract assembly document name and version name from BOM response.
     Used for naming the output folder.
+    Prefers workspace name if available, falls back to version name.
     """
     bom_source = json_data.get("bomSource", {})
     doc_name = bom_source.get("document", {}).get("name", "Assembly")
     
-    # Version info may not exist for workspace links
-    version_info = bom_source.get("version", {})
-    version_name = version_info.get("name", "workspace") if version_info else "workspace"
+    # Check for workspace first (has priority), then version
+    workspace_info = bom_source.get("workspace", {})
+    if workspace_info and workspace_info.get("name"):
+        version_name = workspace_info.get("name")
+    else:
+        # Fallback to version info if workspace not available
+        version_info = bom_source.get("version", {})
+        version_name = version_info.get("name", "workspace") if version_info else "workspace"
     
     # Sanitize names for filesystem
     doc_name = doc_name.replace(" ", "_").replace("/", "-")
@@ -127,7 +133,7 @@ def get_assembly_name_and_version(json_data):
     return doc_name, version_name
 
 # --- Download a Thumbnail Image ---
-def download_thumbnail(thumbnail_url, filename, save_folder, auth):
+def download_thumbnail(thumbnail_url, filename, root_folder, auth):
     """
     Download a thumbnail image from OnShape API with fallback strategy.
     
@@ -137,6 +143,8 @@ def download_thumbnail(thumbnail_url, filename, save_folder, auth):
     3. Fallback: Cross-reference with priority list and download highest priority available size
        Priority order: 600x340, 300x170, 70x40 (THUMBNAIL_SIZES in order)
     4. Last ditch effort: Try any remaining available sizes from metadata not in the priority list
+    
+    Saves files to "thumbnails" subfolder for PRT/ASM files, "thumbnails_ignored" for others.
     
     Returns:
         dict: Result object with download status and metadata
@@ -152,6 +160,12 @@ def download_thumbnail(thumbnail_url, filename, save_folder, auth):
     }
     
     try:
+        # Determine subfolder based on part number prefix
+        if filename.upper().startswith(('PRT', 'ASM')):
+            save_folder = os.path.join(root_folder, "thumbnails")
+        else:
+            save_folder = os.path.join(root_folder, "thumbnails_ignored")
+        
         if not os.path.exists(save_folder):
             os.makedirs(save_folder)
 
@@ -291,16 +305,40 @@ def get_part_number_from_row(row):
 def generate_json_report(folder_name, items, bom_data):
     """
     Generate a JSON report with download statistics and individual item details.
+    Includes detailed breakdown of failure reasons by error code.
     """
     # Calculate statistics
     successful_items = [item for item in items if item["thumbnail_downloaded"]]
     failed_items = [item for item in items if not item["thumbnail_downloaded"]]
     
+    # Analyze failure codes
+    failure_codes = {}
+    for item in failed_items:
+        error_code = item.get("error_code") or "UNKNOWN"
+        
+        # Categorize error codes
+        if "404" in error_code:
+            category = "404_fail"
+        elif "403" in error_code:
+            category = "403_fail"
+        else:
+            category = "other"
+        
+        failure_codes[category] = failure_codes.get(category, 0) + 1
+    
+    # Build failure breakdown
+    failure_breakdown = {
+        "total_failed": len(failed_items),
+        "404_fail": failure_codes.get("404_fail", 0),
+        "403_fail": failure_codes.get("403_fail", 0),
+        "other": failure_codes.get("other", 0)
+    }
+    
     report = {
         "metadata": {
             "total_items": len(items),
             "successful_downloads": len(successful_items),
-            "failed_downloads": len(failed_items),
+            "failed_downloads": failure_breakdown,
             "success_rate": f"{(len(successful_items) / len(items) * 100):.1f}%" if items else "0%",
             "assembly_name": folder_name
         },
@@ -316,6 +354,21 @@ def generate_json_report(folder_name, items, bom_data):
         return json_filename
     except Exception as e:
         print(f"Error saving JSON report: {e}")
+        return None
+
+# --- Save BOM Data ---
+def save_bom_data(folder_name, bom_data):
+    """
+    Save the fetched BOM JSON data to a file for cross-reference and archival.
+    """
+    bom_filename = os.path.join(folder_name, "bom_data.json")
+    try:
+        with open(bom_filename, 'w') as f:
+            json.dump(bom_data, f, indent=2)
+        print(f"BOM data saved to: {bom_filename}")
+        return bom_filename
+    except Exception as e:
+        print(f"Error saving BOM data: {e}")
         return None
 
 # --- Main Execution ---
@@ -352,8 +405,17 @@ def main():
 
         # Get folder name from BOM JSON
         assembly_name, version_name = get_assembly_name_and_version(bom_data)
-        folder_name = f"{assembly_name}_{version_name}_Thumbnails"
-        print(f"\nThumbnails will be saved in: {folder_name}")
+        # I need more time data to ensure unique folder names
+        iso_date = datetime.now().strftime("%Y-%m-%d-T%H-%M-%S")
+        root_folder = f"thumbnail_extraction/{assembly_name}_{version_name}_{iso_date}"
+        print(f"\nThumbnails will be saved in: {root_folder}")
+        
+        # Create root folder for JSONs and subfolders
+        if not os.path.exists(root_folder):
+            os.makedirs(root_folder)
+        
+        # Save BOM data in root folder
+        save_bom_data(root_folder, bom_data)
 
         rows = bom_data.get("rows", [])
         print(f"Found {len(rows)} rows in BOM\n")
@@ -376,7 +438,7 @@ def main():
                     break
             
             if thumbnail_url:
-                result = download_thumbnail(thumbnail_url, part_number, save_folder=folder_name, auth=auth)
+                result = download_thumbnail(thumbnail_url, part_number, root_folder, auth)
                 # Enrich result with part name from row
                 result["part_name"] = row.get('itemSource', {}).get('itemName', part_number)
                 items.append(result)
@@ -401,14 +463,8 @@ def main():
         print(f"  Total rows: {len(rows)}")
         print(f"{'='*50}")
         
-        # Generate JSON report
-        generate_json_report(folder_name, items, bom_data)
-        
-        # Generate CSV from BOM data
-        print("\nGenerating CSV from BOM data...")
-        csv_path = os.path.join(folder_name, "bom_data.csv")
-        row_count = convert_json_to_csv(bom_data, csv_path, visible_only=False, include_metadata=False)
-        print(f"CSV generated with {row_count} rows")
+        # Generate JSON report in root folder
+        generate_json_report(root_folder, items, bom_data)
         
         input("\nPress Enter to exit...")
 
