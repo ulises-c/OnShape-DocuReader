@@ -43,6 +43,8 @@ next-env.d.ts
 # python
 .venv/
 examples/example_python_real/
+*.pyc
+__pycache__/
 
 # Files used as examples with actual data
 *.real.json
