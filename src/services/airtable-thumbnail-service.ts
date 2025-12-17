@@ -14,7 +14,6 @@ import type { AirtableRecord } from './airtable-api-client.ts';
 import { airtableConfig } from '../config/airtable.ts';
 
 export interface ParsedFilename {
-  bomItem: string;
   partNumber: string;
   itemName: string;
   fullMatch: string;
@@ -62,25 +61,24 @@ export class AirtableThumbnailService {
 
   /**
    * Parse filename to extract part number
-   * Expected format: {bom#}_{part#}_{name}.png
-   * Example: "001_ABC-123_Widget.png" -> { bomItem: "001", partNumber: "ABC-123", itemName: "Widget" }
+   * Expected format: {part#}_{name}.{ext}
+   * Example: "ABC-123_Widget.png" -> { partNumber: "ABC-123", itemName: "Widget" }
    */
   parseFilename(filename: string): ParsedFilename | null {
     // Remove path if present
     const basename = filename.split('/').pop() || filename;
     
-    // Match pattern: {bom#}_{part#}_{name}.{ext}
-    // bom# can be numbers, part# can be alphanumeric with dashes, name is everything until extension
-    const match = basename.match(/^(\d+)_([A-Za-z0-9\-]+)_(.+)\.(png|jpg|jpeg|gif|webp)$/i);
+    // Match pattern: {part#}_{name}.{ext}
+    // part# can be alphanumeric with dashes, name is everything until extension
+    const match = basename.match(/^([A-Za-z0-9\-]+)_(.+)\.(png|jpg|jpeg|gif|webp)$/i);
     
     if (!match) {
       return null;
     }
 
     return {
-      bomItem: match[1],
-      partNumber: match[2],
-      itemName: match[3],
+      partNumber: match[1],
+      itemName: match[2],
       fullMatch: match[0],
     };
   }
@@ -206,7 +204,7 @@ export class AirtableThumbnailService {
         partNumber: '',
         filename: name,
         status: 'skipped' as const,
-        error: 'Filename does not match expected pattern: {bom#}_{part#}_{name}.{ext}',
+        error: 'Filename does not match expected pattern: {part#}_{name}.{ext}',
       };
     });
 

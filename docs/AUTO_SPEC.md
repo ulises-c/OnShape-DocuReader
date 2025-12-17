@@ -1,6 +1,6 @@
 # onshape-docureader
 
-Generated: 2025-12-16 16:18
+Generated: 2025-12-16 17:02
 
 Using OnShape API to gather information about documents
 
@@ -138,7 +138,7 @@ onshape-docureader/
 
 ## Stats
 
-Files: 60 | Lines: 14,120 | Routes: 44 | TODOs: 6
+Files: 60 | Lines: 14,175 | Routes: 44 | TODOs: 6
 
 ## Routes
 
@@ -354,7 +354,7 @@ AirtableService - handles Airtable API interactions from frontend
     - async getAuthStatus()
     - async logout()
     - async getUser()
-    - async getDocuments(limit = 20, offset = 0)
+    - async getDocuments(limit = 50, offset = 0)
     - async getDocument(documentId)
     - async getDocumentVersions(documentId)
     - async getDocumentBranches(documentId)
@@ -377,7 +377,7 @@ DocumentService - document-related operations
 **class DocumentService**
   constructor(api)
   Methods:
-    - async getAll(limit = 20, offset = 0)
+    - async getAll(limit = 50, offset = 0)
     - async getById(documentId)
     - async getVersions(documentId)
     - async getBranches(documentId)
@@ -497,7 +497,7 @@ Imports: axios, uuid
   Properties: axiosInstance: AxiosInstance, accessToken: string, usageTracker?: ApiUsageTracker, userId?: string, baseApiRoot: string
   Methods:
     - async getCurrentUser() -> Promise<OnShapeUser>
-    - async getDocuments(limit: number = 20, offset: number = 0) -> Promise<
+    - async getDocuments(limit: number = 50, offset: number = 0) -> Promise<
     - async getDocument(documentId: string) -> Promise<OnShapeDocumentInfo>
     - async getDocumentVersions(documentId: string) -> Promise<any[]>
     - async getDocumentBranches(documentId: string) -> Promise<any[]>

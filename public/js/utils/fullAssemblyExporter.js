@@ -84,7 +84,7 @@ export function sanitizeForFilename(str, maxLength = MAX_FILENAME_LENGTH) {
 
 /**
  * Build a thumbnail filename from BOM row data.
- * Format: {itemNumber}_{partNumber}_{name}.png
+ * Format:{partNumber}_{name}.png
  *
  * @param {Object} rowData - Parsed BOM row data
  * @param {string|number} rowData.itemNumber - Item number from BOM
@@ -110,7 +110,7 @@ export function buildThumbnailFilename(rowData) {
   // Name - sanitize and truncate
   const nameStr = sanitizeForFilename(name, 50);
 
-  return `${itemStr}_${partStr}_${nameStr}.png`;
+  return `${partStr}_${nameStr}.png`;
 }
 
 // ============================================================================
@@ -529,9 +529,7 @@ export async function fullAssemblyExtract(options) {
     // The service defaults are: flatten=true, includeThumbnails=false
     // We will construct thumbnail URLs from itemSource data instead.
     reportProgress(ExportPhase.FETCHING_BOM);
-    console.log(
-      `[FullExtract] Fetching flattened BOM for ${assemblyName}...`
-    );
+    console.log(`[FullExtract] Fetching flattened BOM for ${assemblyName}...`);
 
     let bom;
     try {
