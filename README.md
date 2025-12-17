@@ -91,69 +91,140 @@ Visit `http://localhost:3000` to start using the application!
 OnShape-DocuReader/
 ├── src/
 │   ├── config/
-│   │   └── oauth.ts              # OAuth configuration
+│   │   ├── airtable.ts           # Airtable OAuth & API configuration
+│   │   └── oauth.ts              # OnShape OAuth configuration
 │   ├── routes/
-│   │   ├── auth.ts               # Authentication routes
-│   │   └── api.ts                # OnShape API routes
+│   │   ├── airtable-api.ts       # Airtable API proxy routes
+│   │   ├── airtable-auth.ts      # Airtable OAuth routes
+│   │   ├── api.ts                # OnShape API routes
+│   │   └── auth.ts               # OnShape authentication routes
 │   ├── services/
-│   │   ├── oauth-service.ts      # OAuth 2.0 service
+│   │   ├── airtable-api-client.ts      # Airtable REST API client
+│   │   ├── airtable-oauth-service.ts   # Airtable OAuth 2.0 service
+│   │   ├── airtable-thumbnail-service.ts # Thumbnail upload to Airtable
+│   │   ├── api-call-cost.ts      # API cost estimation
+│   │   ├── api-usage-tracker.ts  # Usage tracking
+│   │   ├── oauth-service.ts      # OnShape OAuth 2.0 service
 │   │   ├── onshape-api-client.ts # OnShape API client
-│   │   └── session-storage.ts    # Session management service
-│   └── index.ts                  # Express server
+│   │   ├── session-storage.ts    # Session management service
+│   │   └── usage-db.ts           # SQLite usage database
+│   ├── types/
+│   │   ├── airtable.d.ts         # Airtable type definitions
+│   │   ├── onshape.ts            # OnShape type definitions
+│   │   ├── session.d.ts          # Session type definitions
+│   │   └── usage.d.ts            # Usage tracking types
+│   └── index.ts                  # Express server entry point
 ├── public/
-│   ├── index.html                # Main web interface
-│   ├── dashboard.html            # OAuth success page
-│   ├── /css/main.ss              # Styling
-│   └── /js/app.js                # Frontend JavaScript
+│   ├── css/
+│   │   ├── base/                 # Reset, typography, variables
+│   │   ├── components/           # Buttons, cards, forms, modals, tables, tabs
+│   │   ├── layout/               # Header, container
+│   │   ├── views/                # Page-specific styles
+│   │   └── main.css              # CSS entry point
+│   ├── js/
+│   │   ├── controllers/          # App, document, export, airtable controllers
+│   │   ├── router/               # Hash-based SPA router
+│   │   ├── services/             # API client, auth, document, export services
+│   │   ├── state/                # AppState, HistoryState
+│   │   ├── utils/                # Helpers, CSV export, clipboard, download
+│   │   ├── views/                # UI views and modals
+│   │   └── app.js                # Frontend entry point
+│   ├── dashboard.html            # OAuth success redirect page
+│   └── index.html                # Main SPA interface
+├── docs/
+│   ├── AUTO_SPEC.md              # Auto-generated project specification
+│   └── LLM_SPEC.md               # LLM-optimized specification
 ├── examples/
 │   ├── basic-usage.md            # Usage examples and API documentation
 │   ├── example_onshape_docs/     # Example OnShape document structures
 │   └── real_onshape_docs/        # Real OnShape document examples
 ├── notes/
 │   ├── ARCHITECTURE.md           # Project architecture documentation
-│   ├── HISTORY.md                # Development history and changes
-│   ├── INSTRUCTIONS.md           # General instructions for development
-│   ├── ONSHAPE_API.md            # OnShape API reference and documentation
+│   ├── GOALS.md                  # Project goals and objectives
+│   ├── LLM-INSTRUCTIONS.md       # Instructions for LLM agents
+│   ├── ONSHAPE_API.md            # OnShape API reference
 │   └── TODO.md                   # Current tasks and completed features
 ├── .env.example                  # Environment template
 ├── nodemon.json                  # Development server configuration
 ├── tsconfig.json                 # TypeScript configuration
+├── vite.config.js                # Vite frontend build configuration
 └── package.json                  # Dependencies and scripts
 ```
 
 ## 🔧 API Endpoints
 
-### Authentication
+### OnShape Authentication
 
-- `GET /auth/login` - Initiate OAuth flow
+- `GET /auth/login` - Initiate OnShape OAuth flow
 - `GET /auth/callback` - Handle OAuth callback
 - `GET /auth/status` - Check authentication status
 - `POST /auth/logout` - Logout user
 
+### Airtable Authentication
+
+- `GET /auth/airtable/login` - Initiate Airtable OAuth flow
+- `GET /auth/airtable/callback` - Handle Airtable OAuth callback
+- `GET /auth/airtable/status` - Check Airtable authentication status
+- `POST /auth/airtable/logout` - Logout from Airtable
+- `POST /auth/airtable/refresh` - Refresh Airtable access token
+
 ### OnShape API
 
 - `GET /api/user` - Get current user info
-- `GET /api/documents` - List user documents
+- `GET /api/documents` - List user documents (paginated)
 - `GET /api/documents/:id` - Get document details
+- `GET /api/documents/:id/versions` - Get document versions
+- `GET /api/documents/:id/branches` - Get document branches
+- `GET /api/documents/:id/combined-history` - Get combined version/branch history
+- `GET /api/documents/:id/comprehensive` - Get comprehensive document data
+- `GET /api/documents/:id/parent` - Get parent/hierarchy information
 - `GET /api/documents/:id/workspaces/:wid/elements` - Get document elements
-- `GET /api/documents/:id/comprehensive` - Get comprehensive single document data (elements, parts, assemblies, metadata)
-- `GET /api/documents/:id/parent` - Get parent/hierarchy information for a document
-- `GET /api/documents/:id/thumbnail-proxy` - Securely proxy document thumbnail images
-- `GET /api/documents/:id/workspaces/:wid/elements/:eid/assemblies` - Get assemblies for an element
-- `GET /api/documents/:id/workspaces/:wid/elements/:eid/parts/:pid/mass-properties` - Get mass properties for a part
-- `GET /api/documents/:id/workspaces/:wid/elements/:eid/metadata` - Get element metadata
+- `GET /api/documents/:id/versions/:vid/elements` - Get elements from version
+- `GET /api/documents/:id/workspaces/:wid/elements/:eid/parts` - Get parts
+- `GET /api/documents/:id/workspaces/:wid/elements/:eid/assemblies` - Get assemblies
+- `GET /api/documents/:id/workspaces/:wid/elements/:eid/bom` - Get BOM data
+- `GET /api/documents/:id/workspaces/:wid/elements/:eid/metadata` - Get metadata
+- `GET /api/documents/:id/workspaces/:wid/elements/:eid/parts/:pid/mass-properties` - Get mass properties
+- `GET /api/onshape/folders` - Get root folders via globaltreenodes
+- `GET /api/onshape/folders/:id` - Get folder contents
+
+### Export API
+
 - `GET /api/export/all` - Export all documents (JSON or ZIP)
-- `GET /api/export/stream` - Stream export progress and data
+- `GET /api/export/stream` - Stream export progress via SSE
+- `GET /api/export/directory-stats` - Pre-scan directory statistics
+- `POST /api/export/prepare-assemblies` - Prepare assembly export
+- `GET /api/export/aggregate-bom-stream` - Stream aggregate BOM export
+- `GET /api/export/aggregate-bom` - Download aggregate BOM
+
+### Airtable API
+
+- `GET /api/airtable/config` - Get Airtable configuration status
+- `GET /api/airtable/bases` - List available bases
+- `GET /api/airtable/bases/:baseId/tables` - List tables in a base
+- `GET /api/airtable/bases/:baseId/tables/:tableId/schema` - Get table schema
+- `GET /api/airtable/bases/:baseId/tables/:tableId/records` - List records
+- `POST /api/airtable/upload-thumbnails` - Upload thumbnails to Airtable
+- `POST /api/airtable/find-record` - Find record by field value
+
+### Utility
+
+- `GET /api/thumbnail-proxy` - Proxy thumbnail images securely
+- `GET /api/usage/stats` - Get API usage statistics
 
 ## 🛠️ Development
 
 ### Available Scripts
 
 ```bash
-npm run dev         # Start development server with auto-reload
-npm run build       # Build TypeScript to JavaScript
+npm run dev         # Start dev server (concurrent backend + Vite frontend)
+npm run build       # Build TypeScript + Vite frontend
 npm run start       # Start production server
 npm run clean       # Clean build directory
+npm run spec        # Generate AUTO_SPEC.md documentation
+npm run spec:preview # Preview first 150 lines of spec
+npm run spec:minimal # Generate minimal spec
+npm run spec:full   # Generate full verbosity spec
 ```
 
 ### Code Structure
@@ -173,13 +244,21 @@ npm run clean       # Clean build directory
 
 ## 🌐 Environment Variables
 
-| Variable                | Description                          | Required   |
-| ----------------------- | ------------------------------------ | ---------- |
-| `ONSHAPE_CLIENT_ID`     | OAuth Client ID from OnShape         | ✅         |
-| `ONSHAPE_CLIENT_SECRET` | OAuth Client Secret from OnShape     | ✅         |
-| `ONSHAPE_REDIRECT_URI`  | OAuth redirect URI                   | Optional\* |
-| `PORT`                  | Server port number                   | Optional   |
-| `NODE_ENV`              | Environment (development/production) | Optional   |
+| Variable                       | Description                            | Required   |
+| ------------------------------ | -------------------------------------- | ---------- |
+| `ONSHAPE_CLIENT_ID`            | OAuth Client ID from OnShape           | ✅         |
+| `ONSHAPE_CLIENT_SECRET`        | OAuth Client Secret from OnShape       | ✅         |
+| `ONSHAPE_REDIRECT_URI`         | OAuth redirect URI                     | Optional\* |
+| `AIRTABLE_CLIENT_ID`           | Airtable OAuth Client ID               | Optional   |
+| `AIRTABLE_CLIENT_SECRET`       | Airtable OAuth Client Secret           | Optional   |
+| `AIRTABLE_REDIRECT_URI`        | Airtable OAuth redirect URI            | Optional   |
+| `AIRTABLE_BASE_ID`             | Default Airtable base ID               | Optional   |
+| `AIRTABLE_TABLE_ID`            | Default Airtable table ID              | Optional   |
+| `AIRTABLE_PART_NUMBER_FIELD`   | Field name for part number matching    | Optional   |
+| `AIRTABLE_THUMBNAIL_FIELD`     | Field name for thumbnail attachments   | Optional   |
+| `PORT`                         | Server port number                     | Optional   |
+| `NODE_ENV`                     | Environment (development/production)   | Optional   |
+| `SESSION_SECRET`               | Session encryption secret              | Optional   |
 
 \*Default: `http://localhost:3000/auth/callback`
 

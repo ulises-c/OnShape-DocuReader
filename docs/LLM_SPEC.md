@@ -1,352 +1,181 @@
-# OnShape DocuReader – Efficient SPEC file for LLMs & AI Agents
+# OnShape-DocuReader - Project Specification
 
-> Last Updated: 2025-12-12 15:00:00 PST
+Generated: 2025-12-16
 
-## Overview
+A TypeScript/Express.js web application for browsing and exporting OnShape documents via OAuth 2.0, with Airtable integration for thumbnail uploads.
 
-OnShape DocuReader is a secure web application that authenticates against the OnShape API v12 using OAuth 2.0 PKCE to let users browse their documents, inspect elements and metadata, and execute comprehensive exports (JSON, ZIP, CSV) with progress tracking. The project deliberately avoids heavy frontend frameworks, instead using modular vanilla JavaScript paired with a TypeScript/Express backend.
-
-## Core Capabilities
-
-- OAuth 2.0 PKCE login, session management, and logout.
-- Document listing with pagination, search, and thumbnail previews.
-- Detail views for documents, elements, assemblies, parts, metadata, and raw JSON.
-- Aggregate export workflows: single document, selected documents, “Get All,” CSV/BOM conversion, ZIP packaging, and mass exporters.
-- Progress tracking via modals, logs, and SSE streaming.
-- API usage tracking groundwork (usage DB, cost calculator, usage tracker service).
-- Notes directory containing architecture, instructions, API reference, prompts, TODO, and response logs.
-
-## Architecture
+## Architecture Overview
 
 ```
-Browser (public/)
-├── Controllers (app, document, export)
-├── Services (api-client, auth, document, export, thumbnail)
-├── Views (list/detail/element/part/modal/navigation)
-├── State (HistoryState)
-├── Router (hash-based)
-└── Utils (clipboard, DOM helpers, downloaders, CSV/BOM helpers)
+Frontend (Vanilla JS ES6 Modules)
+├── Controllers: app, document, export, airtable
+├── Services: api-client, auth, document, export, airtable, thumbnail
+├── Views: document-list, document-detail, element-detail, part-detail, workspace, airtable-upload
+├── State: AppState, HistoryState
+└── Router: Hash-based SPA routing
 
-Express Server (src/)
-├── index.ts (app bootstrap, middleware, routes)
-├── config/ (OAuth configuration & validation)
-├── routes/
-│   ├── auth.ts (login/callback/status/logout)
-│   └── api.ts (documents, elements, hierarchy, exports, thumbnails)
-├── services/
-│   ├── oauth-service.ts (PKCE helper, token exchange)
-│   ├── onshape-api-client.ts (typed OnShape client & exports)
-│   ├── api-usage-tracker.ts & api-call-cost.ts (usage instrumentation)
-│   ├── usage-db.ts (SQLite persistence for usage data)
-│   └── session-storage.ts (file-backed session store)
-└── types/
-    ├── onshape.ts (shared interfaces: documents, export metadata, SSE progress)
-    ├── session.d.ts (express-session augmentation)
-    └── usage.d.ts (usage tracking types)
+Backend (TypeScript/Node.js/Express)
+├── Routes: /auth, /auth/airtable, /api, /api/airtable
+├── Services: oauth, onshape-api-client, airtable-api-client, session-storage
+└── Config: oauth, airtable
 ```
 
-### Backend Highlights
+## Key File Paths
 
-- TypeScript, Express 5, NodeNext modules.
-- Middleware: Helmet, CORS, morgan, cookie-parser, express-session (file-backed).
-- OnShape API integration through `OnShapeApiClient`, covering documents, elements, assemblies, metadata, mass properties, thumbnails, directory stats, aggregate BOM exports (sequential and parallel with `p-limit`), and SSE-ready progress callbacks.
-- Export endpoints: `/api/export/aggregate-bom` (JSON result) and planned `/api/export/aggregate-bom-stream` with SSE emitter.
-- Support services for OAuth PKCE flow, session persistence, and planned API usage logging.
+| Category | Path | Purpose |
+|----------|------|---------|
+| Entry | `src/index.ts` | Express server setup |
+| Frontend | `public/js/app.js` | App bootstrap |
+| Routes | `src/routes/*.ts` | API endpoints |
+| Services | `src/services/*.ts` | Business logic |
+| Controllers | `public/js/controllers/*.js` | UI orchestration |
+| Views | `public/js/views/*.js` | DOM rendering |
 
-### Frontend Highlights
+## API Routes Summary
 
-- Vanilla ES modules loaded via Vite dev server; no frameworks.
-- Controllers orchestrate services and views, maintain pagination state, and drive exports.
-- Services encapsulate all `fetch` logic; `ApiClient` exposes typed calls with optional parameters (delay, workers, pagination).
-- Views render HTML via helper modules, capture/restore UI state (HistoryState), and rely on delegation for events.
-- Utilities include CSV/BOM conversion, download helpers, DOM helpers, and clipboard support.
-- Dashboard displays user info (name/email), workspace name, pagination, export buttons, and detail pane navigation.
-- Table columns and folder names use word-wrap on natural separators (hyphens, underscores, periods, slashes) via zero-width space insertion BEFORE separators to prevent mid-word breaks (e.g., "PCBAs" stays together).
-- Recently Updated Documents table displays without selection checkboxes (3 columns: Name, Date Modified, Location). Section is not collapsible.
-- Location column shows folder info where available; OnShape's `/documents` endpoint returns `parentId` but not folder names. Full path requires additional API calls per document (not implemented for performance).
-- Column widths optimized for readability: Name (35%), Date Modified (15%), Location (50%).
-- Workspace name extracted from `owner.name` of first item returned by `globaltreenodes/magic/1` endpoint, displayed inline with "Workspace" title in parentheses with italic styling.
-- Explicit "↻ Reload Workspace" button in workspace section header to refresh workspace folders.
-- Explicit "↻ Reload Documents" button in recent documents section header to refresh the documents list.
-- Workspace breadcrumbs only displayed when navigating inside folders; hidden at root level since section header already shows "Workspace".
-- User info displayed in a styled container with name and email on separate lines, positioned near logout button.
-- Dashboard header contains: title, action buttons (Get All, Airtable), and user info container with logout.
+### Authentication
+- `GET /auth/login` - Initiate OnShape OAuth
+- `GET /auth/callback` - OAuth callback handler
+- `GET /auth/status` - Check auth status
+- `POST /auth/logout` - End session
 
-## Data Flow
+### Airtable Auth
+- `GET /auth/airtable/login` - Initiate Airtable OAuth
+- `GET /auth/airtable/callback` - Airtable callback
+- `GET /auth/airtable/status` - Check Airtable auth
+- `POST /auth/airtable/logout` - End Airtable session
 
-1. **Authentication**
+### OnShape API
+- `GET /api/user` - Current user info
+- `GET /api/documents` - List documents (paginated)
+- `GET /api/documents/:id` - Document details
+- `GET /api/documents/:id/comprehensive` - Full document data
+- `GET /api/documents/:id/workspaces/:wid/elements` - Document elements
+- `GET /api/documents/:id/workspaces/:wid/elements/:eid/bom` - BOM data
+- `GET /api/onshape/folders` - Root folders via globaltreenodes
+- `GET /api/onshape/folders/:id` - Folder contents
 
-   ```
-   User → /auth/login → OnShape OAuth (PKCE) → /auth/callback → session cookies → dashboard
-   ```
+### Export
+- `GET /api/export/all` - Export all documents
+- `GET /api/export/stream` - SSE progress stream
+- `GET /api/export/directory-stats` - Pre-scan statistics
+- `POST /api/export/prepare-assemblies` - Prepare assembly export
+- `GET /api/export/aggregate-bom` - Aggregate BOM export
 
-2. **Document Retrieval**
+### Airtable API
+- `GET /api/airtable/config` - Configuration status
+- `GET /api/airtable/bases` - List bases
+- `POST /api/airtable/upload-thumbnails` - Upload thumbnails to records
 
-   ```
-   Frontend Controller → DocumentService/ApiClient → /api/documents?limit&offset → OnShape API → response rendered in DocumentListView
-   ```
+## Data Types
 
-3. **Detail Navigation**
+### Core Interfaces (TypeScript)
 
-   ```
-   Router hash change → controller fetches document/elements → views render metadata, elements, mass properties
-   ```
-
-4. **Exports**
-
-   - **Aggregate BOM:**
-     ```
-     Controller → DocumentService.getAggregateBom(delay, workers) → /api/export/aggregate-bom → OnShapeApiClient BFS + parallel BOM fetch → JSON download
-     ```
-   - **Streaming:**
-     ```
-     Frontend EventSource → /api/export/aggregate-bom-stream → SSEEmitter(progress events) → UI progress bar
-     ```
-   - **CSV Utilities:**
-     ```
-     BOM JSON → bomToCSV/getFilteredCSV/massCSVExporter → download helper
-     ```
-
-5. **API Usage Tracking**
-
-   - Services `api-usage-tracker.ts`, `api-call-cost.ts`, and `usage-db.ts` collect and store per-call metrics (infrastructure present, UI integration pending per TODO).
-
-## Security Considerations
-
-- PKCE ensures secure OAuth without embedding client secrets on the frontend.
-- Tokens stay server-side in HTTP-only sessions; frontend sees only session cookie.
-- Helmet-provided headers, CORS configuration, and CSRF-safe flows.
-- Thumbnail proxy prevents direct credential exposure.
-- Input validation and careful error handling, especially when relaying OnShape errors.
-- Planned API usage tracking enforces rate-awareness.
-
-## Documentation & Workflow
-
-- `notes/` directory anchors project knowledge: architecture, instructions, API reference, prompts, TODO, output logs, quick reference, and archived history.
-- Strict documentation standards: all files start with “What is this file?”, PST timestamps in history, consistent headings/lists.
-- Development phases captured in `notes/PROMPT.md`; responses summarized in `notes/RESPONSE.md`; TODO backlog maintained in `notes/TODO.md`.
-- Build commands: `npm run dev` (nodemon + Vite), `npm run build`, `npm start`.
-- TypeScript configuration targets ES2020, NodeNext modules, strict mode, no emit during dev (`noEmit: true`).
-
-## Airtable Integration
-
-The application supports optional Airtable integration for uploading CAD thumbnails to matching Airtable records.
-
-### Architecture
-
-```
-Frontend (Browser)
-├── AirtableController - Orchestrates auth flow and upload UI
-│   ├── showUploadPage() - Render upload view with auth status
-│   ├── navigateToUpload() - Router-based navigation
-│   └── Router integration for ROUTES.AIRTABLE_UPLOAD
-├── AirtableService - API calls to backend Airtable routes
-│   ├── getAuthStatus() - Check authentication
-│   ├── getConfiguration() - Check server config
-│   ├── login() / logout() - Auth flow
-│   ├── getBases() / getTables() - List resources
-│   └── uploadThumbnails() - ZIP upload with progress
-└── AirtableUploadView - ZIP upload UI with progress tracking
-    ├── Drag-and-drop ZIP upload
-    ├── Dry run mode toggle
-    ├── Progress bar and status log
-    └── Auth status display
-
-Backend (Express)
-├── /auth/airtable/* - OAuth 2.0 routes
-│   ├── GET /login - Initiate OAuth with PKCE
-│   ├── GET /callback - Handle OAuth callback
-│   ├── GET /status - Check auth status
-│   └── POST /logout - Clear Airtable session
-├── /api/airtable/* - API proxy routes
-│   ├── GET /config - Check server configuration (no auth)
-│   ├── GET /bases - List accessible bases
-│   ├── GET /bases/:baseId/tables - List tables
-│   ├── GET /bases/:baseId/tables/:tableId/schema - Get field schema
-│   └── POST /upload-thumbnails - Process ZIP and upload
-├── AirtableOAuthService - PKCE OAuth flow
-│   ├── generateAuthUrl() - Build OAuth URL with code challenge
-│   ├── exchangeCodeForTokens() - Exchange code for tokens
-│   └── refreshAccessToken() - Token refresh
-├── AirtableApiClient - REST API client
-│   ├── listBases() / listTables() - Resource listing
-│   ├── listRecords() - Query with filterByFormula
-│   ├── getTableSchema() - Get field IDs for uploads
-│   └── uploadAttachment() - Direct attachment upload
-└── AirtableThumbnailService - ZIP processing
-    ├── parseFilename() - Extract part number from filename
-    ├── processZipFile() - Extract and process thumbnails
-    ├── findRecordByPartNumber() - Match to Airtable records
-    └── uploadThumbnail() - Upload single attachment
-```
-
-### Key Features
-
-- **Separate OAuth Flow**: Airtable auth is independent from OnShape auth
-- **PKCE Security**: Uses OAuth 2.0 Authorization Code flow with PKCE (S256)
-- **ZIP Processing**: Server-side extraction of thumbnail ZIP files via JSZip
-- **Part Number Matching**: Filenames parsed as `{bomItem}_{partNumber}_{name}.png`
-- **Direct Upload**: Uses Airtable's content upload API (requires field ID from schema)
-- **Dry Run Mode**: Preview matches without uploading
-- **Progress Tracking**: Real-time upload progress via callbacks with phase indicators
-- **Parallel Processing**: Matching phase uses p-limit for concurrent API calls (configurable workers)
-- **Rate Limiting**: 5 requests/second per base (Airtable limit), uploads sequential
-
-### Import Notes
-
-When importing from `airtable-api-client.ts`, use type-only imports for interfaces:
 ```typescript
-import { AirtableApiClient } from './airtable-api-client.ts';
-import type { AirtableRecord } from './airtable-api-client.ts';
-```
+interface OnShapeDocument {
+  id: string;
+  name: string;
+  owner: { id: string; name: string };
+  createdAt: string;
+  modifiedAt: string;
+  defaultWorkspace: { id: string; name: string };
+}
 
-This ensures proper ESM compatibility with TypeScript's NodeNext module resolution.
+interface AssemblyReference {
+  documentId: string;
+  documentName: string;
+  workspaceId: string;
+  elementId: string;
+  elementName: string;
+  folderPath: string[];
+}
 
-### Frontend Components
-
-**AirtableController** (`public/js/controllers/airtable-controller.js`)
-- Orchestrates Airtable authentication and upload workflows
-- Manages auth status cache and header indicator updates
-- Handles navigation to/from upload page
-- Methods: `showUploadPage()`, `login()`, `logout()`, `refreshAuthStatus()`
-
-**AirtableUploadView** (`public/js/views/airtable-upload-view.js`)
-- Renders upload UI with drag-drop zone for ZIP files
-- Shows auth-required state when not authenticated
-- Displays progress during upload and results table on completion
-- Supports dry-run mode to preview matches without uploading
-
-**AirtableService** (`public/js/services/airtable-service.js`)
-- Frontend API client for Airtable routes
-- Methods: `getAuthStatus()`, `getConfiguration()`, `login()`, `logout()`, `uploadThumbnails()`
-
-### AirtableApiClient Methods
-
-| Method | Description |
-|--------|-------------|
-| `listBases()` | List all accessible bases |
-| `listTables(baseId)` / `getTables(baseId)` | List tables in a base |
-| `listRecords(baseId, tableId, options?)` | Query records with filtering, pagination |
-| `getRecord(baseId, tableId, recordId)` | Get single record by ID |
-| `updateRecord(baseId, tableId, recordId, fields)` | Update record fields |
-| `getTableSchema(baseId, tableId)` | Get table schema with field IDs |
-| `getFieldId(baseId, tableId, fieldName)` | Find field ID by name |
-| `uploadAttachment(baseId, recordId, fieldId, buffer, filename, contentType)` | Direct file upload |
-| `findRecordsByField(baseId, tableId, fieldName, value, options?)` | Find records by field value |
-| `findRecordByField(baseId, tableId, fieldName, value)` | Find single record by field |
-| `findRecordByPartNumber(baseId, tableId, partNumber, partNumberField?)` | Find record by part number |
-
-### Rate Limiting
-
-- Airtable API limit: 5 requests/second per base
-- Matching phase: Parallel processing (2 workers) with 350ms delay between requests (~3.3 req/sec)
-- Upload phase: Sequential with 500ms delay between uploads (content API is stricter)
-- 429 errors are caught and reported with user-friendly messages
-- Progress tracking uses atomic counters for accurate real-time updates
-
-### Attachment Upload
-
-The Airtable attachment upload uses a two-step process via the content API:
-
-**Single-Step Direct Upload (Base64)**
-```
-POST https://content.airtable.com/v0/{baseId}/{recordId}/{fieldName}/uploadAttachment
-Content-Type: application/json
-Authorization: Bearer {token}
-Body: { 
-  "contentType": "image/png", 
-  "file": "<base64-encoded-file-content>",
-  "filename": "example.png" 
+interface DirectoryStats {
+  scanDate: string;
+  scanDurationMs: number;
+  summary: { totalFolders: number; totalDocuments: number; };
+  assemblies: AssemblyReference[];
 }
 ```
 
-Key requirements:
-- Uses field **name** (not field ID) in the URL path
-  - Example: Use `CAD_Thumbnail` NOT `fldtYjisBei9dSlPT`
-  - The field name is case-sensitive and must match exactly
-  - Do NOT URL-encode the field name (underscores stay as underscores)
-- File content must be **base64 encoded** in the `file` field
-- Response contains the updated record with the new attachment
-- **OAuth Scope Required**: `data.records:write` scope is required for attachment uploads
-- If you get 400 BAD_REQUEST errors, re-authenticate to get a token with updated scopes
+### Session Data
 
-**Troubleshooting 400 Errors:**
-- Verify OAuth app has `data.records:write` scope enabled
-- Re-authenticate (logout/login) after adding new scopes
-- Ensure the field name matches exactly (case-sensitive)
-  - Check the exact field name in Airtable UI (not the field ID)
-  - Field name with spaces or special characters must match exactly
-- Verify the field type is "Attachment" in Airtable schema
-- Check that the record ID exists and is valid
-- Ensure the base ID is correct
-
-### Routes
-
-| Method | Endpoint                                             | Auth | Description                |
-| ------ | ---------------------------------------------------- | ---- | -------------------------- |
-| GET    | `/auth/airtable/login`                               | No   | Initiate OAuth flow        |
-| GET    | `/auth/airtable/callback`                            | No   | OAuth callback handler     |
-| GET    | `/auth/airtable/status`                              | No   | Check auth status          |
-| POST   | `/auth/airtable/logout`                              | Yes  | Clear Airtable session     |
-| GET    | `/api/airtable/config`                               | No   | Check server configuration |
-| GET    | `/api/airtable/bases`                                | Yes  | List accessible bases      |
-| GET    | `/api/airtable/bases/:baseId/tables`                 | Yes  | List tables in base        |
-| GET    | `/api/airtable/bases/:baseId/tables/:tableId/schema` | Yes  | Get table field schema     |
-| POST   | `/api/airtable/upload-thumbnails`                    | Yes  | Upload thumbnails from ZIP |
-
-### Environment Variables
-
-```bash
-# Airtable OAuth Configuration
-AIRTABLE_CLIENT_ID=...
-AIRTABLE_CLIENT_SECRET=...
-AIRTABLE_REDIRECT_URI=http://localhost:3000/auth/airtable/callback
-
-# Airtable Database Configuration (optional defaults)
-AIRTABLE_BASE_ID=appXXXXXXXX
-AIRTABLE_TABLE_ID=tblXXXXXXXX
-AIRTABLE_PART_NUMBER_FIELD=Part number
-AIRTABLE_THUMBNAIL_FIELD=CAD_Thumbnail
+```typescript
+interface SessionData {
+  accessToken?: string;
+  refreshToken?: string;
+  authenticated?: boolean;
+  userId?: string;
+  airtable?: {
+    accessToken: string;
+    refreshToken: string;
+    tokenExpiry: number;
+  };
+}
 ```
 
-### CSS Styles
+## Frontend Patterns
 
-Airtable upload styles in `public/css/views/airtable-upload.css`:
-- Auth-required state with login prompt
-- Dropzone with drag-drop support  
-- Progress bar and status indicators
-- Results table with status badges and item numbers
-- Summary grid with upload statistics
-- Status badges with horizontal icon+text layout (uploaded/skipped/no_match/error)
-- Responsive layout for mobile screens
-- Full-width panel layout (no max-width constraint) for maximum screen utilization
-- Fixed-width columns for item# (50px), part number (140px), status (110px)
-- Flexible columns for filename (min-width: 250px) and details (min-width: 200px) with word-wrap
-- Scrollable table container with sticky headers (600px max-height)
-- Table uses `table-layout: auto` for dynamic column sizing based on content
+### State Management
+- `AppState`: Central state with subscriber pattern
+- `HistoryState`: Browser history state preservation
+- Per-view capture/restore strategies for tabs, selections, scroll
 
-### Auth Indicator
+### Routing
+- Hash-based SPA router (`#/documents`, `#/documents/:id`, etc.)
+- Route patterns in `public/js/router/routes.js`
+- Controllers handle route resolution
 
-The dashboard header includes an Airtable auth indicator:
-- Green dot when authenticated (`authenticated` class)
-- Gray dot when not authenticated (`unauthenticated` class)
-- Located in `#airtableAuthIndicator` element within `#airtableUploadBtn`
+### Views
+- Extend `BaseView` for common patterns
+- Render methods return HTML strings
+- Event binding via delegation
 
-### Data Flow
+## Export Features
 
-1. **Configuration Check**: Frontend calls `/api/airtable/config` to verify server setup
-2. **Authentication**: User clicks Airtable button → OAuth flow with PKCE → tokens stored in session
-   - In development, OAuth callback redirects to Vite dev server (port 5173)
-   - In production, redirects to Express server origin
-   - Return path stored in session to restore navigation after auth
-3. **Upload Flow**:
-   - User uploads ZIP file containing thumbnails
-   - **Phase 1 (Extracting)**: Server extracts ZIP, parses filenames for part numbers
-   - **Phase 2 (Matching)**: Rate-limited parallel queries to Airtable (max 2 concurrent, 250ms between requests)
-   - **Phase 3 (Uploading)**: Sequential uploads using direct upload API (300ms delays) or dry-run skip
-   - Progress reported back to frontend with atomic counter updates
-4. **Report Download**:
-   - After processing completes, results stored in view state (`_lastResults`)
-   - Download JSON Report button: Full results object as formatted JSON
-   - Download CSV Report button: Tabular format with metadata header comments
-   - CSV includes: Part Number, Filename, Status, Record ID, Error columns
+### Aggregate BOM Export
+1. Pre-scan via `/api/export/directory-stats`
+2. User confirms via `ExportStatsModal`
+3. Stream progress via SSE `/api/export/aggregate-bom-stream`
+4. Download as JSON or ZIP with thumbnails
+
+### Full Assembly Extract
+- Per-assembly export with BOM + thumbnails
+- Progress via `FullExtractModal`
+- ZIP output with organized structure
+
+## Airtable Integration
+
+### Thumbnail Upload Flow
+1. User uploads ZIP with thumbnails
+2. Parse filenames: `{bomItem}_{partNumber}_{name}.png`
+3. Match part numbers to Airtable records
+4. Upload via Content API attachment endpoint
+
+### Configuration (env)
+```
+AIRTABLE_CLIENT_ID
+AIRTABLE_CLIENT_SECRET
+AIRTABLE_BASE_ID
+AIRTABLE_TABLE_ID
+AIRTABLE_PART_NUMBER_FIELD
+AIRTABLE_THUMBNAIL_FIELD
+```
+
+## Development
+
+### Scripts
+- `npm run dev` - Concurrent backend + Vite frontend
+- `npm run build` - TypeScript + Vite build
+- `npm run spec` - Generate AUTO_SPEC.md
+
+### Key Dependencies
+- Backend: express, axios, better-sqlite3, jszip, p-limit
+- Dev: typescript, vite, nodemon, concurrently
+
+## File Stats
+
+- Files: 60
+- Lines: ~14,120
+- Routes: 44
+- Active TODOs: 6 (see `notes/TODO.md`)
