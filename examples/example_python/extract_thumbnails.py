@@ -1,6 +1,13 @@
 import requests
 import os
+import json
 from dotenv import load_dotenv
+import sys
+from pathlib import Path
+
+# Import CSV conversion from json_to_csv module
+sys.path.insert(0, str(Path(__file__).parent))
+from json_to_csv import convert_json_to_csv
 
 # --- Constants ---
 HEADERS_JSON = {
@@ -14,7 +21,8 @@ HEADERS_IMAGE = {'Accept': 'image/*'}
 BASE_API_URL = "https://cad.onshape.com/api/v12"
 BASE_BOM_URL = f"{BASE_API_URL}/assemblies"
 
-THUMBNAIL_SIZES = ["600x340", "300x170", "300x300", "70x40"] # Available thumbnail sizes provided by Onshape
+DEFAULT_THUMBNAIL_SIZE = "300x300"
+THUMBNAIL_SIZES = ["600x340", "300x170", "70x40"] # Other available thumbnail sizes provided by Onshape
 
 # --- User Input ---
 def get_user_input():
@@ -121,9 +129,28 @@ def get_assembly_name_and_version(json_data):
 # --- Download a Thumbnail Image ---
 def download_thumbnail(thumbnail_url, filename, save_folder, auth):
     """
-    Download a thumbnail image from OnShape API.
-    Handles 404 errors by attempting URL modification for size parameter.
+    Download a thumbnail image from OnShape API with fallback strategy.
+    
+    Strategy:
+    1. First attempt: Try to download 300x300 size directly
+    2. If that fails: Fetch API metadata to discover available sizes
+    3. Fallback: Cross-reference with priority list and download highest priority available size
+       Priority order: 600x340, 300x170, 70x40 (THUMBNAIL_SIZES in order)
+    4. Last ditch effort: Try any remaining available sizes from metadata not in the priority list
+    
+    Returns:
+        dict: Result object with download status and metadata
     """
+    result = {
+        "part_number": filename,
+        "part_name": filename,
+        "thumbnail_downloaded": False,
+        "thumbnail_size": None,
+        "thumbnail_filename": None,
+        "thumbnail_URL": thumbnail_url,
+        "error_code": None
+    }
+    
     try:
         if not os.path.exists(save_folder):
             os.makedirs(save_folder)
@@ -131,28 +158,118 @@ def download_thumbnail(thumbnail_url, filename, save_folder, auth):
         # Sanitize filename for filesystem
         safe_filename = filename.replace("/", "-").replace("\\", "-").replace(":", "-")
         
-        response = requests.get(thumbnail_url, headers=HEADERS_IMAGE, auth=auth)
-
-        if response.status_code == 404:
-            # Modify the URL if 404 is returned - try without size suffix
-            base_url = thumbnail_url.split("/s/")[0] if "/s/" in thumbnail_url else thumbnail_url.split("300x300")[0]
-            modified_url = f"{base_url}/s/300x300"
-            print(f"  Retrying with modified URL: {modified_url}")
-            response = requests.get(modified_url, headers=HEADERS_IMAGE, auth=auth)
-
+        # Extract base URL (without /s/size parameter)
+        base_url = thumbnail_url.split("/s/")[0] if "/s/" in thumbnail_url else thumbnail_url
+        
+        # Step 1: Try default 300x300 size
+        print(f"  Attempting default size: {DEFAULT_THUMBNAIL_SIZE}")
+        default_url = f"{base_url}/s/{DEFAULT_THUMBNAIL_SIZE}"
+        response = requests.get(default_url, headers=HEADERS_IMAGE, auth=auth, timeout=10)
+        
         if response.status_code == 200:
+            # Successfully downloaded default size
             image_path = os.path.join(save_folder, f"{safe_filename}.png")
             with open(image_path, 'wb') as f:
                 f.write(response.content)
-            print(f"  Saved: {image_path}")
-            return True
-        else:
-            print(f"  Failed to fetch image for '{filename}'. Status code: {response.status_code}")
-            return False
+            print(f"  Saved: {image_path} (size: {DEFAULT_THUMBNAIL_SIZE})")
+            result["thumbnail_downloaded"] = True
+            result["thumbnail_size"] = DEFAULT_THUMBNAIL_SIZE
+            result["thumbnail_filename"] = f"{safe_filename}.png"
+            return result
+        
+        # Step 2: Default size failed, fetch metadata
+        print(f"  Default size failed. Fetching available thumbnail sizes...")
+        json_response = requests.get(base_url, headers=HEADERS_JSON, auth=auth, timeout=10)
+        
+        if json_response.status_code != 200:
+            print(f"  Failed to fetch thumbnail metadata (status: {json_response.status_code})")
+            result["error_code"] = f"METADATA_FETCH_FAILED_{json_response.status_code}"
+            return result
+        
+        try:
+            thumbnail_data = json_response.json()
+            available_sizes = thumbnail_data.get("sizes", [])
+            
+            if not available_sizes:
+                print(f"  No sizes found in API response")
+                result["error_code"] = "NO_SIZES_IN_METADATA"
+                return result
+            
+            # Extract size strings from API response
+            available_size_strings = [size_info.get("size") for size_info in available_sizes if size_info.get("size")]
+            print(f"  Available sizes: {available_size_strings}")
+            
+            # Step 3: Try fallback sizes in priority order (THUMBNAIL_SIZES order)
+            for priority_size in THUMBNAIL_SIZES:
+                if priority_size not in available_size_strings:
+                    print(f"    Size {priority_size} not available")
+                    continue
+                
+                # Find the href for this size
+                href = None
+                for size_info in available_sizes:
+                    if size_info.get("size") == priority_size:
+                        href = size_info.get("href")
+                        break
+                
+                if href:
+                    print(f"  Attempting fallback size: {priority_size}")
+                    response = requests.get(href, headers=HEADERS_IMAGE, auth=auth, timeout=10)
+                    
+                    if response.status_code == 200:
+                        image_path = os.path.join(save_folder, f"{safe_filename}.png")
+                        with open(image_path, 'wb') as f:
+                            f.write(response.content)
+                        print(f"  Saved: {image_path} (size: {priority_size})")
+                        result["thumbnail_downloaded"] = True
+                        result["thumbnail_size"] = priority_size
+                        result["thumbnail_filename"] = f"{safe_filename}.png"
+                        result["thumbnail_URL"] = href
+                        return result
+                    else:
+                        print(f"    Failed to download size {priority_size} (status: {response.status_code})")
+            
+            # Step 4: Last ditch effort - try any remaining available sizes not in THUMBNAIL_SIZES
+            print(f"  No priority sizes available. Trying any other available sizes...")
+            for size_info in available_sizes:
+                size = size_info.get("size")
+                href = size_info.get("href")
+                
+                # Skip sizes we already tried
+                if size in THUMBNAIL_SIZES or size == DEFAULT_THUMBNAIL_SIZE:
+                    continue
+                
+                if size and href:
+                    print(f"  Attempting size: {size}")
+                    response = requests.get(href, headers=HEADERS_IMAGE, auth=auth, timeout=10)
+                    
+                    if response.status_code == 200:
+                        image_path = os.path.join(save_folder, f"{safe_filename}.png")
+                        with open(image_path, 'wb') as f:
+                            f.write(response.content)
+                        print(f"  Saved: {image_path} (size: {size})")
+                        result["thumbnail_downloaded"] = True
+                        result["thumbnail_size"] = size
+                        result["thumbnail_filename"] = f"{safe_filename}.png"
+                        result["thumbnail_URL"] = href
+                        return result
+                    else:
+                        print(f"    Failed to download size {size} (status: {response.status_code})")
+            
+            print(f"  Could not download any available size for '{filename}'")
+            result["error_code"] = "NO_DOWNLOADABLE_SIZES"
+            return result
+            
+        except Exception as e:
+            print(f"  Error parsing thumbnail JSON: {e}")
+            result["error_code"] = f"JSON_PARSE_ERROR: {str(e)}"
+            return result
 
     except Exception as e:
         print(f"  Error downloading image for '{filename}': {e}")
-        return False
+        result["error_code"] = f"DOWNLOAD_ERROR: {str(e)}"
+        return result
+
 
 # --- Extract Part Number from Row ---
 def get_part_number_from_row(row):
@@ -169,6 +286,37 @@ def get_part_number_from_row(row):
         part_number = header_values.get("57f3fb8efa3416c06701d60d", "unknown")
     
     return part_number if part_number else "unknown"
+
+# --- Generate JSON Report ---
+def generate_json_report(folder_name, items, bom_data):
+    """
+    Generate a JSON report with download statistics and individual item details.
+    """
+    # Calculate statistics
+    successful_items = [item for item in items if item["thumbnail_downloaded"]]
+    failed_items = [item for item in items if not item["thumbnail_downloaded"]]
+    
+    report = {
+        "metadata": {
+            "total_items": len(items),
+            "successful_downloads": len(successful_items),
+            "failed_downloads": len(failed_items),
+            "success_rate": f"{(len(successful_items) / len(items) * 100):.1f}%" if items else "0%",
+            "assembly_name": folder_name
+        },
+        "items": items
+    }
+    
+    # Save JSON to file
+    json_filename = os.path.join(folder_name, "thumbnail_report.json")
+    try:
+        with open(json_filename, 'w') as f:
+            json.dump(report, f, indent=2)
+        print(f"\nReport saved to: {json_filename}")
+        return json_filename
+    except Exception as e:
+        print(f"Error saving JSON report: {e}")
+        return None
 
 # --- Main Execution ---
 def main():
@@ -210,8 +358,7 @@ def main():
         rows = bom_data.get("rows", [])
         print(f"Found {len(rows)} rows in BOM\n")
 
-        success_count = 0
-        skip_count = 0
+        items = []
         
         # Loop through BOM rows
         for i, row in enumerate(rows, 1):
@@ -229,18 +376,39 @@ def main():
                     break
             
             if thumbnail_url:
-                if download_thumbnail(thumbnail_url, part_number, save_folder=folder_name, auth=auth):
-                    success_count += 1
+                result = download_thumbnail(thumbnail_url, part_number, save_folder=folder_name, auth=auth)
+                # Enrich result with part name from row
+                result["part_name"] = row.get('itemSource', {}).get('itemName', part_number)
+                items.append(result)
             else:
-                print(f"  No 300x300 thumbnail found for: {part_number}")
-                skip_count += 1
+                print(f"  No thumbnail found for: {part_number}")
+                items.append({
+                    "part_number": part_number,
+                    "part_name": row.get('itemSource', {}).get('itemName', part_number),
+                    "thumbnail_downloaded": False,
+                    "thumbnail_size": None,
+                    "thumbnail_filename": None,
+                    "thumbnail_URL": None,
+                    "error_code": "NO_THUMBNAIL_URL"
+                })
 
         print(f"\n{'='*50}")
         print(f"Download complete!")
-        print(f"  Successful: {success_count}")
-        print(f"  Skipped (no thumbnail): {skip_count}")
+        successful = sum(1 for item in items if item["thumbnail_downloaded"])
+        failed = len(items) - successful
+        print(f"  Successful: {successful}")
+        print(f"  Failed: {failed}")
         print(f"  Total rows: {len(rows)}")
         print(f"{'='*50}")
+        
+        # Generate JSON report
+        generate_json_report(folder_name, items, bom_data)
+        
+        # Generate CSV from BOM data
+        print("\nGenerating CSV from BOM data...")
+        csv_path = os.path.join(folder_name, "bom_data.csv")
+        row_count = convert_json_to_csv(bom_data, csv_path, visible_only=False, include_metadata=False)
+        print(f"CSV generated with {row_count} rows")
         
         input("\nPress Enter to exit...")
 
