@@ -1,6 +1,7 @@
 import requests
 import os
 import json
+import csv
 from dotenv import load_dotenv
 from datetime import datetime
 
@@ -371,6 +372,145 @@ def save_bom_data(folder_name, bom_data):
         print(f"Error saving BOM data: {e}")
         return None
 
+# --- JSON to CSV Conversion Functions ---
+def get_ordered_columns(headers, use_visible_only=False):
+    """
+    Get ordered list of columns based on headers array order.
+    Returns list of tuples: (header_id, display_name, property_name)
+    """
+    columns = []
+    seen = set()
+    
+    for header in headers:
+        if use_visible_only and not header.get('visible', True):
+            continue
+        
+        header_id = header.get('id') or header.get('propertyName')
+        property_name = header.get('propertyName')
+        display_name = header.get('name', property_name)
+        
+        if header_id not in seen:
+            columns.append((header_id, display_name, property_name))
+            seen.add(header_id)
+    
+    return columns
+
+
+def extract_cell_value(row, header_id, property_name):
+    """
+    Extract cell value from a row, checking multiple possible locations.
+    """
+    # Direct lookup by header_id
+    if header_id in row:
+        return format_value(row[header_id])
+    
+    # Direct lookup by property_name
+    if property_name and property_name in row:
+        return format_value(row[property_name])
+    
+    # Check nested 'values' structure
+    if 'values' in row and isinstance(row['values'], dict):
+        if header_id in row['values']:
+            return format_value(row['values'][header_id])
+        if property_name and property_name in row['values']:
+            return format_value(row['values'][property_name])
+    
+    # Check nested 'properties' structure
+    if 'properties' in row and isinstance(row['properties'], dict):
+        if header_id in row['properties']:
+            return format_value(row['properties'][header_id])
+        if property_name and property_name in row['properties']:
+            return format_value(row['properties'][property_name])
+    
+    # Check for headerIdToValue mapping (common in OnShape API)
+    if 'headerIdToValue' in row and isinstance(row['headerIdToValue'], dict):
+        if header_id in row['headerIdToValue']:
+            return format_value(row['headerIdToValue'][header_id])
+    
+    return ''
+
+
+def format_value(value):
+    """Format a value for CSV output, handling commas and newlines appropriately."""
+    if value is None:
+        return ''
+    if isinstance(value, bool):
+        return str(value).lower()
+    if isinstance(value, dict):
+        # Handle objects like Material which might have nested structure
+        if 'displayName' in value:
+            formatted = str(value['displayName'])
+        elif 'value' in value:
+            formatted = str(value['value'])
+        elif 'name' in value:
+            formatted = str(value['name'])
+        else:
+            formatted = json.dumps(value)
+    elif isinstance(value, list):
+        formatted = '; '.join(format_value(v) for v in value)
+    else:
+        formatted = str(value)
+    
+    # Replace problematic characters with underscores to avoid CSV issues
+    # First replace comma-space with just space to avoid "_ " patterns
+    formatted = formatted.replace(', ', ' ')
+    # Then replace any remaining commas with underscores
+    formatted = formatted.replace(',', '_')
+    # Replace newlines and carriage returns with underscores
+    formatted = formatted.replace('\n', '_')
+    formatted = formatted.replace('\r', '_')
+    return formatted
+
+
+def convert_json_to_csv(json_data, output_path, visible_only=False):
+    """
+    Convert JSON BOM data to CSV.
+    
+    Args:
+        json_data: Parsed JSON BOM data
+        output_path: Path for output CSV file
+        visible_only: Only include visible columns
+    
+    Returns:
+        Number of rows written
+    """
+    headers = json_data.get('headers') or []
+    rows = json_data.get('rows') or []
+    
+    # Get ordered columns
+    columns = get_ordered_columns(headers, visible_only)
+    
+    # Write CSV
+    with open(output_path, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        
+        # Write header row
+        writer.writerow([col[1] for col in columns])
+        
+        # Write data rows
+        for row in rows:
+            csv_row = [
+                extract_cell_value(row, col[0], col[2])
+                for col in columns
+            ]
+            writer.writerow(csv_row)
+    
+    return len(rows)
+
+
+def save_bom_as_csv(folder_name, bom_data):
+    """
+    Convert BOM data to CSV and save in root folder.
+    """
+    csv_filename = os.path.join(folder_name, "bom_data.csv")
+    try:
+        row_count = convert_json_to_csv(bom_data, csv_filename)
+        print(f"BOM data exported to CSV: {csv_filename} ({row_count} rows)")
+        return csv_filename
+    except Exception as e:
+        print(f"Error converting BOM to CSV: {e}")
+        return None
+
 # --- Main Execution ---
 def main():
     try:
@@ -465,6 +605,9 @@ def main():
         
         # Generate JSON report in root folder
         generate_json_report(root_folder, items, bom_data)
+        
+        # Convert BOM data to CSV
+        save_bom_as_csv(root_folder, bom_data)
         
         input("\nPress Enter to exit...")
 
