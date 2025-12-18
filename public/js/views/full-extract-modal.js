@@ -23,7 +23,7 @@ let isVisible = false;
 function getModalHTML() {
   return `
     <div id="full-extract-modal" class="modal-overlay" style="display:none;">
-      <div class="modal-content" style="max-width: 500px; padding: 2rem;">
+      <div class="modal-content" style="max-width: 1000px; max-height: 85vh; padding: 2rem;">
         <div class="modal-header" style="margin-bottom: 1.5rem;">
           <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
             <span id="full-extract-icon">📦</span>
