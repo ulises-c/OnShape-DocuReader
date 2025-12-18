@@ -163,9 +163,10 @@ class OnShapeURLParser:
 class OnShapeAPIClient:
     """Client for interacting with the OnShape API."""
     
-    def __init__(self, credentials: OnShapeCredentials, config: OnShapeConfig = None):
+    def __init__(self, credentials: OnShapeCredentials, config: OnShapeConfig = None, debug: bool = False):
         self.credentials = credentials
         self.config = config or OnShapeConfig()
+        self.debug = debug
     
     def build_bom_url(self, parsed_url: ParsedOnShapeURL) -> str:
         """Build the BOM API URL from parsed URL components."""
@@ -187,6 +188,8 @@ class OnShapeAPIClient:
     def fetch_bom(self, parsed_url: ParsedOnShapeURL) -> Optional[dict]:
         """Fetch BOM data from OnShape API."""
         url = self.build_bom_url(parsed_url)
+        if self.debug:
+            print(f"Fetching BOM from URL: {url}")
         
         response = requests.get(
             url,
@@ -274,9 +277,10 @@ class ThumbnailDownloader:
     4. Try any remaining available sizes
     """
     
-    def __init__(self, api_client: OnShapeAPIClient, config: OnShapeConfig = None):
+    def __init__(self, api_client: OnShapeAPIClient, config: OnShapeConfig = None, debug: bool = False):
         self.api_client = api_client
         self.config = config or OnShapeConfig()
+        self.debug = debug # Hide success messages unless debug is True, show errors always.
     
     def download(
         self,
@@ -300,7 +304,8 @@ class ThumbnailDownloader:
         last_status_code = None
         
         # Step 1: Try default size
-        print(f"  Attempting default size: {self.config.default_thumbnail_size}")
+        if self.debug:
+            print(f"  Attempting default size: {self.config.default_thumbnail_size}")
         success, status_code = self._try_download_size(
             base_url, self.config.default_thumbnail_size, 
             safe_filename, save_folder, result
@@ -310,7 +315,7 @@ class ThumbnailDownloader:
         last_status_code = status_code
         
         # Step 2: Fetch metadata for available sizes
-        print(f"  Default size failed (status: {status_code}). Fetching available thumbnail sizes...")
+        print(f"  ERROR - Default size failed (status: {status_code}). Fetching available thumbnail sizes...")
         metadata, metadata_status = self.api_client.fetch_thumbnail_metadata(base_url)
         if not metadata:
             result.error_code = f"METADATA_FETCH_FAILED_{metadata_status}"
@@ -432,7 +437,8 @@ class ThumbnailDownloader:
             result.thumbnail_size = size
             result.thumbnail_filename = f"{filename}.png"
             result.thumbnail_url = href
-            print(f"  Saved: {image_path} (size: {size})")
+            if self.debug:
+                print(f"  Saved: {image_path} (size: {size})")
             return True, None
         
         return False, status_code
@@ -819,9 +825,10 @@ class ThumbnailExtractor:
     Main application class that orchestrates the thumbnail extraction process.
     """
     
-    def __init__(self, credentials: OnShapeCredentials, config: OnShapeConfig = None):
+    def __init__(self, credentials: OnShapeCredentials, config: OnShapeConfig = None, debug: bool = False):
+        self.debug = debug
         self.config = config or OnShapeConfig()
-        self.api_client = OnShapeAPIClient(credentials, self.config)
+        self.api_client = OnShapeAPIClient(credentials, self.config, self.debug)
         self.downloader = ThumbnailDownloader(self.api_client, self.config)
         self.bom_processor = BOMProcessor()
         self.report_generators = [
@@ -918,7 +925,7 @@ class ThumbnailExtractor:
                 )
                 result.part_description = part_description
             else:
-                print(f"  No thumbnail found for: {part_number}")
+                print(f"  ERROR - No thumbnail URL found for: {part_number}")
                 result = ThumbnailResult(
                     part_number=part_number,
                     part_name=part_name,
@@ -967,7 +974,7 @@ def main():
         credentials = CredentialLoader.load()
         
         # Run extraction
-        extractor = ThumbnailExtractor(credentials)
+        extractor = ThumbnailExtractor(credentials, debug=True)
         extractor.run(link)
         
         input("\nPress Enter to exit...")
@@ -983,3 +990,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+    # NOTE: Strange bug found when fetching BOM, sometimes the JSON response is malformed or inconsistent. This comes from the OnShape API side.
+    # At times I have 420 items, other times 361, everything is documented in `thumbnail_extraction/**/*.{json/csv}`
