@@ -385,7 +385,7 @@ async function resolveThumbnailUrl(row, parsedData, documentService) {
  */
 export function parseBomRow(row, headerMap, legacyHeaderMap, index) {
   // Item number: use 'item' header via legacy search, or fallback to index+1
-  const itemNumber = findRowValueLegacy(legacyHeaderMap, legacyHeaderMap, ["item"]) || index + 1;
+  const itemNumber = findRowValueLegacy(row, legacyHeaderMap, ["item"]) || index + 1;
 
   // Part number: use field ID lookup with name fallback (matches Python)
   let partNumber = getRowValue(row, headerMap, "partNumber", "name");
