@@ -77,6 +77,7 @@ class ThumbnailResult:
     """Result of a thumbnail download attempt."""
     part_number: str
     part_name: str
+    part_description: Optional[str] = None
     thumbnail_downloaded: bool = False
     thumbnail_size: Optional[str] = None
     thumbnail_filename: Optional[str] = None
@@ -87,6 +88,7 @@ class ThumbnailResult:
         return {
             "part_number": self.part_number,
             "part_name": self.part_name,
+            "part_description": self.part_description,
             "thumbnail_downloaded": self.thumbnail_downloaded,
             "thumbnail_size": self.thumbnail_size,
             "thumbnail_filename": self.thumbnail_filename,
@@ -446,6 +448,7 @@ class BOMProcessor:
     # OnShape field IDs
     PART_NUMBER_FIELD_ID = "57f3fb8efa3416c06701d60f"
     NAME_FIELD_ID = "57f3fb8efa3416c06701d60d"
+    DESCRIPTION_FIELD_ID = "57f3fb8efa3416c06701d610"  # Standard OnShape description field
     
     @staticmethod
     def get_assembly_info(bom_data: dict) -> tuple:
@@ -483,10 +486,47 @@ class BOMProcessor:
         
         return part_number or "unknown"
     
-    @staticmethod
-    def get_part_name(row: dict) -> str:
+    @classmethod
+    def get_part_name(cls, row: dict) -> str:
         """Extract part name from a BOM row."""
-        return row.get('itemSource', {}).get('itemName', "unknown")
+        # Try itemSource first
+        item_name = row.get('itemSource', {}).get('itemName')
+        if item_name:
+            return item_name
+        
+        # Try headerIdToValue with NAME_FIELD_ID
+        header_values = row.get('headerIdToValue', {})
+        name = header_values.get(cls.NAME_FIELD_ID)
+        if name:
+            return name
+        
+        # Try looking for 'Name' property directly
+        if 'Name' in header_values:
+            return header_values['Name']
+        
+        return "unknown"
+    
+    @classmethod
+    def get_part_description(cls, row: dict) -> Optional[str]:
+        """Extract part description from a BOM row."""
+        header_values = row.get('headerIdToValue', {})
+        
+        # Try standard description field ID
+        description = header_values.get(cls.DESCRIPTION_FIELD_ID)
+        if description:
+            return description
+        
+        # Try common property names
+        for key in ['Description', 'description', 'DESCRIPTION']:
+            if key in header_values and header_values[key]:
+                return header_values[key]
+        
+        # Try itemSource description
+        item_source = row.get('itemSource', {})
+        if 'description' in item_source:
+            return item_source['description']
+        
+        return None
     
     @staticmethod
     def get_thumbnail_url(row: dict, preferred_size: str = "300x300") -> Optional[str]:
@@ -547,6 +587,71 @@ class JSONReportGenerator(ReportGenerator):
         except Exception as e:
             print(f"Error saving JSON report: {e}")
             return None
+    
+    def enrich_from_csv(self, json_report_path: str, csv_path: str) -> bool:
+        """
+        Enrich the JSON report with Name and Description from CSV.
+        Updates items where part_name is 'unknown' or part_description is None.
+        
+        Args:
+            json_report_path: Path to the thumbnail_report.json
+            csv_path: Path to bom_data.csv
+            
+        Returns:
+            True if enrichment was successful
+        """
+        try:
+            # Load JSON report
+            with open(json_report_path, 'r') as f:
+                report = json.load(f)
+            
+            # Load CSV and build lookup by part number
+            csv_lookup = {}
+            with open(csv_path, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    # Try to find part number column (common variations)
+                    part_num = None
+                    for key in ['Part Number', 'Part number', 'part_number', 'PartNumber']:
+                        if key in row and row[key]:
+                            part_num = row[key]
+                            break
+                    
+                    if part_num:
+                        csv_lookup[part_num] = {
+                            'name': row.get('Name') or row.get('name') or row.get('NAME'),
+                            'description': row.get('Description') or row.get('description') or row.get('DESCRIPTION')
+                        }
+            
+            # Enrich JSON items
+            enriched_count = 0
+            for item in report.get('items', []):
+                part_number = item.get('part_number')
+                if part_number and part_number in csv_lookup:
+                    csv_data = csv_lookup[part_number]
+                    
+                    # Update name if currently unknown
+                    if item.get('part_name') == 'unknown' and csv_data.get('name'):
+                        item['part_name'] = csv_data['name']
+                        enriched_count += 1
+                    
+                    # Update description if currently None/empty
+                    if not item.get('part_description') and csv_data.get('description'):
+                        item['part_description'] = csv_data['description']
+                        enriched_count += 1
+            
+            # Save updated report
+            with open(json_report_path, 'w') as f:
+                json.dump(report, f, indent=2)
+            
+            if enriched_count > 0:
+                print(f"Enriched {enriched_count} fields from CSV data")
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error enriching JSON from CSV: {e}")
+            return False
     
     def _analyze_failures(self, results: list) -> dict:
         """Analyze failure codes and return breakdown."""
@@ -765,9 +870,25 @@ class ThumbnailExtractor:
         # Print summary
         self._print_summary(summary, len(rows))
         
-        # Generate reports
+        # Generate reports and track paths
+        json_report_path = None
+        csv_report_path = None
+        
         for generator in self.report_generators:
-            generator.generate(output_folder, summary, bom_data)
+            report_path = generator.generate(output_folder, summary, bom_data)
+            if isinstance(generator, JSONReportGenerator):
+                json_report_path = report_path
+            elif isinstance(generator, CSVReportGenerator):
+                csv_report_path = report_path
+        
+        # Enrich JSON report with CSV data for any missing name/description fields
+        if json_report_path and csv_report_path:
+            json_generator = next(
+                (g for g in self.report_generators if isinstance(g, JSONReportGenerator)), 
+                None
+            )
+            if json_generator:
+                json_generator.enrich_from_csv(json_report_path, csv_report_path)
         
         return True
     
@@ -786,6 +907,7 @@ class ThumbnailExtractor:
         for i, row in enumerate(rows, 1):
             part_number = self.bom_processor.get_part_number(row)
             part_name = self.bom_processor.get_part_name(row)
+            part_description = self.bom_processor.get_part_description(row)
             print(f"[{i}/{len(rows)}] Processing: {part_number}")
             
             thumbnail_url = self.bom_processor.get_thumbnail_url(row)
@@ -794,11 +916,13 @@ class ThumbnailExtractor:
                 result = self.downloader.download(
                     thumbnail_url, part_number, part_name, output_folder
                 )
+                result.part_description = part_description
             else:
                 print(f"  No thumbnail found for: {part_number}")
                 result = ThumbnailResult(
                     part_number=part_number,
                     part_name=part_name,
+                    part_description=part_description,
                     error_code="NO_THUMBNAIL_URL"
                 )
             
