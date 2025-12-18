@@ -4,8 +4,15 @@
  * Exports a complete assembly package including:
  * - Flattened BOM as JSON
  * - Flattened BOM as CSV
- * - Thumbnails for each BOM item
+ * - Thumbnails for each BOM item (organized by part number prefix)
+ * - Thumbnail extraction report
  * - All packaged in a ZIP file
+ *
+ * Enhanced to match Python thumbnail_extractor.py implementation:
+ * - Uses OnShape field IDs for reliable part number extraction
+ * - Hybrid thumbnail URL resolution (BOM direct → metadata fallback → constructed)
+ * - Folder organization: thumbnails/ for PRT/ASM, thumbnails_ignored/ for others
+ * - Comprehensive thumbnail_report.json generation
  *
  * @module utils/fullAssemblyExporter
  */
@@ -26,6 +33,16 @@ const THUMBNAIL_RETRY_DELAY_MS = 300; // Base delay for exponential backoff
 
 // Characters not allowed in filenames (Windows + Unix)
 const INVALID_FILENAME_CHARS = /[<>:"/\\|?*\x00-\x1F]/g;
+
+// OnShape field IDs for reliable BOM data extraction (matches Python implementation)
+const DEFAULT_FIELD_IDS = {
+  partNumber: "57f3fb8efa3416c06701d60f",
+  name: "57f3fb8efa3416c06701d60d",
+  description: "57f3fb8efa3416c06701d610"
+};
+
+// Preferred thumbnail sizes in order of preference (matches Python)
+const PREFERRED_THUMBNAIL_SIZES = ["300x300", "600x340", "300x170", "70x40"];
 
 // ============================================================================
 // Export Phase Constants
@@ -83,70 +100,136 @@ export function sanitizeForFilename(str, maxLength = MAX_FILENAME_LENGTH) {
 }
 
 /**
+ * Determine thumbnail folder based on part number prefix.
+ * PRT/ASM prefixes → thumbnails/
+ * Everything else → thumbnails_ignored/
+ *
+ * @param {string} partNumber - Part number string
+ * @returns {string} Folder name: "thumbnails" or "thumbnails_ignored"
+ */
+function getThumbnailFolder(partNumber) {
+  const prefix = String(partNumber || "").toUpperCase().slice(0, 3);
+  return (prefix === "PRT" || prefix === "ASM") 
+    ? "thumbnails" 
+    : "thumbnails_ignored";
+}
+
+/**
  * Build a thumbnail filename from BOM row data.
- * Format:{partNumber}_{name}.png
+ * Format: {partNumber}_{name}.png
  *
  * @param {Object} rowData - Parsed BOM row data
- * @param {string|number} rowData.itemNumber - Item number from BOM
- * @param {string} rowData.partNumber - Part number (or null if unknown)
+ * @param {string} rowData.partNumber - Part number (or "PRT-UNK"/"ASM-UNK" if unknown)
  * @param {string} rowData.name - Part/assembly name
- * @param {string} rowData.type - 'assembly' or 'part'
  * @returns {string} Sanitized filename with .png extension
  */
 export function buildThumbnailFilename(rowData) {
-  const { itemNumber, partNumber, name, type } = rowData;
+  const { partNumber, name } = rowData;
 
-  // Item number - pad with zeros for sorting (e.g., "001", "002")
-  const itemStr = String(itemNumber).padStart(3, "0");
-
-  // Part number - use ASM-UNK or PRT-UNK if unknown
-  let partStr;
-  if (partNumber && partNumber.trim()) {
-    partStr = sanitizeForFilename(partNumber, 30);
-  } else {
-    partStr = type === "assembly" ? "ASM-UNK" : "PRT-UNK";
-  }
+  // Part number - sanitize
+  const partStr = sanitizeForFilename(partNumber || "unknown", 30);
 
   // Name - sanitize and truncate
-  const nameStr = sanitizeForFilename(name, 50);
+  const nameStr = sanitizeForFilename(name || "Unnamed", 50);
 
   return `${partStr}_${nameStr}.png`;
 }
 
 // ============================================================================
-// BOM Parsing Utilities
+// BOM Header Map (Field ID Resolution)
 // ============================================================================
 
 /**
- * Extract header ID to name mapping from BOM headers.
+ * Build header map from BOM headers, validating against known OnShape defaults.
+ * Uses field IDs for reliable extraction (matches Python implementation).
  *
- * @param {Array} headers - BOM headers array
- * @returns {Map<string, string>} Map of header ID to header name (lowercase)
+ * @param {Array} headers - BOM headers array from OnShape API
+ * @returns {Object} Map of propertyName → { id, name, validated }
  */
 function buildHeaderMap(headers) {
-  const map = new Map();
-  if (!Array.isArray(headers)) return map;
-
+  const map = {};
+  
+  if (!Array.isArray(headers)) {
+    console.warn("[HeaderMap] No headers array provided, using defaults");
+    // Return defaults when no headers available
+    for (const [prop, defaultId] of Object.entries(DEFAULT_FIELD_IDS)) {
+      map[prop] = { id: defaultId, name: prop, validated: false };
+    }
+    return map;
+  }
+  
   for (const header of headers) {
-    if (header.id && header.name) {
-      map.set(header.id, header.name.toLowerCase());
+    const { propertyName, id, name } = header;
+    if (!propertyName) continue;
+    
+    const defaultId = DEFAULT_FIELD_IDS[propertyName];
+    const validated = defaultId ? (id === defaultId) : null;
+    
+    if (defaultId && !validated) {
+      console.warn(
+        `[HeaderMap] Field ID mismatch for "${propertyName}": ` +
+        `expected "${defaultId}", got "${id}". Using API value.`
+      );
+    }
+    
+    map[propertyName] = { id, name, validated };
+  }
+  
+  // Add defaults for missing critical fields
+  for (const [prop, defaultId] of Object.entries(DEFAULT_FIELD_IDS)) {
+    if (!map[prop]) {
+      console.warn(`[HeaderMap] Missing header for "${prop}", using default ID`);
+      map[prop] = { id: defaultId, name: prop, validated: false };
     }
   }
+  
   return map;
 }
 
 /**
- * Find a value in a BOM row by header name (case-insensitive).
+ * Extract value from BOM row using header map with field ID lookup.
+ * Primary method: use field ID from headerMap.
+ * Fallback: search by property name variations.
  *
  * @param {Object} row - BOM row object
- * @param {Map} headerMap - Header ID to name mapping
+ * @param {Object} headerMap - Header map from buildHeaderMap
+ * @param {string} propertyName - Property to extract (e.g., "partNumber")
+ * @param {string} [fallbackPropertyName] - Fallback property if primary not found
+ * @returns {string|null} Extracted value or null
+ */
+function getRowValue(row, headerMap, propertyName, fallbackPropertyName = null) {
+  const headerValues = row.headerIdToValue || {};
+  
+  // Try primary property via field ID
+  const primary = headerMap[propertyName];
+  if (primary?.id && headerValues[primary.id] !== undefined && headerValues[primary.id] !== null) {
+    return String(headerValues[primary.id]);
+  }
+  
+  // Try fallback property via field ID
+  if (fallbackPropertyName) {
+    const fallback = headerMap[fallbackPropertyName];
+    if (fallback?.id && headerValues[fallback.id] !== undefined && headerValues[fallback.id] !== null) {
+      return String(headerValues[fallback.id]);
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Legacy helper: Find a value in a BOM row by header name (case-insensitive).
+ * Used as additional fallback when field ID lookup fails.
+ *
+ * @param {Object} row - BOM row object
+ * @param {Map} headerMapLegacy - Legacy header ID to name mapping
  * @param {string[]} possibleNames - Possible header names to search for
  * @returns {string|null} Found value or null
  */
-function findRowValue(row, headerMap, possibleNames) {
+function findRowValueLegacy(row, headerMapLegacy, possibleNames) {
   if (!row?.headerIdToValue) return null;
 
-  for (const [headerId, headerName] of headerMap) {
+  for (const [headerId, headerName] of headerMapLegacy) {
     if (possibleNames.some((name) => headerName.includes(name.toLowerCase()))) {
       const value = row.headerIdToValue[headerId];
       if (value !== undefined && value !== null) {
@@ -158,102 +241,49 @@ function findRowValue(row, headerMap, possibleNames) {
 }
 
 /**
- * Parse a BOM row to extract thumbnail-relevant data.
- * Matches the Python script approach: uses thumbnailInfo from BOM response when available.
+ * Build legacy header map (ID → name) for fallback searches.
  *
- * @param {Object} row - BOM row from OnShape API
- * @param {Map} headerMap - Header ID to name mapping
- * @param {number} index - Row index (0-based)
- * @returns {Object} Parsed row data with thumbnail info
+ * @param {Array} headers - BOM headers array
+ * @returns {Map<string, string>} Map of header ID to header name (lowercase)
  */
-export function parseBomRow(row, headerMap, index) {
-  // Item number: use 'item' header, or fallback to index+1
-  const itemNumber = findRowValue(row, headerMap, ["item"]) || index + 1;
+function buildLegacyHeaderMap(headers) {
+  const map = new Map();
+  if (!Array.isArray(headers)) return map;
 
-  // Part number: look for 'part number', 'partnumber'
-  const partNumber =
-    findRowValue(row, headerMap, ["part number", "partnumber"]) || null;
-
-  // Name: look for 'name', 'description', 'part name'
-  const name =
-    findRowValue(row, headerMap, ["name", "description", "part name"]) ||
-    "Unnamed";
-
-  // Determine type from BOM data
-  const typeValue = findRowValue(row, headerMap, ["type", "element type"]);
-  const isAssembly =
-    typeValue?.toLowerCase().includes("assembly") ||
-    name.toLowerCase().includes("asm") ||
-    row.itemSource?.elementType === "ASSEMBLY";
-
-  // PRIMARY: Extract thumbnailInfo from itemSource (matches Python script approach)
-  // The BOM API returns thumbnailInfo when thumbnail=true is passed
-  let thumbnailInfo = null;
-  let directThumbnailUrl = null;
-
-  // Check for pre-generated thumbnail URL in itemSource.thumbnailInfo (Python script method)
-  // This is the most reliable method as OnShape pre-generates these URLs
-  if (row.itemSource?.thumbnailInfo?.sizes) {
-    const sizes = row.itemSource.thumbnailInfo.sizes;
-    // Find 300x300 size preference (matches Python script)
-    const preferred = sizes.find((s) => s.size === "300x300");
-    if (preferred?.href) {
-      directThumbnailUrl = preferred.href;
-    } else if (sizes.length > 0 && sizes[0].href) {
-      // Fallback to first available size
-      directThumbnailUrl = sizes[0].href;
+  for (const header of headers) {
+    if (header.id && header.name) {
+      map.set(header.id, header.name.toLowerCase());
     }
   }
-
-  // FALLBACK: Construct URL from itemSource IDs (when thumbnailInfo not available)
-  if (!directThumbnailUrl && row.itemSource) {
-    const src = row.itemSource;
-    if (src.documentId && src.wvmId && src.elementId) {
-      thumbnailInfo = {
-        documentId: src.documentId,
-        workspaceId: src.wvmId, // wvmId is the workspace ID in BOM response
-        elementId: src.elementId,
-        partId: src.partId || null,
-        wvmType: src.wvmType || "w", // workspace vs version
-      };
-    }
-  }
-
-  // SECONDARY FALLBACK: relatedOccurrences for older BOM formats
-  if (
-    !directThumbnailUrl &&
-    !thumbnailInfo &&
-    row.relatedOccurrences?.length > 0
-  ) {
-    const occ = row.relatedOccurrences[0];
-    if (typeof occ === "object" && occ.documentId) {
-      thumbnailInfo = {
-        documentId: occ.documentId,
-        workspaceId: occ.workspaceId,
-        elementId: occ.elementId,
-        partId: occ.partId || null,
-      };
-    }
-  }
-
-  return {
-    itemNumber,
-    partNumber,
-    name,
-    type: isAssembly ? "assembly" : "part",
-    thumbnailInfo,
-    directThumbnailUrl, // Pre-generated URL from OnShape (preferred)
-    originalRow: row,
-  };
+  return map;
 }
 
 // ============================================================================
-// Thumbnail Fetching
+// Thumbnail URL Resolution (Hybrid Strategy)
 // ============================================================================
 
 /**
- * Build the OnShape thumbnail URL for a part/element.
- * This is the fallback method when directThumbnailUrl is not available.
+ * Select preferred thumbnail size from available sizes.
+ * Tries sizes in order: 300x300 → 600x340 → 300x170 → 70x40 → first available.
+ *
+ * @param {Array} sizes - Array of { size, href } objects
+ * @returns {string|null} Selected href or null
+ */
+function selectPreferredSize(sizes) {
+  if (!Array.isArray(sizes) || sizes.length === 0) return null;
+  
+  for (const pref of PREFERRED_THUMBNAIL_SIZES) {
+    const match = sizes.find(s => s.size === pref);
+    if (match?.href) return match.href;
+  }
+  
+  // Fallback to first available
+  return sizes[0]?.href || null;
+}
+
+/**
+ * Build the OnShape thumbnail URL for a part/element (constructed fallback).
+ * This is the tertiary fallback method when direct URLs are unavailable.
  * Supports both workspace (w) and version (v) references.
  *
  * @param {Object} info - Thumbnail info from parsed BOM row
@@ -283,6 +313,268 @@ export function buildThumbnailUrl(info, size = THUMBNAIL_SIZE) {
 }
 
 /**
+ * Resolve thumbnail URL using hybrid multi-tier strategy.
+ * Order: BOM thumbnailInfo direct → metadata API fallback → constructed URL.
+ *
+ * @param {Object} row - BOM row object
+ * @param {Object} parsedData - Parsed row data from parseBomRow
+ * @param {Object} documentService - DocumentService for metadata fallback
+ * @returns {Promise<{url: string|null, source: string}>} Resolved URL and source
+ */
+async function resolveThumbnailUrl(row, parsedData, documentService) {
+  // 1. PRIMARY: Use thumbnailInfo.sizes[].href from BOM response (requires thumbnail=true)
+  const thumbnailInfo = row.itemSource?.thumbnailInfo;
+  if (thumbnailInfo?.sizes?.length > 0) {
+    const url = selectPreferredSize(thumbnailInfo.sizes);
+    if (url) {
+      return { url, source: 'bom-direct' };
+    }
+  }
+  
+  // Also check for direct href in thumbnailInfo
+  if (parsedData.directThumbnailUrl) {
+    return { url: parsedData.directThumbnailUrl, source: 'bom-direct' };
+  }
+  
+  // 2. SECONDARY: Fetch metadata to discover available sizes
+  const itemSource = row.itemSource;
+  if (itemSource && documentService?.getThumbnailMetadata) {
+    try {
+      const metadata = await documentService.getThumbnailMetadata(
+        itemSource.documentId,
+        itemSource.wvmId || itemSource.workspaceId,
+        itemSource.elementId,
+        itemSource.partId
+      );
+      if (metadata?.sizes?.length > 0) {
+        const url = selectPreferredSize(metadata.sizes);
+        if (url) {
+          return { url, source: 'metadata' };
+        }
+      }
+    } catch (e) {
+      // Metadata fetch failed, continue to constructed fallback
+      console.warn(`[ThumbnailResolver] Metadata fallback failed: ${e.message}`);
+    }
+  }
+  
+  // 3. TERTIARY: Construct URL from itemSource IDs
+  if (parsedData.thumbnailInfo) {
+    const url = buildThumbnailUrl(parsedData.thumbnailInfo);
+    if (url) {
+      return { url, source: 'constructed' };
+    }
+  }
+  
+  return { url: null, source: null };
+}
+
+// ============================================================================
+// BOM Parsing
+// ============================================================================
+
+/**
+ * Parse a BOM row to extract thumbnail-relevant data.
+ * Uses OnShape field IDs for reliable extraction (matches Python).
+ *
+ * @param {Object} row - BOM row from OnShape API
+ * @param {Object} headerMap - Header map from buildHeaderMap
+ * @param {Map} legacyHeaderMap - Legacy header map for fallback
+ * @param {number} index - Row index (0-based)
+ * @returns {Object} Parsed row data with thumbnail info
+ */
+export function parseBomRow(row, headerMap, legacyHeaderMap, index) {
+  // Item number: use 'item' header via legacy search, or fallback to index+1
+  const itemNumber = findRowValueLegacy(legacyHeaderMap, legacyHeaderMap, ["item"]) || index + 1;
+
+  // Part number: use field ID lookup with name fallback (matches Python)
+  let partNumber = getRowValue(row, headerMap, "partNumber", "name");
+  
+  // If still no part number, try legacy search
+  if (!partNumber) {
+    partNumber = findRowValueLegacy(row, legacyHeaderMap, ["part number", "partnumber"]);
+  }
+  
+  // Name: try itemSource first, then field ID, then legacy
+  let name = row.itemSource?.itemName;
+  if (!name) {
+    name = getRowValue(row, headerMap, "name");
+  }
+  if (!name) {
+    name = findRowValueLegacy(row, legacyHeaderMap, ["name", "description", "part name"]);
+  }
+  name = name || "Unnamed";
+
+  // Description: field ID with legacy fallback
+  let description = getRowValue(row, headerMap, "description");
+  if (!description) {
+    description = findRowValueLegacy(row, legacyHeaderMap, ["description"]);
+  }
+
+  // Determine type from BOM data
+  const typeValue = findRowValueLegacy(row, legacyHeaderMap, ["type", "element type"]);
+  const isAssembly =
+    typeValue?.toLowerCase().includes("assembly") ||
+    name.toLowerCase().includes("asm") ||
+    (partNumber && partNumber.toUpperCase().startsWith("ASM")) ||
+    row.itemSource?.elementType === "ASSEMBLY";
+
+  // Extract thumbnailInfo from itemSource for direct URL (Python approach)
+  let directThumbnailUrl = null;
+  if (row.itemSource?.thumbnailInfo?.sizes) {
+    const sizes = row.itemSource.thumbnailInfo.sizes;
+    directThumbnailUrl = selectPreferredSize(sizes);
+  }
+
+  // Build fallback thumbnailInfo for constructed URLs
+  let thumbnailInfo = null;
+  if (row.itemSource) {
+    const src = row.itemSource;
+    if (src.documentId && src.wvmId && src.elementId) {
+      thumbnailInfo = {
+        documentId: src.documentId,
+        workspaceId: src.wvmId,
+        elementId: src.elementId,
+        partId: src.partId || null,
+        wvmType: src.wvmType || "w",
+      };
+    }
+  }
+
+  // Secondary fallback: relatedOccurrences
+  if (!directThumbnailUrl && !thumbnailInfo && row.relatedOccurrences?.length > 0) {
+    const occ = row.relatedOccurrences[0];
+    if (typeof occ === "object" && occ.documentId) {
+      thumbnailInfo = {
+        documentId: occ.documentId,
+        workspaceId: occ.workspaceId,
+        elementId: occ.elementId,
+        partId: occ.partId || null,
+      };
+    }
+  }
+
+  return {
+    itemNumber,
+    partNumber: partNumber || (isAssembly ? "ASM-UNK" : "PRT-UNK"),
+    name,
+    description,
+    type: isAssembly ? "assembly" : "part",
+    thumbnailInfo,
+    directThumbnailUrl,
+    originalRow: row,
+  };
+}
+
+// ============================================================================
+// Thumbnail Report Generation
+// ============================================================================
+
+/**
+ * Thumbnail report generator class.
+ * Tracks extraction results and generates comprehensive report.
+ */
+class ThumbnailReport {
+  constructor(assemblyName, bomRowCount) {
+    this.metadata = {
+      generatedAt: new Date().toISOString(),
+      assemblyName,
+      bomRowCount
+    };
+    this.items = [];
+    this.errors = [];
+  }
+  
+  addSuccess(partNumber, folder, filename, source) {
+    this.items.push({ 
+      partNumber, 
+      folder, 
+      filename, 
+      source, 
+      success: true 
+    });
+  }
+  
+  addFailure(partNumber, itemSource, error, attemptedUrls = []) {
+    this.items.push({ 
+      partNumber, 
+      folder: null, 
+      filename: null, 
+      source: null, 
+      success: false 
+    });
+    this.errors.push({ 
+      partNumber, 
+      itemSource: itemSource ? {
+        documentId: itemSource.documentId,
+        elementId: itemSource.elementId,
+        partId: itemSource.partId
+      } : null,
+      error, 
+      attemptedUrls 
+    });
+  }
+  
+  addSkipped(partNumber, reason) {
+    this.items.push({
+      partNumber,
+      folder: null,
+      filename: null,
+      source: null,
+      success: false,
+      skipped: true,
+      skipReason: reason
+    });
+  }
+  
+  generate() {
+    const succeeded = this.items.filter(i => i.success).length;
+    const failed = this.items.filter(i => !i.success && !i.skipped).length;
+    const skipped = this.items.filter(i => i.skipped).length;
+    
+    // Group by folder
+    const byFolder = {};
+    for (const item of this.items) {
+      const folder = item.folder || (item.skipped ? 'skipped' : 'failed');
+      byFolder[folder] = byFolder[folder] || { count: 0, succeeded: 0, failed: 0 };
+      byFolder[folder].count++;
+      if (item.success) {
+        byFolder[folder].succeeded++;
+      } else {
+        byFolder[folder].failed++;
+      }
+    }
+    
+    // Group by source
+    const bySource = {};
+    for (const item of this.items.filter(i => i.success)) {
+      bySource[item.source] = (bySource[item.source] || 0) + 1;
+    }
+    
+    return {
+      metadata: this.metadata,
+      summary: {
+        total: this.items.length,
+        succeeded,
+        failed,
+        skipped,
+        successRate: this.items.length > 0 
+          ? `${((succeeded / this.items.length) * 100).toFixed(1)}%`
+          : "0%"
+      },
+      byFolder,
+      bySource,
+      errors: this.errors,
+      items: this.items
+    };
+  }
+}
+
+// ============================================================================
+// Thumbnail Fetching
+// ============================================================================
+
+/**
  * Fetch a thumbnail via the proxy endpoint with retry logic.
  * Tries multiple URL strategies if the primary fails.
  * Uses exponential backoff for rate limiting and server errors.
@@ -291,7 +583,7 @@ export function buildThumbnailUrl(info, size = THUMBNAIL_SIZE) {
  * @param {string|null} fallbackUrl - Fallback URL to try if primary fails (constructed URL)
  * @param {number} retries - Number of retries on failure (default: 2)
  * @param {number} retryDelayMs - Base delay between retries (default: 300)
- * @returns {Promise<Blob|null>} Thumbnail blob or null on failure
+ * @returns {Promise<{blob: Blob|null, usedUrl: string|null}>} Thumbnail blob and URL used
  */
 async function fetchThumbnailBlob(
   primaryUrl,
@@ -299,12 +591,14 @@ async function fetchThumbnailBlob(
   retries = THUMBNAIL_RETRY_COUNT,
   retryDelayMs = THUMBNAIL_RETRY_DELAY_MS
 ) {
-  if (!primaryUrl && !fallbackUrl) return null;
+  if (!primaryUrl && !fallbackUrl) return { blob: null, usedUrl: null };
 
   const urlsToTry = [primaryUrl, fallbackUrl].filter(Boolean);
+  const attemptedUrls = [];
 
   for (let urlIndex = 0; urlIndex < urlsToTry.length; urlIndex++) {
     const thumbnailUrl = urlsToTry[urlIndex];
+    attemptedUrls.push(thumbnailUrl);
     const isLastUrl = urlIndex === urlsToTry.length - 1;
     const proxyUrl = `/api/thumbnail-proxy?url=${encodeURIComponent(
       thumbnailUrl
@@ -322,7 +616,7 @@ async function fetchThumbnailBlob(
             (blob.type.startsWith("image/") ||
               blob.type === "application/octet-stream")
           ) {
-            return blob;
+            return { blob, usedUrl: thumbnailUrl, attemptedUrls };
           }
           // Small response or wrong type - probably an error page
           console.warn(
@@ -387,23 +681,28 @@ async function fetchThumbnailBlob(
     }
   }
 
-  return null;
+  return { blob: null, usedUrl: null, attemptedUrls };
 }
 
 /**
  * Fetch thumbnails with concurrency limit and rate limiting.
+ * Uses hybrid URL resolution strategy.
  *
- * @param {Array} items - Array of {primaryUrl, fallbackUrl, filename} objects
+ * @param {Array} items - Array of parsed BOM items with thumbnail info
  * @param {number} concurrency - Max concurrent fetches
  * @param {Function} onProgress - Progress callback (current, total, item)
  * @param {number} delayMs - Delay between fetches in ms (rate limiting)
- * @returns {Promise<Array>} Array of {filename, blob} results
+ * @param {Object} documentService - DocumentService for metadata fallback
+ * @param {ThumbnailReport} report - Report instance for tracking
+ * @returns {Promise<Array>} Array of {filename, blob, folder} results
  */
 async function fetchThumbnailsWithLimit(
   items,
   concurrency,
   onProgress,
-  delayMs = DEFAULT_THUMBNAIL_DELAY_MS
+  delayMs = DEFAULT_THUMBNAIL_DELAY_MS,
+  documentService,
+  report
 ) {
   const results = [];
   const queue = [...items];
@@ -425,18 +724,56 @@ async function fetchThumbnailsWithLimit(
           await delay(delayMs);
         }
 
-        const blob = await fetchThumbnailBlob(
-          item.primaryUrl,
-          item.fallbackUrl
+        const { parsed, row } = item;
+        const filename = buildThumbnailFilename(parsed);
+        const folder = getThumbnailFolder(parsed.partNumber);
+
+        // Use hybrid URL resolution
+        const { url: resolvedUrl, source } = await resolveThumbnailUrl(
+          row, 
+          parsed, 
+          documentService
         );
+        
+        // Also get constructed URL as additional fallback
+        const constructedUrl = buildThumbnailUrl(parsed.thumbnailInfo);
+        
+        if (!resolvedUrl && !constructedUrl) {
+          // No URL available at all
+          report.addSkipped(parsed.partNumber, "No thumbnail URL available");
+          completed++;
+          if (onProgress) {
+            onProgress(completed, items.length, { filename, parsed });
+          }
+          continue;
+        }
+
+        const { blob, usedUrl, attemptedUrls } = await fetchThumbnailBlob(
+          resolvedUrl,
+          source !== 'constructed' ? constructedUrl : null // Don't try constructed twice
+        );
+        
         completed++;
 
         if (onProgress) {
-          onProgress(completed, items.length, item);
+          onProgress(completed, items.length, { filename, parsed });
         }
 
         if (blob) {
-          results.push({ filename: item.filename, blob });
+          results.push({ filename, blob, folder });
+          report.addSuccess(
+            parsed.partNumber, 
+            folder, 
+            filename, 
+            source || 'constructed'
+          );
+        } else {
+          report.addFailure(
+            parsed.partNumber,
+            parsed.thumbnailInfo,
+            "All thumbnail URLs failed",
+            attemptedUrls || []
+          );
         }
       }
 
@@ -523,17 +860,13 @@ export async function fullAssemblyExtract(options) {
     const JSZip = await loadJSZip();
     const zip = new JSZip();
 
-    // Phase: Fetch BOM
-    // IMPORTANT: Call getBillOfMaterials with NO extra parameters to match "Download BOM CSV" behavior exactly.
-    // This ensures both features use the identical code path through document-service.js.
-    // The service defaults are: flatten=true, includeThumbnails=false
-    // We will construct thumbnail URLs from itemSource data instead.
+    // Phase: Fetch BOM (now with thumbnail=true via updated service)
     reportProgress(ExportPhase.FETCHING_BOM);
-    console.log(`[FullExtract] Fetching flattened BOM for ${assemblyName}...`);
+    console.log(`[FullExtract] Fetching BOM with thumbnails for ${assemblyName}...`);
 
     let bom;
     try {
-      // Match handleDownloadBomCsv: no extra params, uses service defaults
+      // getBillOfMaterials now always includes thumbnail=true
       bom = await documentService.getBillOfMaterials(
         documentId,
         workspaceId,
@@ -555,7 +888,6 @@ export async function fullAssemblyExtract(options) {
         bom.headers?.length || 0
       } headers`
     );
-    console.log(`[FullExtract] BOM type: ${bom.type || "unknown"}`);
 
     // Phase: Convert to CSV
     reportProgress(ExportPhase.CONVERTING_CSV, { bomRows: bom.rows.length });
@@ -574,34 +906,35 @@ export async function fullAssemblyExtract(options) {
     }
 
     // Phase: Parse BOM and prepare thumbnail fetches
-    // Since we didn't request thumbnailInfo in the BOM, we construct URLs from itemSource
+    // Build both header maps for extraction
     const headerMap = buildHeaderMap(bom.headers);
+    const legacyHeaderMap = buildLegacyHeaderMap(bom.headers);
+    
+    // Create folder references in ZIP
     const thumbnailsFolder = zip.folder("thumbnails");
+    const thumbnailsIgnoredFolder = zip.folder("thumbnails_ignored");
+
+    // Initialize thumbnail report
+    const thumbnailReport = new ThumbnailReport(assemblyName, bom.rows.length);
 
     const thumbnailItems = [];
     let skippedNoInfo = 0;
 
     for (let i = 0; i < bom.rows.length; i++) {
       const row = bom.rows[i];
-      const parsed = parseBomRow(row, headerMap, i);
-      const filename = buildThumbnailFilename(parsed);
+      const parsed = parseBomRow(row, headerMap, legacyHeaderMap, i);
 
-      // Since we didn't request thumbnail=true, directThumbnailUrl will be null
-      // We rely on constructing URLs from itemSource data
-      const primaryUrl = parsed.directThumbnailUrl;
-      const fallbackUrl = buildThumbnailUrl(parsed.thumbnailInfo);
-
-      if (primaryUrl || fallbackUrl) {
+      // Check if we have any thumbnail source
+      if (parsed.directThumbnailUrl || parsed.thumbnailInfo) {
         thumbnailItems.push({
-          primaryUrl,
-          fallbackUrl,
-          filename,
           parsed,
+          row,
         });
       } else {
         skippedNoInfo++;
+        thumbnailReport.addSkipped(parsed.partNumber, "No thumbnail info in BOM row");
         console.log(
-          `[FullExtract] Row ${i + 1}: No thumbnail info for "${parsed.name}"`
+          `[FullExtract] Row ${i + 1}: No thumbnail info for "${parsed.name}" (${parsed.partNumber})`
         );
       }
     }
@@ -613,7 +946,7 @@ export async function fullAssemblyExtract(options) {
       `[FullExtract] Using ${CONCURRENT_THUMBNAIL_LIMIT} concurrent workers with ${thumbnailDelayMs}ms delay`
     );
 
-    // Phase: Fetch thumbnails with rate limiting
+    // Phase: Fetch thumbnails with hybrid resolution and rate limiting
     reportProgress(ExportPhase.FETCHING_THUMBNAILS, {
       totalThumbnails: thumbnailItems.length,
       currentThumbnail: 0,
@@ -629,17 +962,27 @@ export async function fullAssemblyExtract(options) {
           currentItem: item.filename,
         });
       },
-      thumbnailDelayMs // Pass rate limiting delay
+      thumbnailDelayMs,
+      documentService,
+      thumbnailReport
     );
 
     console.log(
       `[FullExtract] Fetched ${thumbnailResults.length}/${thumbnailItems.length} thumbnails`
     );
 
-    // Add thumbnails to ZIP
-    for (const { filename, blob } of thumbnailResults) {
-      thumbnailsFolder.file(filename, blob);
+    // Add thumbnails to appropriate folders in ZIP
+    for (const { filename, blob, folder } of thumbnailResults) {
+      if (folder === "thumbnails") {
+        thumbnailsFolder.file(filename, blob);
+      } else {
+        thumbnailsIgnoredFolder.file(filename, blob);
+      }
     }
+
+    // Generate and add thumbnail report
+    const reportData = thumbnailReport.generate();
+    zip.file("thumbnail_report.json", JSON.stringify(reportData, null, 2));
 
     // Phase: Build ZIP
     reportProgress(ExportPhase.BUILDING_ZIP);
@@ -659,12 +1002,14 @@ export async function fullAssemblyExtract(options) {
     downloadBlob(zipBlob, zipFilename);
 
     // Phase: Complete
+    const reportSummary = reportData.summary;
     reportProgress(ExportPhase.COMPLETE, {
       bomRows: bom.rows.length,
-      thumbnailsDownloaded: thumbnailResults.length,
-      thumbnailsFailed: thumbnailItems.length - thumbnailResults.length,
-      thumbnailsSkipped: skippedNoInfo,
+      thumbnailsDownloaded: reportSummary.succeeded,
+      thumbnailsFailed: reportSummary.failed,
+      thumbnailsSkipped: reportSummary.skipped,
       zipSizeBytes: zipBlob.size,
+      thumbnailReport: reportSummary,
     });
 
     console.log(
@@ -672,6 +1017,7 @@ export async function fullAssemblyExtract(options) {
         1
       )} KB)`
     );
+    console.log(`[FullExtract] Thumbnails by source:`, reportData.bySource);
   } catch (error) {
     console.error("[FullExtract] Error:", error);
     reportProgress(ExportPhase.ERROR, { error: error.message });

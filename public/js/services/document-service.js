@@ -125,29 +125,28 @@ export class DocumentService {
 
   /**
    * Get Bill of Materials for an assembly element.
+   * Always includes thumbnail=true to get pre-generated thumbnail URLs (matches Python implementation).
+   * 
    * @param {string} documentId - Document ID
    * @param {string} workspaceId - Workspace ID
    * @param {string} elementId - Element ID (assembly)
    * @param {boolean} flatten - If true, returns flattened BOM (indented=false)
-   * @param {boolean} includeThumbnails - If true, includes thumbnail URLs in response
-   * @returns {Promise<Object>} BOM data with headers and rows
+   * @param {boolean} includeThumbnails - DEPRECATED: Thumbnails are now always included
+   * @returns {Promise<Object>} BOM data with headers, rows, and thumbnailInfo
    */
   async getBillOfMaterials(documentId, workspaceId, elementId, flatten = true, includeThumbnails = false) {
-    // Parameters aligned with Python bom_to_csv.py script for complete BOM retrieval
+    // Parameters aligned with Python thumbnail_extractor.py for complete BOM retrieval
+    // ALWAYS include thumbnail=true to get pre-generated URLs from OnShape (most reliable method)
     const params = {
-      indented: String(!flatten), // false for flattened, true for structured
-      generateIfAbsent: "false",
-      onlyVisibleColumns: "false",  // Include all columns, not just visible ones
-      ignoreSubassemblyBomBehavior: "false",  // Respect subassembly BOM behavior settings
-      includeItemMicroversions: "true",  // Include microversion info for each item
-      includeTopLevelAssemblyRow: "false",  // Don't include the top-level assembly as a row
+      indented: "true",                         // Always true for multi-level hierarchy
+      multiLevel: "true",                       // Include nested assemblies
+      generateIfAbsent: "false",                // Don't auto-generate if missing
+      includeExcluded: "false",                 // Don't include excluded items
+      ignoreSubassemblyBomBehavior: "false",    // Respect subassembly BOM behavior
+      includeItemMicroversions: "true",         // Include microversion for each item
+      includeTopLevelAssemblyRow: "true",       // Include top-level assembly as row
+      thumbnail: "true",                        // CRITICAL: Always request thumbnails
     };
-    
-    // Add thumbnail parameter to get pre-generated thumbnail URLs
-    // This adds thumbnailInfo.sizes[].href to each row's itemSource
-    if (includeThumbnails) {
-      params.thumbnail = "true";
-    }
 
     return this.api.getBillOfMaterials(
       documentId,
@@ -155,6 +154,20 @@ export class DocumentService {
       elementId,
       params
     );
+  }
+
+  /**
+   * Fetch thumbnail metadata to discover available sizes.
+   * Used as fallback when direct thumbnail URL is unavailable.
+   * 
+   * @param {string} documentId - Document ID
+   * @param {string} workspaceId - Workspace ID  
+   * @param {string} elementId - Element ID
+   * @param {string} [partId] - Optional part ID for part-specific thumbnail
+   * @returns {Promise<Object>} Thumbnail metadata with available sizes
+   */
+  async getThumbnailMetadata(documentId, workspaceId, elementId, partId = null) {
+    return this.api.getThumbnailMetadata(documentId, workspaceId, elementId, partId);
   }
 
   async getComprehensiveDocument(documentId, params) {

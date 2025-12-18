@@ -1,6 +1,6 @@
 # onshape-docureader
 
-Generated: 2025-12-16 17:02
+Generated: 2025-12-17 18:01
 
 Using OnShape API to gather information about documents
 
@@ -127,18 +127,2605 @@ onshape-docureader/
 │   │   ├── session.d.ts
 │   │   └── usage.d.ts
 │   └── index.ts
+├── thumbnail_extraction/
+│   ├── D01-LazaSystems_BOM_Estimate_2025-12-17-T15-44-46/
+│   │   ├── thumbnails/
+│   │   │   ├── ASM-000308.png
+│   │   │   ├── ASM-000309.png
+│   │   │   ├── ASM-000310.png
+│   │   │   ├── ASM-000319.png
+│   │   │   ├── ASM-000320.png
+│   │   │   ├── ASM-000369.png
+│   │   │   ├── ASM-000372.png
+│   │   │   ├── ASM-000375.png
+│   │   │   ├── ASM-000392.png
+│   │   │   ├── ASM-000524.png
+│   │   │   ├── ASM-000542.png
+│   │   │   ├── ASM-000565.png
+│   │   │   ├── ASM-000573.png
+│   │   │   ├── ASM-000585.png
+│   │   │   ├── ASM-000613.png
+│   │   │   ├── ASM-000655.png
+│   │   │   ├── ASM-000683.png
+│   │   │   ├── ASM-000832.png
+│   │   │   ├── ASM-000844.png
+│   │   │   ├── ASM-000961.png
+│   │   │   ├── ASM-001012.png
+│   │   │   ├── ASM-001078.png
+│   │   │   ├── ASM-001118.png
+│   │   │   ├── PRT-000311.png
+│   │   │   ├── PRT-000312.png
+│   │   │   ├── PRT-000313.png
+│   │   │   ├── PRT-000314.png
+│   │   │   ├── PRT-000315.png
+│   │   │   ├── PRT-000316.png
+│   │   │   ├── PRT-000317.png
+│   │   │   ├── PRT-000318.png
+│   │   │   ├── PRT-000321.png
+│   │   │   ├── PRT-000322.png
+│   │   │   ├── PRT-000323.png
+│   │   │   ├── PRT-000324.png
+│   │   │   ├── PRT-000325.png
+│   │   │   ├── PRT-000326.png
+│   │   │   ├── PRT-000328.png
+│   │   │   ├── PRT-000329.png
+│   │   │   ├── PRT-000330.png
+│   │   │   ├── PRT-000331.png
+│   │   │   ├── PRT-000332.png
+│   │   │   ├── PRT-000342.png
+│   │   │   ├── PRT-000357.png
+│   │   │   ├── PRT-000361.png
+│   │   │   ├── PRT-000363.png
+│   │   │   ├── PRT-000364.png
+│   │   │   ├── PRT-000370.png
+│   │   │   ├── PRT-000371.png
+│   │   │   ├── PRT-000379.png
+│   │   │   ├── PRT-000380.png
+│   │   │   ├── PRT-000381.png
+│   │   │   ├── PRT-000382.png
+│   │   │   ├── PRT-000383.png
+│   │   │   ├── PRT-000384.png
+│   │   │   ├── PRT-000385.png
+│   │   │   ├── PRT-000386.png
+│   │   │   ├── PRT-000394.png
+│   │   │   ├── PRT-000395.png
+│   │   │   ├── PRT-000396.png
+│   │   │   ├── PRT-000397.png
+│   │   │   ├── PRT-000409.png
+│   │   │   ├── PRT-000415.png
+│   │   │   ├── PRT-000416.png
+│   │   │   ├── PRT-000417.png
+│   │   │   ├── PRT-000418.png
+│   │   │   ├── PRT-000420.png
+│   │   │   ├── PRT-000421.png
+│   │   │   ├── PRT-000422.png
+│   │   │   ├── PRT-000423.png
+│   │   │   ├── PRT-000424.png
+│   │   │   ├── PRT-000425.png
+│   │   │   ├── PRT-000426.png
+│   │   │   ├── PRT-000427.png
+│   │   │   ├── PRT-000428.png
+│   │   │   ├── PRT-000429.png
+│   │   │   ├── PRT-000430.png
+│   │   │   ├── PRT-000431.png
+│   │   │   ├── PRT-000432.png
+│   │   │   ├── PRT-000433.png
+│   │   │   ├── PRT-000434.png
+│   │   │   ├── PRT-000437.png
+│   │   │   ├── PRT-000438.png
+│   │   │   ├── PRT-000440.png
+│   │   │   ├── PRT-000441.png
+│   │   │   ├── PRT-000442.png
+│   │   │   ├── PRT-000443.png
+│   │   │   ├── PRT-000444.png
+│   │   │   ├── PRT-000448.png
+│   │   │   ├── PRT-000449.png
+│   │   │   ├── PRT-000450.png
+│   │   │   ├── PRT-000522.png
+│   │   │   ├── PRT-000523.png
+│   │   │   ├── PRT-000569.png
+│   │   │   ├── PRT-000614.png
+│   │   │   ├── PRT-000615.png
+│   │   │   ├── PRT-000616.png
+│   │   │   ├── PRT-000617.png
+│   │   │   ├── PRT-000622.png
+│   │   │   ├── PRT-000623.png
+│   │   │   ├── PRT-000625.png
+│   │   │   ├── PRT-000630.png
+│   │   │   ├── PRT-000631.png
+│   │   │   ├── PRT-000635.png
+│   │   │   ├── PRT-000636.png
+│   │   │   ├── PRT-000637.png
+│   │   │   ├── PRT-000638.png
+│   │   │   ├── PRT-000639.png
+│   │   │   ├── PRT-000642.png
+│   │   │   ├── PRT-000643.png
+│   │   │   ├── PRT-000647.png
+│   │   │   ├── PRT-000648.png
+│   │   │   ├── PRT-000649.png
+│   │   │   ├── PRT-000650.png
+│   │   │   ├── PRT-000651.png
+│   │   │   ├── PRT-000652.png
+│   │   │   ├── PRT-000660.png
+│   │   │   ├── PRT-000661.png
+│   │   │   ├── PRT-000680.png
+│   │   │   ├── PRT-000692.png
+│   │   │   ├── PRT-000698.png
+│   │   │   ├── PRT-000700.png
+│   │   │   ├── PRT-000749.png
+│   │   │   ├── PRT-000758.png
+│   │   │   ├── PRT-000759.png
+│   │   │   ├── PRT-000760.png
+│   │   │   ├── PRT-000761.png
+│   │   │   ├── PRT-000763.png
+│   │   │   ├── PRT-000768.png
+│   │   │   ├── PRT-000773.png
+│   │   │   ├── PRT-000774.png
+│   │   │   ├── PRT-000775.png
+│   │   │   ├── PRT-000786.png
+│   │   │   ├── PRT-000808.png
+│   │   │   ├── PRT-000811.png
+│   │   │   ├── PRT-000812.png
+│   │   │   ├── PRT-000822.png
+│   │   │   ├── PRT-000823.png
+│   │   │   ├── PRT-000824.png
+│   │   │   ├── PRT-000825.png
+│   │   │   ├── PRT-000826.png
+│   │   │   ├── PRT-000827.png
+│   │   │   ├── PRT-000828.png
+│   │   │   ├── PRT-000831.png
+│   │   │   ├── PRT-000833.png
+│   │   │   ├── PRT-000835.png
+│   │   │   ├── PRT-000837.png
+│   │   │   ├── PRT-000839.png
+│   │   │   ├── PRT-000840.png
+│   │   │   ├── PRT-000845.png
+│   │   │   ├── PRT-000846.png
+│   │   │   ├── PRT-000849.png
+│   │   │   ├── PRT-000851.png
+│   │   │   ├── PRT-000856.png
+│   │   │   ├── PRT-000864.png
+│   │   │   ├── PRT-000868.png
+│   │   │   ├── PRT-000870.png
+│   │   │   ├── PRT-000871.png
+│   │   │   ├── PRT-000876.png
+│   │   │   ├── PRT-000878.png
+│   │   │   ├── PRT-000879.png
+│   │   │   ├── PRT-000881.png
+│   │   │   ├── PRT-000882.png
+│   │   │   ├── PRT-000883.png
+│   │   │   ├── PRT-000884.png
+│   │   │   ├── PRT-000885.png
+│   │   │   ├── PRT-000886.png
+│   │   │   ├── PRT-000887.png
+│   │   │   ├── PRT-000888.png
+│   │   │   ├── PRT-000889.png
+│   │   │   ├── PRT-000890.png
+│   │   │   ├── PRT-000891.png
+│   │   │   ├── PRT-000892.png
+│   │   │   ├── PRT-000893.png
+│   │   │   ├── PRT-000894.png
+│   │   │   ├── PRT-000895.png
+│   │   │   ├── PRT-000896.png
+│   │   │   ├── PRT-000897.png
+│   │   │   ├── PRT-000898.png
+│   │   │   ├── PRT-000902.png
+│   │   │   ├── PRT-000903.png
+│   │   │   ├── PRT-000904.png
+│   │   │   ├── PRT-000913.png
+│   │   │   ├── PRT-000914.png
+│   │   │   ├── PRT-000915.png
+│   │   │   ├── PRT-000916.png
+│   │   │   ├── PRT-000917.png
+│   │   │   ├── PRT-000918.png
+│   │   │   ├── PRT-000919.png
+│   │   │   ├── PRT-000921.png
+│   │   │   ├── PRT-000924.png
+│   │   │   ├── PRT-000925.png
+│   │   │   ├── PRT-000929.png
+│   │   │   ├── PRT-000931.png
+│   │   │   ├── PRT-000932.png
+│   │   │   ├── PRT-000937.png
+│   │   │   ├── PRT-000938.png
+│   │   │   ├── PRT-000939.png
+│   │   │   ├── PRT-000940.png
+│   │   │   ├── PRT-000941.png
+│   │   │   ├── PRT-000942.png
+│   │   │   ├── PRT-000943.png
+│   │   │   ├── PRT-000945.png
+│   │   │   ├── PRT-000946.png
+│   │   │   ├── PRT-000947.png
+│   │   │   ├── PRT-000948.png
+│   │   │   ├── PRT-000949.png
+│   │   │   ├── PRT-000950.png
+│   │   │   ├── PRT-000951.png
+│   │   │   ├── PRT-000957.png
+│   │   │   ├── PRT-000959.png
+│   │   │   ├── PRT-000966.png
+│   │   │   ├── PRT-000967.png
+│   │   │   ├── PRT-000969.png
+│   │   │   ├── PRT-000970.png
+│   │   │   ├── PRT-000973.png
+│   │   │   ├── PRT-000978.png
+│   │   │   ├── PRT-000979.png
+│   │   │   ├── PRT-000986.png
+│   │   │   ├── PRT-000988.png
+│   │   │   ├── PRT-000990.png
+│   │   │   ├── PRT-001001.png
+│   │   │   ├── PRT-001002.png
+│   │   │   ├── PRT-001007.png
+│   │   │   ├── PRT-001013.png
+│   │   │   ├── PRT-001014.png
+│   │   │   ├── PRT-001015.png
+│   │   │   ├── PRT-001016.png
+│   │   │   ├── PRT-001017.png
+│   │   │   ├── PRT-001018.png
+│   │   │   ├── PRT-001019.png
+│   │   │   ├── PRT-001047.png
+│   │   │   ├── PRT-001048.png
+│   │   │   ├── PRT-001049.png
+│   │   │   ├── PRT-001051.png
+│   │   │   ├── PRT-001052.png
+│   │   │   ├── PRT-001053.png
+│   │   │   ├── PRT-001054.png
+│   │   │   ├── PRT-001055.png
+│   │   │   ├── PRT-001056.png
+│   │   │   ├── PRT-001057.png
+│   │   │   ├── PRT-001058.png
+│   │   │   ├── PRT-001060.png
+│   │   │   ├── PRT-001061.png
+│   │   │   ├── PRT-001062.png
+│   │   │   ├── PRT-001063.png
+│   │   │   ├── PRT-001066.png
+│   │   │   ├── PRT-001067.png
+│   │   │   ├── PRT-001068.png
+│   │   │   ├── PRT-001069.png
+│   │   │   ├── PRT-001070.png
+│   │   │   ├── PRT-001071.png
+│   │   │   ├── PRT-001072.png
+│   │   │   ├── PRT-001073.png
+│   │   │   ├── PRT-001074.png
+│   │   │   ├── PRT-001075.png
+│   │   │   ├── PRT-001076.png
+│   │   │   ├── PRT-001079.png
+│   │   │   ├── PRT-001080.png
+│   │   │   ├── PRT-001081.png
+│   │   │   ├── PRT-001082.png
+│   │   │   ├── PRT-001083.png
+│   │   │   ├── PRT-001092.png
+│   │   │   ├── PRT-001093.png
+│   │   │   ├── PRT-001094.png
+│   │   │   ├── PRT-001095.png
+│   │   │   ├── PRT-001096.png
+│   │   │   ├── PRT-001097.png
+│   │   │   ├── PRT-001099.png
+│   │   │   ├── PRT-001100.png
+│   │   │   ├── PRT-001103.png
+│   │   │   ├── PRT-001104.png
+│   │   │   ├── PRT-001105.png
+│   │   │   ├── PRT-001107.png
+│   │   │   ├── PRT-001108.png
+│   │   │   ├── PRT-001109.png
+│   │   │   ├── PRT-001111.png
+│   │   │   ├── PRT-001112.png
+│   │   │   ├── PRT-001113.png
+│   │   │   ├── PRT-001114.png
+│   │   │   ├── PRT-001115.png
+│   │   │   ├── PRT-001116.png
+│   │   │   └── PRT-001117.png
+│   │   ├── thumbnails_ignored/
+│   │   │   ├── Cable_Insertion-to-Wrist.png
+│   │   │   ├── Pin_Dowel_DIA3_L22_SS_ISO2338-m6_McM_91585A372.png
+│   │   │   ├── Pin_Dowel_DIA3_L24_SS_ISO2338-m6_McM_91585A402.png
+│   │   │   ├── Ref_DistalGuide_Nut.png
+│   │   │   ├── Ref_DistalGuide_Thumbscrew.png
+│   │   │   └── Screw_M6x1_HEX_L30_SS_McM_91287A139.png
+│   │   ├── bom_data.csv
+│   │   ├── bom_data.json
+│   │   └── thumbnail_report.json
+│   ├── D01-LazaSystems_BOM_Estimate_2025-12-17-T15-59-18/
+│   │   ├── thumbnails/
+│   │   │   ├── ASM-000308.png
+│   │   │   ├── ASM-000309.png
+│   │   │   ├── ASM-000310.png
+│   │   │   ├── ASM-000319.png
+│   │   │   ├── ASM-000320.png
+│   │   │   ├── ASM-000369.png
+│   │   │   ├── ASM-000372.png
+│   │   │   ├── ASM-000375.png
+│   │   │   ├── ASM-000392.png
+│   │   │   ├── ASM-000524.png
+│   │   │   ├── ASM-000542.png
+│   │   │   ├── ASM-000565.png
+│   │   │   ├── ASM-000573.png
+│   │   │   ├── ASM-000585.png
+│   │   │   ├── ASM-000613.png
+│   │   │   ├── ASM-000655.png
+│   │   │   ├── ASM-000683.png
+│   │   │   ├── ASM-000832.png
+│   │   │   ├── ASM-000844.png
+│   │   │   ├── ASM-000961.png
+│   │   │   ├── ASM-001012.png
+│   │   │   ├── ASM-001078.png
+│   │   │   ├── ASM-001118.png
+│   │   │   ├── PRT-000311.png
+│   │   │   ├── PRT-000312.png
+│   │   │   ├── PRT-000313.png
+│   │   │   ├── PRT-000314.png
+│   │   │   ├── PRT-000315.png
+│   │   │   ├── PRT-000316.png
+│   │   │   ├── PRT-000317.png
+│   │   │   ├── PRT-000318.png
+│   │   │   ├── PRT-000321.png
+│   │   │   ├── PRT-000322.png
+│   │   │   ├── PRT-000323.png
+│   │   │   ├── PRT-000324.png
+│   │   │   ├── PRT-000325.png
+│   │   │   ├── PRT-000326.png
+│   │   │   ├── PRT-000328.png
+│   │   │   ├── PRT-000329.png
+│   │   │   ├── PRT-000330.png
+│   │   │   ├── PRT-000331.png
+│   │   │   ├── PRT-000332.png
+│   │   │   ├── PRT-000342.png
+│   │   │   ├── PRT-000357.png
+│   │   │   ├── PRT-000361.png
+│   │   │   ├── PRT-000363.png
+│   │   │   ├── PRT-000364.png
+│   │   │   ├── PRT-000370.png
+│   │   │   ├── PRT-000371.png
+│   │   │   ├── PRT-000379.png
+│   │   │   ├── PRT-000380.png
+│   │   │   ├── PRT-000381.png
+│   │   │   ├── PRT-000382.png
+│   │   │   ├── PRT-000383.png
+│   │   │   ├── PRT-000384.png
+│   │   │   ├── PRT-000385.png
+│   │   │   ├── PRT-000386.png
+│   │   │   ├── PRT-000394.png
+│   │   │   ├── PRT-000395.png
+│   │   │   ├── PRT-000396.png
+│   │   │   ├── PRT-000397.png
+│   │   │   ├── PRT-000409.png
+│   │   │   ├── PRT-000415.png
+│   │   │   ├── PRT-000416.png
+│   │   │   ├── PRT-000417.png
+│   │   │   ├── PRT-000418.png
+│   │   │   ├── PRT-000420.png
+│   │   │   ├── PRT-000421.png
+│   │   │   ├── PRT-000422.png
+│   │   │   ├── PRT-000423.png
+│   │   │   ├── PRT-000424.png
+│   │   │   ├── PRT-000425.png
+│   │   │   ├── PRT-000426.png
+│   │   │   ├── PRT-000427.png
+│   │   │   ├── PRT-000428.png
+│   │   │   ├── PRT-000429.png
+│   │   │   ├── PRT-000430.png
+│   │   │   ├── PRT-000431.png
+│   │   │   ├── PRT-000432.png
+│   │   │   ├── PRT-000433.png
+│   │   │   ├── PRT-000434.png
+│   │   │   ├── PRT-000437.png
+│   │   │   ├── PRT-000438.png
+│   │   │   ├── PRT-000440.png
+│   │   │   ├── PRT-000441.png
+│   │   │   ├── PRT-000442.png
+│   │   │   ├── PRT-000443.png
+│   │   │   ├── PRT-000444.png
+│   │   │   ├── PRT-000448.png
+│   │   │   ├── PRT-000449.png
+│   │   │   ├── PRT-000450.png
+│   │   │   ├── PRT-000522.png
+│   │   │   ├── PRT-000523.png
+│   │   │   ├── PRT-000569.png
+│   │   │   ├── PRT-000614.png
+│   │   │   ├── PRT-000615.png
+│   │   │   ├── PRT-000616.png
+│   │   │   ├── PRT-000617.png
+│   │   │   ├── PRT-000622.png
+│   │   │   ├── PRT-000623.png
+│   │   │   ├── PRT-000625.png
+│   │   │   ├── PRT-000630.png
+│   │   │   ├── PRT-000631.png
+│   │   │   ├── PRT-000635.png
+│   │   │   ├── PRT-000636.png
+│   │   │   ├── PRT-000637.png
+│   │   │   ├── PRT-000638.png
+│   │   │   ├── PRT-000639.png
+│   │   │   ├── PRT-000642.png
+│   │   │   ├── PRT-000643.png
+│   │   │   ├── PRT-000647.png
+│   │   │   ├── PRT-000648.png
+│   │   │   ├── PRT-000649.png
+│   │   │   ├── PRT-000650.png
+│   │   │   ├── PRT-000651.png
+│   │   │   ├── PRT-000652.png
+│   │   │   ├── PRT-000660.png
+│   │   │   ├── PRT-000661.png
+│   │   │   ├── PRT-000680.png
+│   │   │   ├── PRT-000692.png
+│   │   │   ├── PRT-000698.png
+│   │   │   ├── PRT-000700.png
+│   │   │   ├── PRT-000749.png
+│   │   │   ├── PRT-000758.png
+│   │   │   ├── PRT-000759.png
+│   │   │   ├── PRT-000760.png
+│   │   │   ├── PRT-000761.png
+│   │   │   ├── PRT-000763.png
+│   │   │   ├── PRT-000768.png
+│   │   │   ├── PRT-000773.png
+│   │   │   ├── PRT-000774.png
+│   │   │   ├── PRT-000775.png
+│   │   │   ├── PRT-000786.png
+│   │   │   ├── PRT-000808.png
+│   │   │   ├── PRT-000811.png
+│   │   │   ├── PRT-000812.png
+│   │   │   ├── PRT-000822.png
+│   │   │   ├── PRT-000823.png
+│   │   │   ├── PRT-000824.png
+│   │   │   ├── PRT-000825.png
+│   │   │   ├── PRT-000826.png
+│   │   │   ├── PRT-000827.png
+│   │   │   ├── PRT-000828.png
+│   │   │   ├── PRT-000831.png
+│   │   │   ├── PRT-000833.png
+│   │   │   ├── PRT-000835.png
+│   │   │   ├── PRT-000837.png
+│   │   │   ├── PRT-000839.png
+│   │   │   ├── PRT-000840.png
+│   │   │   ├── PRT-000845.png
+│   │   │   ├── PRT-000846.png
+│   │   │   ├── PRT-000849.png
+│   │   │   ├── PRT-000851.png
+│   │   │   ├── PRT-000856.png
+│   │   │   ├── PRT-000864.png
+│   │   │   ├── PRT-000868.png
+│   │   │   ├── PRT-000870.png
+│   │   │   ├── PRT-000871.png
+│   │   │   ├── PRT-000876.png
+│   │   │   ├── PRT-000878.png
+│   │   │   ├── PRT-000879.png
+│   │   │   ├── PRT-000881.png
+│   │   │   ├── PRT-000882.png
+│   │   │   ├── PRT-000883.png
+│   │   │   ├── PRT-000884.png
+│   │   │   ├── PRT-000885.png
+│   │   │   ├── PRT-000886.png
+│   │   │   ├── PRT-000887.png
+│   │   │   ├── PRT-000888.png
+│   │   │   ├── PRT-000889.png
+│   │   │   ├── PRT-000890.png
+│   │   │   ├── PRT-000891.png
+│   │   │   ├── PRT-000892.png
+│   │   │   ├── PRT-000893.png
+│   │   │   ├── PRT-000894.png
+│   │   │   ├── PRT-000895.png
+│   │   │   ├── PRT-000896.png
+│   │   │   ├── PRT-000897.png
+│   │   │   ├── PRT-000898.png
+│   │   │   ├── PRT-000902.png
+│   │   │   ├── PRT-000903.png
+│   │   │   ├── PRT-000904.png
+│   │   │   ├── PRT-000913.png
+│   │   │   ├── PRT-000914.png
+│   │   │   ├── PRT-000915.png
+│   │   │   ├── PRT-000916.png
+│   │   │   ├── PRT-000917.png
+│   │   │   ├── PRT-000918.png
+│   │   │   ├── PRT-000919.png
+│   │   │   ├── PRT-000921.png
+│   │   │   ├── PRT-000924.png
+│   │   │   ├── PRT-000925.png
+│   │   │   ├── PRT-000929.png
+│   │   │   ├── PRT-000931.png
+│   │   │   ├── PRT-000932.png
+│   │   │   ├── PRT-000937.png
+│   │   │   ├── PRT-000938.png
+│   │   │   ├── PRT-000939.png
+│   │   │   ├── PRT-000940.png
+│   │   │   ├── PRT-000941.png
+│   │   │   ├── PRT-000942.png
+│   │   │   ├── PRT-000943.png
+│   │   │   ├── PRT-000945.png
+│   │   │   ├── PRT-000946.png
+│   │   │   ├── PRT-000947.png
+│   │   │   ├── PRT-000948.png
+│   │   │   ├── PRT-000949.png
+│   │   │   ├── PRT-000950.png
+│   │   │   ├── PRT-000951.png
+│   │   │   ├── PRT-000957.png
+│   │   │   ├── PRT-000959.png
+│   │   │   ├── PRT-000966.png
+│   │   │   ├── PRT-000967.png
+│   │   │   ├── PRT-000969.png
+│   │   │   ├── PRT-000970.png
+│   │   │   ├── PRT-000973.png
+│   │   │   ├── PRT-000978.png
+│   │   │   ├── PRT-000979.png
+│   │   │   ├── PRT-000986.png
+│   │   │   ├── PRT-000988.png
+│   │   │   ├── PRT-000990.png
+│   │   │   ├── PRT-001001.png
+│   │   │   ├── PRT-001002.png
+│   │   │   ├── PRT-001007.png
+│   │   │   ├── PRT-001013.png
+│   │   │   ├── PRT-001014.png
+│   │   │   ├── PRT-001015.png
+│   │   │   ├── PRT-001016.png
+│   │   │   ├── PRT-001017.png
+│   │   │   ├── PRT-001018.png
+│   │   │   ├── PRT-001019.png
+│   │   │   ├── PRT-001047.png
+│   │   │   ├── PRT-001048.png
+│   │   │   ├── PRT-001049.png
+│   │   │   ├── PRT-001051.png
+│   │   │   ├── PRT-001052.png
+│   │   │   ├── PRT-001053.png
+│   │   │   ├── PRT-001054.png
+│   │   │   ├── PRT-001055.png
+│   │   │   ├── PRT-001056.png
+│   │   │   ├── PRT-001057.png
+│   │   │   ├── PRT-001058.png
+│   │   │   ├── PRT-001060.png
+│   │   │   ├── PRT-001061.png
+│   │   │   ├── PRT-001062.png
+│   │   │   ├── PRT-001063.png
+│   │   │   ├── PRT-001066.png
+│   │   │   ├── PRT-001067.png
+│   │   │   ├── PRT-001068.png
+│   │   │   ├── PRT-001069.png
+│   │   │   ├── PRT-001070.png
+│   │   │   ├── PRT-001071.png
+│   │   │   ├── PRT-001072.png
+│   │   │   ├── PRT-001073.png
+│   │   │   ├── PRT-001074.png
+│   │   │   ├── PRT-001075.png
+│   │   │   ├── PRT-001076.png
+│   │   │   ├── PRT-001079.png
+│   │   │   ├── PRT-001080.png
+│   │   │   ├── PRT-001081.png
+│   │   │   ├── PRT-001082.png
+│   │   │   ├── PRT-001083.png
+│   │   │   ├── PRT-001092.png
+│   │   │   ├── PRT-001093.png
+│   │   │   ├── PRT-001094.png
+│   │   │   ├── PRT-001095.png
+│   │   │   ├── PRT-001096.png
+│   │   │   ├── PRT-001097.png
+│   │   │   ├── PRT-001099.png
+│   │   │   ├── PRT-001100.png
+│   │   │   ├── PRT-001103.png
+│   │   │   ├── PRT-001104.png
+│   │   │   ├── PRT-001105.png
+│   │   │   ├── PRT-001107.png
+│   │   │   ├── PRT-001108.png
+│   │   │   ├── PRT-001109.png
+│   │   │   ├── PRT-001111.png
+│   │   │   ├── PRT-001112.png
+│   │   │   ├── PRT-001113.png
+│   │   │   ├── PRT-001114.png
+│   │   │   ├── PRT-001115.png
+│   │   │   ├── PRT-001116.png
+│   │   │   └── PRT-001117.png
+│   │   ├── thumbnails_ignored/
+│   │   │   ├── Cable_Insertion-to-Wrist.png
+│   │   │   ├── Pin_Dowel_DIA3_L22_SS_ISO2338-m6_McM_91585A372.png
+│   │   │   ├── Pin_Dowel_DIA3_L24_SS_ISO2338-m6_McM_91585A402.png
+│   │   │   ├── Ref_DistalGuide_Nut.png
+│   │   │   ├── Ref_DistalGuide_Thumbscrew.png
+│   │   │   └── Screw_M6x1_HEX_L30_SS_McM_91287A139.png
+│   │   ├── bom_data.csv
+│   │   ├── bom_data.json
+│   │   └── thumbnail_report.json
+│   ├── D01-LazaSystems_BOM_Estimate_2025-12-17-T16-05-16/
+│   │   ├── thumbnails/
+│   │   │   ├── ASM-000308.png
+│   │   │   ├── ASM-000309.png
+│   │   │   ├── ASM-000310.png
+│   │   │   ├── ASM-000319.png
+│   │   │   ├── ASM-000320.png
+│   │   │   ├── ASM-000369.png
+│   │   │   ├── ASM-000372.png
+│   │   │   ├── ASM-000375.png
+│   │   │   ├── ASM-000392.png
+│   │   │   ├── ASM-000524.png
+│   │   │   ├── ASM-000542.png
+│   │   │   ├── ASM-000565.png
+│   │   │   ├── ASM-000573.png
+│   │   │   ├── ASM-000585.png
+│   │   │   ├── ASM-000613.png
+│   │   │   ├── ASM-000655.png
+│   │   │   ├── ASM-000683.png
+│   │   │   ├── ASM-000832.png
+│   │   │   ├── ASM-000844.png
+│   │   │   ├── ASM-000961.png
+│   │   │   ├── ASM-001012.png
+│   │   │   ├── ASM-001078.png
+│   │   │   ├── ASM-001118.png
+│   │   │   ├── PRT-000311.png
+│   │   │   ├── PRT-000312.png
+│   │   │   ├── PRT-000313.png
+│   │   │   ├── PRT-000314.png
+│   │   │   ├── PRT-000315.png
+│   │   │   ├── PRT-000316.png
+│   │   │   ├── PRT-000317.png
+│   │   │   ├── PRT-000318.png
+│   │   │   ├── PRT-000321.png
+│   │   │   ├── PRT-000322.png
+│   │   │   ├── PRT-000323.png
+│   │   │   ├── PRT-000324.png
+│   │   │   ├── PRT-000325.png
+│   │   │   ├── PRT-000326.png
+│   │   │   ├── PRT-000328.png
+│   │   │   ├── PRT-000329.png
+│   │   │   ├── PRT-000330.png
+│   │   │   ├── PRT-000331.png
+│   │   │   ├── PRT-000332.png
+│   │   │   ├── PRT-000342.png
+│   │   │   ├── PRT-000357.png
+│   │   │   ├── PRT-000361.png
+│   │   │   ├── PRT-000363.png
+│   │   │   ├── PRT-000364.png
+│   │   │   ├── PRT-000370.png
+│   │   │   ├── PRT-000371.png
+│   │   │   ├── PRT-000379.png
+│   │   │   ├── PRT-000380.png
+│   │   │   ├── PRT-000381.png
+│   │   │   ├── PRT-000382.png
+│   │   │   ├── PRT-000383.png
+│   │   │   ├── PRT-000384.png
+│   │   │   ├── PRT-000385.png
+│   │   │   ├── PRT-000386.png
+│   │   │   ├── PRT-000394.png
+│   │   │   ├── PRT-000395.png
+│   │   │   ├── PRT-000396.png
+│   │   │   ├── PRT-000397.png
+│   │   │   ├── PRT-000409.png
+│   │   │   ├── PRT-000415.png
+│   │   │   ├── PRT-000416.png
+│   │   │   ├── PRT-000417.png
+│   │   │   ├── PRT-000418.png
+│   │   │   ├── PRT-000420.png
+│   │   │   ├── PRT-000421.png
+│   │   │   ├── PRT-000422.png
+│   │   │   ├── PRT-000423.png
+│   │   │   ├── PRT-000424.png
+│   │   │   ├── PRT-000425.png
+│   │   │   ├── PRT-000426.png
+│   │   │   ├── PRT-000427.png
+│   │   │   ├── PRT-000428.png
+│   │   │   ├── PRT-000429.png
+│   │   │   ├── PRT-000430.png
+│   │   │   ├── PRT-000431.png
+│   │   │   ├── PRT-000432.png
+│   │   │   ├── PRT-000433.png
+│   │   │   ├── PRT-000434.png
+│   │   │   ├── PRT-000437.png
+│   │   │   ├── PRT-000438.png
+│   │   │   ├── PRT-000440.png
+│   │   │   ├── PRT-000441.png
+│   │   │   ├── PRT-000442.png
+│   │   │   ├── PRT-000443.png
+│   │   │   ├── PRT-000444.png
+│   │   │   ├── PRT-000448.png
+│   │   │   ├── PRT-000449.png
+│   │   │   ├── PRT-000450.png
+│   │   │   ├── PRT-000522.png
+│   │   │   ├── PRT-000523.png
+│   │   │   ├── PRT-000569.png
+│   │   │   ├── PRT-000614.png
+│   │   │   ├── PRT-000615.png
+│   │   │   ├── PRT-000616.png
+│   │   │   ├── PRT-000617.png
+│   │   │   ├── PRT-000622.png
+│   │   │   ├── PRT-000623.png
+│   │   │   ├── PRT-000625.png
+│   │   │   ├── PRT-000630.png
+│   │   │   ├── PRT-000631.png
+│   │   │   ├── PRT-000635.png
+│   │   │   ├── PRT-000636.png
+│   │   │   ├── PRT-000637.png
+│   │   │   ├── PRT-000638.png
+│   │   │   ├── PRT-000639.png
+│   │   │   ├── PRT-000642.png
+│   │   │   ├── PRT-000643.png
+│   │   │   ├── PRT-000647.png
+│   │   │   ├── PRT-000648.png
+│   │   │   ├── PRT-000649.png
+│   │   │   ├── PRT-000650.png
+│   │   │   ├── PRT-000651.png
+│   │   │   ├── PRT-000652.png
+│   │   │   ├── PRT-000660.png
+│   │   │   ├── PRT-000661.png
+│   │   │   ├── PRT-000680.png
+│   │   │   ├── PRT-000692.png
+│   │   │   ├── PRT-000698.png
+│   │   │   ├── PRT-000700.png
+│   │   │   ├── PRT-000749.png
+│   │   │   ├── PRT-000758.png
+│   │   │   ├── PRT-000759.png
+│   │   │   ├── PRT-000760.png
+│   │   │   ├── PRT-000761.png
+│   │   │   ├── PRT-000763.png
+│   │   │   ├── PRT-000768.png
+│   │   │   ├── PRT-000773.png
+│   │   │   ├── PRT-000774.png
+│   │   │   ├── PRT-000775.png
+│   │   │   ├── PRT-000786.png
+│   │   │   ├── PRT-000808.png
+│   │   │   ├── PRT-000811.png
+│   │   │   ├── PRT-000812.png
+│   │   │   ├── PRT-000822.png
+│   │   │   ├── PRT-000823.png
+│   │   │   ├── PRT-000824.png
+│   │   │   ├── PRT-000825.png
+│   │   │   ├── PRT-000826.png
+│   │   │   ├── PRT-000827.png
+│   │   │   ├── PRT-000828.png
+│   │   │   ├── PRT-000831.png
+│   │   │   ├── PRT-000833.png
+│   │   │   ├── PRT-000835.png
+│   │   │   ├── PRT-000837.png
+│   │   │   ├── PRT-000839.png
+│   │   │   ├── PRT-000840.png
+│   │   │   ├── PRT-000845.png
+│   │   │   ├── PRT-000846.png
+│   │   │   ├── PRT-000849.png
+│   │   │   ├── PRT-000851.png
+│   │   │   ├── PRT-000856.png
+│   │   │   ├── PRT-000864.png
+│   │   │   ├── PRT-000868.png
+│   │   │   ├── PRT-000870.png
+│   │   │   ├── PRT-000871.png
+│   │   │   ├── PRT-000876.png
+│   │   │   ├── PRT-000878.png
+│   │   │   ├── PRT-000879.png
+│   │   │   ├── PRT-000881.png
+│   │   │   ├── PRT-000882.png
+│   │   │   ├── PRT-000883.png
+│   │   │   ├── PRT-000884.png
+│   │   │   ├── PRT-000885.png
+│   │   │   ├── PRT-000886.png
+│   │   │   ├── PRT-000887.png
+│   │   │   ├── PRT-000888.png
+│   │   │   ├── PRT-000889.png
+│   │   │   ├── PRT-000890.png
+│   │   │   ├── PRT-000891.png
+│   │   │   ├── PRT-000892.png
+│   │   │   ├── PRT-000893.png
+│   │   │   ├── PRT-000894.png
+│   │   │   ├── PRT-000895.png
+│   │   │   ├── PRT-000896.png
+│   │   │   ├── PRT-000897.png
+│   │   │   ├── PRT-000898.png
+│   │   │   ├── PRT-000902.png
+│   │   │   ├── PRT-000903.png
+│   │   │   ├── PRT-000904.png
+│   │   │   ├── PRT-000913.png
+│   │   │   ├── PRT-000914.png
+│   │   │   ├── PRT-000915.png
+│   │   │   ├── PRT-000916.png
+│   │   │   ├── PRT-000917.png
+│   │   │   ├── PRT-000918.png
+│   │   │   ├── PRT-000919.png
+│   │   │   ├── PRT-000921.png
+│   │   │   ├── PRT-000924.png
+│   │   │   ├── PRT-000925.png
+│   │   │   ├── PRT-000929.png
+│   │   │   ├── PRT-000931.png
+│   │   │   ├── PRT-000932.png
+│   │   │   ├── PRT-000937.png
+│   │   │   ├── PRT-000938.png
+│   │   │   ├── PRT-000939.png
+│   │   │   ├── PRT-000940.png
+│   │   │   ├── PRT-000941.png
+│   │   │   ├── PRT-000942.png
+│   │   │   ├── PRT-000943.png
+│   │   │   ├── PRT-000945.png
+│   │   │   ├── PRT-000946.png
+│   │   │   ├── PRT-000947.png
+│   │   │   ├── PRT-000948.png
+│   │   │   ├── PRT-000949.png
+│   │   │   ├── PRT-000950.png
+│   │   │   ├── PRT-000951.png
+│   │   │   ├── PRT-000957.png
+│   │   │   ├── PRT-000959.png
+│   │   │   ├── PRT-000966.png
+│   │   │   ├── PRT-000967.png
+│   │   │   ├── PRT-000969.png
+│   │   │   ├── PRT-000970.png
+│   │   │   ├── PRT-000973.png
+│   │   │   ├── PRT-000978.png
+│   │   │   ├── PRT-000979.png
+│   │   │   ├── PRT-000986.png
+│   │   │   ├── PRT-000988.png
+│   │   │   ├── PRT-000990.png
+│   │   │   ├── PRT-001001.png
+│   │   │   ├── PRT-001002.png
+│   │   │   ├── PRT-001007.png
+│   │   │   ├── PRT-001013.png
+│   │   │   ├── PRT-001014.png
+│   │   │   ├── PRT-001015.png
+│   │   │   ├── PRT-001016.png
+│   │   │   ├── PRT-001017.png
+│   │   │   ├── PRT-001018.png
+│   │   │   ├── PRT-001019.png
+│   │   │   ├── PRT-001047.png
+│   │   │   ├── PRT-001048.png
+│   │   │   ├── PRT-001049.png
+│   │   │   ├── PRT-001051.png
+│   │   │   ├── PRT-001052.png
+│   │   │   ├── PRT-001053.png
+│   │   │   ├── PRT-001054.png
+│   │   │   ├── PRT-001055.png
+│   │   │   ├── PRT-001056.png
+│   │   │   ├── PRT-001057.png
+│   │   │   ├── PRT-001058.png
+│   │   │   ├── PRT-001060.png
+│   │   │   ├── PRT-001061.png
+│   │   │   ├── PRT-001062.png
+│   │   │   ├── PRT-001063.png
+│   │   │   ├── PRT-001066.png
+│   │   │   ├── PRT-001067.png
+│   │   │   ├── PRT-001068.png
+│   │   │   ├── PRT-001069.png
+│   │   │   ├── PRT-001070.png
+│   │   │   ├── PRT-001071.png
+│   │   │   ├── PRT-001072.png
+│   │   │   ├── PRT-001073.png
+│   │   │   ├── PRT-001074.png
+│   │   │   ├── PRT-001075.png
+│   │   │   ├── PRT-001076.png
+│   │   │   ├── PRT-001079.png
+│   │   │   ├── PRT-001080.png
+│   │   │   ├── PRT-001081.png
+│   │   │   ├── PRT-001082.png
+│   │   │   ├── PRT-001083.png
+│   │   │   ├── PRT-001092.png
+│   │   │   ├── PRT-001093.png
+│   │   │   ├── PRT-001094.png
+│   │   │   ├── PRT-001095.png
+│   │   │   ├── PRT-001096.png
+│   │   │   ├── PRT-001097.png
+│   │   │   ├── PRT-001099.png
+│   │   │   ├── PRT-001100.png
+│   │   │   ├── PRT-001103.png
+│   │   │   ├── PRT-001104.png
+│   │   │   ├── PRT-001105.png
+│   │   │   ├── PRT-001107.png
+│   │   │   ├── PRT-001108.png
+│   │   │   ├── PRT-001109.png
+│   │   │   ├── PRT-001111.png
+│   │   │   ├── PRT-001112.png
+│   │   │   ├── PRT-001113.png
+│   │   │   ├── PRT-001114.png
+│   │   │   ├── PRT-001115.png
+│   │   │   ├── PRT-001116.png
+│   │   │   └── PRT-001117.png
+│   │   ├── thumbnails_ignored/
+│   │   │   ├── Cable_Insertion-to-Wrist.png
+│   │   │   ├── Pin_Dowel_DIA3_L22_SS_ISO2338-m6_McM_91585A372.png
+│   │   │   ├── Pin_Dowel_DIA3_L24_SS_ISO2338-m6_McM_91585A402.png
+│   │   │   ├── Ref_DistalGuide_Nut.png
+│   │   │   ├── Ref_DistalGuide_Thumbscrew.png
+│   │   │   └── Screw_M6x1_HEX_L30_SS_McM_91287A139.png
+│   │   ├── bom_data.csv
+│   │   ├── bom_data.json
+│   │   └── thumbnail_report.json
+│   ├── D01-LazaSystems_BOM_Estimate_2025-12-17-T16-29-49/
+│   │   ├── thumbnails/
+│   │   │   ├── ASM-000308.png
+│   │   │   ├── ASM-000309.png
+│   │   │   ├── ASM-000310.png
+│   │   │   ├── ASM-000319.png
+│   │   │   ├── ASM-000320.png
+│   │   │   ├── ASM-000369.png
+│   │   │   ├── ASM-000372.png
+│   │   │   ├── ASM-000375.png
+│   │   │   ├── ASM-000392.png
+│   │   │   ├── ASM-000524.png
+│   │   │   ├── ASM-000542.png
+│   │   │   ├── ASM-000565.png
+│   │   │   ├── ASM-000573.png
+│   │   │   ├── ASM-000585.png
+│   │   │   ├── ASM-000613.png
+│   │   │   ├── ASM-000655.png
+│   │   │   ├── ASM-000683.png
+│   │   │   ├── ASM-000832.png
+│   │   │   ├── ASM-000844.png
+│   │   │   ├── ASM-000961.png
+│   │   │   ├── ASM-001012.png
+│   │   │   ├── ASM-001078.png
+│   │   │   ├── ASM-001118.png
+│   │   │   ├── PRT-000311.png
+│   │   │   ├── PRT-000312.png
+│   │   │   ├── PRT-000313.png
+│   │   │   ├── PRT-000314.png
+│   │   │   ├── PRT-000315.png
+│   │   │   ├── PRT-000316.png
+│   │   │   ├── PRT-000317.png
+│   │   │   ├── PRT-000318.png
+│   │   │   ├── PRT-000321.png
+│   │   │   ├── PRT-000322.png
+│   │   │   ├── PRT-000323.png
+│   │   │   ├── PRT-000324.png
+│   │   │   ├── PRT-000325.png
+│   │   │   ├── PRT-000326.png
+│   │   │   ├── PRT-000328.png
+│   │   │   ├── PRT-000329.png
+│   │   │   ├── PRT-000330.png
+│   │   │   ├── PRT-000331.png
+│   │   │   ├── PRT-000332.png
+│   │   │   ├── PRT-000342.png
+│   │   │   ├── PRT-000357.png
+│   │   │   ├── PRT-000361.png
+│   │   │   ├── PRT-000363.png
+│   │   │   ├── PRT-000364.png
+│   │   │   ├── PRT-000370.png
+│   │   │   ├── PRT-000371.png
+│   │   │   ├── PRT-000379.png
+│   │   │   ├── PRT-000380.png
+│   │   │   ├── PRT-000381.png
+│   │   │   ├── PRT-000382.png
+│   │   │   ├── PRT-000383.png
+│   │   │   ├── PRT-000384.png
+│   │   │   ├── PRT-000385.png
+│   │   │   ├── PRT-000386.png
+│   │   │   ├── PRT-000394.png
+│   │   │   ├── PRT-000395.png
+│   │   │   ├── PRT-000396.png
+│   │   │   ├── PRT-000397.png
+│   │   │   ├── PRT-000409.png
+│   │   │   ├── PRT-000415.png
+│   │   │   ├── PRT-000416.png
+│   │   │   ├── PRT-000417.png
+│   │   │   ├── PRT-000418.png
+│   │   │   ├── PRT-000420.png
+│   │   │   ├── PRT-000421.png
+│   │   │   ├── PRT-000422.png
+│   │   │   ├── PRT-000423.png
+│   │   │   ├── PRT-000424.png
+│   │   │   ├── PRT-000425.png
+│   │   │   ├── PRT-000426.png
+│   │   │   ├── PRT-000427.png
+│   │   │   ├── PRT-000428.png
+│   │   │   ├── PRT-000429.png
+│   │   │   ├── PRT-000430.png
+│   │   │   ├── PRT-000431.png
+│   │   │   ├── PRT-000432.png
+│   │   │   ├── PRT-000433.png
+│   │   │   ├── PRT-000434.png
+│   │   │   ├── PRT-000437.png
+│   │   │   ├── PRT-000438.png
+│   │   │   ├── PRT-000440.png
+│   │   │   ├── PRT-000441.png
+│   │   │   ├── PRT-000442.png
+│   │   │   ├── PRT-000443.png
+│   │   │   ├── PRT-000444.png
+│   │   │   ├── PRT-000448.png
+│   │   │   ├── PRT-000449.png
+│   │   │   ├── PRT-000450.png
+│   │   │   ├── PRT-000522.png
+│   │   │   ├── PRT-000523.png
+│   │   │   ├── PRT-000569.png
+│   │   │   ├── PRT-000614.png
+│   │   │   ├── PRT-000615.png
+│   │   │   ├── PRT-000616.png
+│   │   │   ├── PRT-000617.png
+│   │   │   ├── PRT-000622.png
+│   │   │   ├── PRT-000623.png
+│   │   │   ├── PRT-000625.png
+│   │   │   ├── PRT-000630.png
+│   │   │   ├── PRT-000631.png
+│   │   │   ├── PRT-000635.png
+│   │   │   ├── PRT-000636.png
+│   │   │   ├── PRT-000637.png
+│   │   │   ├── PRT-000638.png
+│   │   │   ├── PRT-000639.png
+│   │   │   ├── PRT-000642.png
+│   │   │   ├── PRT-000643.png
+│   │   │   ├── PRT-000647.png
+│   │   │   ├── PRT-000648.png
+│   │   │   ├── PRT-000649.png
+│   │   │   ├── PRT-000650.png
+│   │   │   ├── PRT-000651.png
+│   │   │   ├── PRT-000652.png
+│   │   │   ├── PRT-000660.png
+│   │   │   ├── PRT-000661.png
+│   │   │   ├── PRT-000680.png
+│   │   │   ├── PRT-000692.png
+│   │   │   ├── PRT-000698.png
+│   │   │   ├── PRT-000700.png
+│   │   │   ├── PRT-000749.png
+│   │   │   ├── PRT-000758.png
+│   │   │   ├── PRT-000759.png
+│   │   │   ├── PRT-000760.png
+│   │   │   ├── PRT-000761.png
+│   │   │   ├── PRT-000763.png
+│   │   │   ├── PRT-000768.png
+│   │   │   ├── PRT-000773.png
+│   │   │   ├── PRT-000774.png
+│   │   │   ├── PRT-000775.png
+│   │   │   ├── PRT-000786.png
+│   │   │   ├── PRT-000808.png
+│   │   │   ├── PRT-000811.png
+│   │   │   ├── PRT-000812.png
+│   │   │   ├── PRT-000822.png
+│   │   │   ├── PRT-000823.png
+│   │   │   ├── PRT-000824.png
+│   │   │   ├── PRT-000825.png
+│   │   │   ├── PRT-000826.png
+│   │   │   ├── PRT-000827.png
+│   │   │   ├── PRT-000828.png
+│   │   │   ├── PRT-000831.png
+│   │   │   ├── PRT-000833.png
+│   │   │   ├── PRT-000835.png
+│   │   │   ├── PRT-000837.png
+│   │   │   ├── PRT-000839.png
+│   │   │   ├── PRT-000840.png
+│   │   │   ├── PRT-000845.png
+│   │   │   ├── PRT-000846.png
+│   │   │   ├── PRT-000849.png
+│   │   │   ├── PRT-000851.png
+│   │   │   ├── PRT-000856.png
+│   │   │   ├── PRT-000864.png
+│   │   │   ├── PRT-000868.png
+│   │   │   ├── PRT-000870.png
+│   │   │   ├── PRT-000871.png
+│   │   │   ├── PRT-000876.png
+│   │   │   ├── PRT-000878.png
+│   │   │   ├── PRT-000879.png
+│   │   │   ├── PRT-000881.png
+│   │   │   ├── PRT-000882.png
+│   │   │   ├── PRT-000883.png
+│   │   │   ├── PRT-000884.png
+│   │   │   ├── PRT-000885.png
+│   │   │   ├── PRT-000886.png
+│   │   │   ├── PRT-000887.png
+│   │   │   ├── PRT-000888.png
+│   │   │   ├── PRT-000889.png
+│   │   │   ├── PRT-000890.png
+│   │   │   ├── PRT-000891.png
+│   │   │   ├── PRT-000892.png
+│   │   │   ├── PRT-000893.png
+│   │   │   ├── PRT-000894.png
+│   │   │   ├── PRT-000895.png
+│   │   │   ├── PRT-000896.png
+│   │   │   ├── PRT-000897.png
+│   │   │   ├── PRT-000898.png
+│   │   │   ├── PRT-000902.png
+│   │   │   ├── PRT-000903.png
+│   │   │   ├── PRT-000904.png
+│   │   │   ├── PRT-000913.png
+│   │   │   ├── PRT-000914.png
+│   │   │   ├── PRT-000915.png
+│   │   │   ├── PRT-000916.png
+│   │   │   ├── PRT-000917.png
+│   │   │   ├── PRT-000918.png
+│   │   │   ├── PRT-000919.png
+│   │   │   ├── PRT-000921.png
+│   │   │   ├── PRT-000924.png
+│   │   │   ├── PRT-000925.png
+│   │   │   ├── PRT-000929.png
+│   │   │   ├── PRT-000931.png
+│   │   │   ├── PRT-000932.png
+│   │   │   ├── PRT-000937.png
+│   │   │   ├── PRT-000938.png
+│   │   │   ├── PRT-000939.png
+│   │   │   ├── PRT-000940.png
+│   │   │   ├── PRT-000941.png
+│   │   │   ├── PRT-000942.png
+│   │   │   ├── PRT-000943.png
+│   │   │   ├── PRT-000945.png
+│   │   │   ├── PRT-000946.png
+│   │   │   ├── PRT-000947.png
+│   │   │   ├── PRT-000948.png
+│   │   │   ├── PRT-000949.png
+│   │   │   ├── PRT-000950.png
+│   │   │   ├── PRT-000951.png
+│   │   │   ├── PRT-000957.png
+│   │   │   ├── PRT-000959.png
+│   │   │   ├── PRT-000966.png
+│   │   │   ├── PRT-000967.png
+│   │   │   ├── PRT-000969.png
+│   │   │   ├── PRT-000970.png
+│   │   │   ├── PRT-000973.png
+│   │   │   ├── PRT-000978.png
+│   │   │   ├── PRT-000979.png
+│   │   │   ├── PRT-000986.png
+│   │   │   ├── PRT-000988.png
+│   │   │   ├── PRT-000990.png
+│   │   │   ├── PRT-001001.png
+│   │   │   ├── PRT-001002.png
+│   │   │   ├── PRT-001007.png
+│   │   │   ├── PRT-001013.png
+│   │   │   ├── PRT-001014.png
+│   │   │   ├── PRT-001015.png
+│   │   │   ├── PRT-001016.png
+│   │   │   ├── PRT-001017.png
+│   │   │   ├── PRT-001018.png
+│   │   │   ├── PRT-001019.png
+│   │   │   ├── PRT-001047.png
+│   │   │   ├── PRT-001048.png
+│   │   │   ├── PRT-001049.png
+│   │   │   ├── PRT-001051.png
+│   │   │   ├── PRT-001052.png
+│   │   │   ├── PRT-001053.png
+│   │   │   ├── PRT-001054.png
+│   │   │   ├── PRT-001055.png
+│   │   │   ├── PRT-001056.png
+│   │   │   ├── PRT-001057.png
+│   │   │   ├── PRT-001058.png
+│   │   │   ├── PRT-001060.png
+│   │   │   ├── PRT-001061.png
+│   │   │   ├── PRT-001062.png
+│   │   │   ├── PRT-001063.png
+│   │   │   ├── PRT-001066.png
+│   │   │   ├── PRT-001067.png
+│   │   │   ├── PRT-001068.png
+│   │   │   ├── PRT-001069.png
+│   │   │   ├── PRT-001070.png
+│   │   │   ├── PRT-001071.png
+│   │   │   ├── PRT-001072.png
+│   │   │   ├── PRT-001073.png
+│   │   │   ├── PRT-001074.png
+│   │   │   ├── PRT-001075.png
+│   │   │   ├── PRT-001076.png
+│   │   │   ├── PRT-001079.png
+│   │   │   ├── PRT-001080.png
+│   │   │   ├── PRT-001081.png
+│   │   │   ├── PRT-001082.png
+│   │   │   ├── PRT-001083.png
+│   │   │   ├── PRT-001092.png
+│   │   │   ├── PRT-001093.png
+│   │   │   ├── PRT-001094.png
+│   │   │   ├── PRT-001095.png
+│   │   │   ├── PRT-001096.png
+│   │   │   ├── PRT-001097.png
+│   │   │   ├── PRT-001099.png
+│   │   │   ├── PRT-001100.png
+│   │   │   ├── PRT-001103.png
+│   │   │   ├── PRT-001104.png
+│   │   │   ├── PRT-001105.png
+│   │   │   ├── PRT-001107.png
+│   │   │   ├── PRT-001108.png
+│   │   │   ├── PRT-001109.png
+│   │   │   ├── PRT-001111.png
+│   │   │   ├── PRT-001112.png
+│   │   │   ├── PRT-001113.png
+│   │   │   ├── PRT-001114.png
+│   │   │   ├── PRT-001115.png
+│   │   │   ├── PRT-001116.png
+│   │   │   └── PRT-001117.png
+│   │   ├── thumbnails_ignored/
+│   │   │   ├── Cable_Insertion-to-Wrist.png
+│   │   │   ├── Pin_Dowel_DIA3_L22_SS_ISO2338-m6_McM_91585A372.png
+│   │   │   ├── Pin_Dowel_DIA3_L24_SS_ISO2338-m6_McM_91585A402.png
+│   │   │   ├── Ref_DistalGuide_Nut.png
+│   │   │   ├── Ref_DistalGuide_Thumbscrew.png
+│   │   │   └── Screw_M6x1_HEX_L30_SS_McM_91287A139.png
+│   │   ├── bom_data.csv
+│   │   ├── bom_data.json
+│   │   └── thumbnail_report.json
+│   ├── D01-LazaSystems_BOM_Estimate_2025-12-17-T16-45-07/
+│   │   ├── thumbnails/
+│   │   │   ├── ASM-000375.png
+│   │   │   ├── ASM-000542.png
+│   │   │   ├── ASM-000844.png
+│   │   │   ├── ASM-000961.png
+│   │   │   ├── PRT-000311.png
+│   │   │   ├── PRT-000314.png
+│   │   │   ├── PRT-000328.png
+│   │   │   ├── PRT-000331.png
+│   │   │   ├── PRT-000357.png
+│   │   │   ├── PRT-000361.png
+│   │   │   ├── PRT-000364.png
+│   │   │   ├── PRT-000383.png
+│   │   │   ├── PRT-000384.png
+│   │   │   ├── PRT-000385.png
+│   │   │   ├── PRT-000394.png
+│   │   │   ├── PRT-000420.png
+│   │   │   ├── PRT-000421.png
+│   │   │   ├── PRT-000424.png
+│   │   │   ├── PRT-000427.png
+│   │   │   ├── PRT-000433.png
+│   │   │   ├── PRT-000434.png
+│   │   │   ├── PRT-000437.png
+│   │   │   ├── PRT-000444.png
+│   │   │   ├── PRT-000449.png
+│   │   │   ├── PRT-000523.png
+│   │   │   ├── PRT-000569.png
+│   │   │   ├── PRT-000623.png
+│   │   │   ├── PRT-000639.png
+│   │   │   ├── PRT-000643.png
+│   │   │   ├── PRT-000647.png
+│   │   │   ├── PRT-000651.png
+│   │   │   ├── PRT-000660.png
+│   │   │   ├── PRT-000692.png
+│   │   │   ├── PRT-000698.png
+│   │   │   ├── PRT-000700.png
+│   │   │   ├── PRT-000760.png
+│   │   │   ├── PRT-000775.png
+│   │   │   ├── PRT-000786.png
+│   │   │   ├── PRT-000811.png
+│   │   │   ├── PRT-000824.png
+│   │   │   ├── PRT-000826.png
+│   │   │   ├── PRT-000827.png
+│   │   │   ├── PRT-000846.png
+│   │   │   ├── PRT-000851.png
+│   │   │   ├── PRT-000856.png
+│   │   │   ├── PRT-000864.png
+│   │   │   ├── PRT-000882.png
+│   │   │   ├── PRT-000888.png
+│   │   │   ├── PRT-000896.png
+│   │   │   ├── PRT-000917.png
+│   │   │   ├── PRT-000924.png
+│   │   │   ├── PRT-000938.png
+│   │   │   ├── PRT-000943.png
+│   │   │   ├── PRT-000948.png
+│   │   │   ├── PRT-000969.png
+│   │   │   ├── PRT-000973.png
+│   │   │   ├── PRT-000986.png
+│   │   │   ├── PRT-001001.png
+│   │   │   ├── PRT-001015.png
+│   │   │   ├── PRT-001019.png
+│   │   │   ├── PRT-001049.png
+│   │   │   ├── PRT-001057.png
+│   │   │   ├── PRT-001058.png
+│   │   │   ├── PRT-001061.png
+│   │   │   ├── PRT-001062.png
+│   │   │   ├── PRT-001063.png
+│   │   │   ├── PRT-001066.png
+│   │   │   ├── PRT-001067.png
+│   │   │   ├── PRT-001068.png
+│   │   │   ├── PRT-001070.png
+│   │   │   ├── PRT-001076.png
+│   │   │   ├── PRT-001081.png
+│   │   │   ├── PRT-001083.png
+│   │   │   ├── PRT-001092.png
+│   │   │   ├── PRT-001094.png
+│   │   │   ├── PRT-001095.png
+│   │   │   ├── PRT-001096.png
+│   │   │   ├── PRT-001099.png
+│   │   │   ├── PRT-001104.png
+│   │   │   ├── PRT-001113.png
+│   │   │   └── PRT-001115.png
+│   │   ├── thumbnails_ignored/
+│   │   │   └── Pin_Dowel_DIA3_L22_SS_ISO2338-m6_McM_91585A372.png
+│   │   ├── bom_data.csv
+│   │   ├── bom_data.json
+│   │   └── thumbnail_report.json
+│   ├── D01-LazaSystems_BOM_Estimate_2025-12-17-T16-46-22/
+│   │   ├── thumbnails/
+│   │   │   ├── ASM-000375.png
+│   │   │   ├── ASM-000542.png
+│   │   │   ├── ASM-000844.png
+│   │   │   ├── ASM-000961.png
+│   │   │   ├── PRT-000311.png
+│   │   │   ├── PRT-000314.png
+│   │   │   ├── PRT-000328.png
+│   │   │   ├── PRT-000331.png
+│   │   │   ├── PRT-000357.png
+│   │   │   ├── PRT-000361.png
+│   │   │   ├── PRT-000364.png
+│   │   │   ├── PRT-000383.png
+│   │   │   ├── PRT-000384.png
+│   │   │   ├── PRT-000385.png
+│   │   │   ├── PRT-000394.png
+│   │   │   ├── PRT-000420.png
+│   │   │   ├── PRT-000421.png
+│   │   │   ├── PRT-000424.png
+│   │   │   ├── PRT-000427.png
+│   │   │   ├── PRT-000433.png
+│   │   │   ├── PRT-000434.png
+│   │   │   ├── PRT-000437.png
+│   │   │   ├── PRT-000444.png
+│   │   │   ├── PRT-000449.png
+│   │   │   ├── PRT-000523.png
+│   │   │   ├── PRT-000569.png
+│   │   │   ├── PRT-000623.png
+│   │   │   ├── PRT-000639.png
+│   │   │   ├── PRT-000643.png
+│   │   │   ├── PRT-000647.png
+│   │   │   ├── PRT-000651.png
+│   │   │   ├── PRT-000660.png
+│   │   │   ├── PRT-000692.png
+│   │   │   ├── PRT-000698.png
+│   │   │   ├── PRT-000700.png
+│   │   │   ├── PRT-000760.png
+│   │   │   ├── PRT-000775.png
+│   │   │   ├── PRT-000786.png
+│   │   │   ├── PRT-000811.png
+│   │   │   ├── PRT-000824.png
+│   │   │   ├── PRT-000826.png
+│   │   │   ├── PRT-000827.png
+│   │   │   ├── PRT-000846.png
+│   │   │   ├── PRT-000851.png
+│   │   │   ├── PRT-000856.png
+│   │   │   ├── PRT-000864.png
+│   │   │   ├── PRT-000882.png
+│   │   │   ├── PRT-000888.png
+│   │   │   ├── PRT-000896.png
+│   │   │   ├── PRT-000917.png
+│   │   │   ├── PRT-000924.png
+│   │   │   ├── PRT-000938.png
+│   │   │   ├── PRT-000943.png
+│   │   │   ├── PRT-000948.png
+│   │   │   ├── PRT-000969.png
+│   │   │   ├── PRT-000973.png
+│   │   │   ├── PRT-000986.png
+│   │   │   ├── PRT-001001.png
+│   │   │   ├── PRT-001015.png
+│   │   │   ├── PRT-001019.png
+│   │   │   ├── PRT-001049.png
+│   │   │   ├── PRT-001057.png
+│   │   │   ├── PRT-001058.png
+│   │   │   ├── PRT-001061.png
+│   │   │   ├── PRT-001062.png
+│   │   │   ├── PRT-001063.png
+│   │   │   ├── PRT-001066.png
+│   │   │   ├── PRT-001067.png
+│   │   │   ├── PRT-001068.png
+│   │   │   ├── PRT-001070.png
+│   │   │   ├── PRT-001076.png
+│   │   │   ├── PRT-001081.png
+│   │   │   ├── PRT-001083.png
+│   │   │   ├── PRT-001092.png
+│   │   │   ├── PRT-001094.png
+│   │   │   ├── PRT-001095.png
+│   │   │   ├── PRT-001096.png
+│   │   │   ├── PRT-001099.png
+│   │   │   ├── PRT-001104.png
+│   │   │   ├── PRT-001113.png
+│   │   │   └── PRT-001115.png
+│   │   ├── thumbnails_ignored/
+│   │   │   └── Pin_Dowel_DIA3_L22_SS_ISO2338-m6_McM_91585A372.png
+│   │   ├── bom_data.csv
+│   │   ├── bom_data.json
+│   │   └── thumbnail_report.json
+│   ├── D01-LazaSystems_BOM_Estimate_2025-12-17-T16-47-28/
+│   │   ├── thumbnails/
+│   │   │   ├── ASM-000375.png
+│   │   │   ├── ASM-000542.png
+│   │   │   ├── ASM-000844.png
+│   │   │   ├── PRT-000311.png
+│   │   │   ├── PRT-000314.png
+│   │   │   ├── PRT-000328.png
+│   │   │   ├── PRT-000331.png
+│   │   │   ├── PRT-000364.png
+│   │   │   ├── PRT-000383.png
+│   │   │   ├── PRT-000384.png
+│   │   │   ├── PRT-000385.png
+│   │   │   ├── PRT-000394.png
+│   │   │   ├── PRT-000420.png
+│   │   │   ├── PRT-000421.png
+│   │   │   ├── PRT-000424.png
+│   │   │   ├── PRT-000427.png
+│   │   │   ├── PRT-000433.png
+│   │   │   ├── PRT-000434.png
+│   │   │   ├── PRT-000437.png
+│   │   │   ├── PRT-000444.png
+│   │   │   ├── PRT-000449.png
+│   │   │   ├── PRT-000523.png
+│   │   │   ├── PRT-000569.png
+│   │   │   ├── PRT-000692.png
+│   │   │   ├── PRT-000700.png
+│   │   │   ├── PRT-000760.png
+│   │   │   ├── PRT-000824.png
+│   │   │   ├── PRT-000826.png
+│   │   │   ├── PRT-000827.png
+│   │   │   └── PRT-000846.png
+│   │   └── bom_data.json
+│   ├── D01-LazaSystems_BOM_Estimate_2025-12-17-T16-48-12/
+│   │   ├── thumbnails/
+│   │   │   ├── ASM-000375.png
+│   │   │   ├── ASM-000542.png
+│   │   │   ├── ASM-000844.png
+│   │   │   ├── ASM-000961.png
+│   │   │   ├── PRT-000311.png
+│   │   │   ├── PRT-000314.png
+│   │   │   ├── PRT-000328.png
+│   │   │   ├── PRT-000331.png
+│   │   │   ├── PRT-000357.png
+│   │   │   ├── PRT-000361.png
+│   │   │   ├── PRT-000364.png
+│   │   │   ├── PRT-000383.png
+│   │   │   ├── PRT-000384.png
+│   │   │   ├── PRT-000385.png
+│   │   │   ├── PRT-000394.png
+│   │   │   ├── PRT-000420.png
+│   │   │   ├── PRT-000421.png
+│   │   │   ├── PRT-000424.png
+│   │   │   ├── PRT-000427.png
+│   │   │   ├── PRT-000433.png
+│   │   │   ├── PRT-000434.png
+│   │   │   ├── PRT-000437.png
+│   │   │   ├── PRT-000444.png
+│   │   │   ├── PRT-000449.png
+│   │   │   ├── PRT-000523.png
+│   │   │   ├── PRT-000569.png
+│   │   │   ├── PRT-000623.png
+│   │   │   ├── PRT-000639.png
+│   │   │   ├── PRT-000643.png
+│   │   │   ├── PRT-000647.png
+│   │   │   ├── PRT-000651.png
+│   │   │   ├── PRT-000660.png
+│   │   │   ├── PRT-000692.png
+│   │   │   ├── PRT-000698.png
+│   │   │   ├── PRT-000700.png
+│   │   │   ├── PRT-000760.png
+│   │   │   ├── PRT-000775.png
+│   │   │   ├── PRT-000786.png
+│   │   │   ├── PRT-000811.png
+│   │   │   ├── PRT-000824.png
+│   │   │   ├── PRT-000826.png
+│   │   │   ├── PRT-000827.png
+│   │   │   ├── PRT-000846.png
+│   │   │   ├── PRT-000851.png
+│   │   │   ├── PRT-000856.png
+│   │   │   ├── PRT-000864.png
+│   │   │   ├── PRT-000882.png
+│   │   │   ├── PRT-000888.png
+│   │   │   ├── PRT-000896.png
+│   │   │   ├── PRT-000917.png
+│   │   │   ├── PRT-000924.png
+│   │   │   ├── PRT-000938.png
+│   │   │   ├── PRT-000943.png
+│   │   │   ├── PRT-000948.png
+│   │   │   ├── PRT-000969.png
+│   │   │   ├── PRT-000973.png
+│   │   │   ├── PRT-000986.png
+│   │   │   ├── PRT-001001.png
+│   │   │   ├── PRT-001015.png
+│   │   │   ├── PRT-001019.png
+│   │   │   ├── PRT-001049.png
+│   │   │   ├── PRT-001057.png
+│   │   │   ├── PRT-001058.png
+│   │   │   ├── PRT-001061.png
+│   │   │   ├── PRT-001062.png
+│   │   │   ├── PRT-001063.png
+│   │   │   ├── PRT-001066.png
+│   │   │   ├── PRT-001067.png
+│   │   │   ├── PRT-001068.png
+│   │   │   ├── PRT-001070.png
+│   │   │   ├── PRT-001076.png
+│   │   │   ├── PRT-001081.png
+│   │   │   ├── PRT-001083.png
+│   │   │   ├── PRT-001092.png
+│   │   │   ├── PRT-001094.png
+│   │   │   ├── PRT-001095.png
+│   │   │   ├── PRT-001096.png
+│   │   │   ├── PRT-001099.png
+│   │   │   ├── PRT-001104.png
+│   │   │   ├── PRT-001113.png
+│   │   │   └── PRT-001115.png
+│   │   ├── thumbnails_ignored/
+│   │   │   └── Pin_Dowel_DIA3_L22_SS_ISO2338-m6_McM_91585A372.png
+│   │   ├── bom_data.csv
+│   │   ├── bom_data.json
+│   │   └── thumbnail_report.json
+│   ├── D01-LazaSystems_BOM_Estimate_2025-12-17-T16-49-27/
+│   │   ├── thumbnails/
+│   │   │   ├── ASM-000375.png
+│   │   │   ├── ASM-000542.png
+│   │   │   ├── ASM-000844.png
+│   │   │   ├── ASM-000961.png
+│   │   │   ├── PRT-000311.png
+│   │   │   ├── PRT-000314.png
+│   │   │   ├── PRT-000328.png
+│   │   │   ├── PRT-000331.png
+│   │   │   ├── PRT-000357.png
+│   │   │   ├── PRT-000361.png
+│   │   │   ├── PRT-000364.png
+│   │   │   ├── PRT-000383.png
+│   │   │   ├── PRT-000384.png
+│   │   │   ├── PRT-000385.png
+│   │   │   ├── PRT-000394.png
+│   │   │   ├── PRT-000420.png
+│   │   │   ├── PRT-000421.png
+│   │   │   ├── PRT-000424.png
+│   │   │   ├── PRT-000427.png
+│   │   │   ├── PRT-000433.png
+│   │   │   ├── PRT-000434.png
+│   │   │   ├── PRT-000437.png
+│   │   │   ├── PRT-000444.png
+│   │   │   ├── PRT-000449.png
+│   │   │   ├── PRT-000523.png
+│   │   │   ├── PRT-000569.png
+│   │   │   ├── PRT-000623.png
+│   │   │   ├── PRT-000639.png
+│   │   │   ├── PRT-000643.png
+│   │   │   ├── PRT-000647.png
+│   │   │   ├── PRT-000651.png
+│   │   │   ├── PRT-000660.png
+│   │   │   ├── PRT-000692.png
+│   │   │   ├── PRT-000698.png
+│   │   │   ├── PRT-000700.png
+│   │   │   ├── PRT-000760.png
+│   │   │   ├── PRT-000775.png
+│   │   │   ├── PRT-000786.png
+│   │   │   ├── PRT-000811.png
+│   │   │   ├── PRT-000824.png
+│   │   │   ├── PRT-000826.png
+│   │   │   ├── PRT-000827.png
+│   │   │   ├── PRT-000846.png
+│   │   │   ├── PRT-000851.png
+│   │   │   ├── PRT-000856.png
+│   │   │   ├── PRT-000864.png
+│   │   │   ├── PRT-000882.png
+│   │   │   ├── PRT-000888.png
+│   │   │   ├── PRT-000896.png
+│   │   │   ├── PRT-000917.png
+│   │   │   ├── PRT-000924.png
+│   │   │   ├── PRT-000938.png
+│   │   │   ├── PRT-000943.png
+│   │   │   ├── PRT-000948.png
+│   │   │   ├── PRT-000969.png
+│   │   │   ├── PRT-000973.png
+│   │   │   ├── PRT-000986.png
+│   │   │   ├── PRT-001001.png
+│   │   │   ├── PRT-001015.png
+│   │   │   ├── PRT-001019.png
+│   │   │   ├── PRT-001049.png
+│   │   │   ├── PRT-001057.png
+│   │   │   ├── PRT-001058.png
+│   │   │   ├── PRT-001061.png
+│   │   │   ├── PRT-001062.png
+│   │   │   ├── PRT-001063.png
+│   │   │   ├── PRT-001066.png
+│   │   │   ├── PRT-001067.png
+│   │   │   ├── PRT-001068.png
+│   │   │   ├── PRT-001070.png
+│   │   │   ├── PRT-001076.png
+│   │   │   ├── PRT-001081.png
+│   │   │   ├── PRT-001083.png
+│   │   │   ├── PRT-001092.png
+│   │   │   ├── PRT-001094.png
+│   │   │   ├── PRT-001095.png
+│   │   │   ├── PRT-001096.png
+│   │   │   ├── PRT-001099.png
+│   │   │   ├── PRT-001104.png
+│   │   │   ├── PRT-001113.png
+│   │   │   └── PRT-001115.png
+│   │   ├── thumbnails_ignored/
+│   │   │   └── Pin_Dowel_DIA3_L22_SS_ISO2338-m6_McM_91585A372.png
+│   │   ├── bom_data.csv
+│   │   ├── bom_data.json
+│   │   └── thumbnail_report.json
+│   ├── D01-LazaSystems_BOM_Estimate_2025-12-17-T16-53-44/
+│   │   ├── thumbnails/
+│   │   │   ├── ASM-000375.png
+│   │   │   ├── ASM-000542.png
+│   │   │   ├── ASM-000844.png
+│   │   │   ├── ASM-000961.png
+│   │   │   ├── PRT-000311.png
+│   │   │   ├── PRT-000314.png
+│   │   │   ├── PRT-000328.png
+│   │   │   ├── PRT-000331.png
+│   │   │   ├── PRT-000357.png
+│   │   │   ├── PRT-000361.png
+│   │   │   ├── PRT-000364.png
+│   │   │   ├── PRT-000383.png
+│   │   │   ├── PRT-000384.png
+│   │   │   ├── PRT-000385.png
+│   │   │   ├── PRT-000394.png
+│   │   │   ├── PRT-000420.png
+│   │   │   ├── PRT-000421.png
+│   │   │   ├── PRT-000424.png
+│   │   │   ├── PRT-000427.png
+│   │   │   ├── PRT-000433.png
+│   │   │   ├── PRT-000434.png
+│   │   │   ├── PRT-000437.png
+│   │   │   ├── PRT-000444.png
+│   │   │   ├── PRT-000449.png
+│   │   │   ├── PRT-000523.png
+│   │   │   ├── PRT-000569.png
+│   │   │   ├── PRT-000623.png
+│   │   │   ├── PRT-000639.png
+│   │   │   ├── PRT-000643.png
+│   │   │   ├── PRT-000647.png
+│   │   │   ├── PRT-000651.png
+│   │   │   ├── PRT-000660.png
+│   │   │   ├── PRT-000692.png
+│   │   │   ├── PRT-000698.png
+│   │   │   ├── PRT-000700.png
+│   │   │   ├── PRT-000760.png
+│   │   │   ├── PRT-000775.png
+│   │   │   ├── PRT-000786.png
+│   │   │   ├── PRT-000811.png
+│   │   │   ├── PRT-000824.png
+│   │   │   ├── PRT-000826.png
+│   │   │   ├── PRT-000827.png
+│   │   │   ├── PRT-000846.png
+│   │   │   ├── PRT-000851.png
+│   │   │   ├── PRT-000856.png
+│   │   │   ├── PRT-000864.png
+│   │   │   ├── PRT-000882.png
+│   │   │   ├── PRT-000888.png
+│   │   │   ├── PRT-000896.png
+│   │   │   ├── PRT-000917.png
+│   │   │   ├── PRT-000924.png
+│   │   │   ├── PRT-000938.png
+│   │   │   ├── PRT-000943.png
+│   │   │   ├── PRT-000948.png
+│   │   │   ├── PRT-000969.png
+│   │   │   ├── PRT-000973.png
+│   │   │   ├── PRT-000986.png
+│   │   │   ├── PRT-001001.png
+│   │   │   ├── PRT-001015.png
+│   │   │   ├── PRT-001019.png
+│   │   │   ├── PRT-001049.png
+│   │   │   ├── PRT-001057.png
+│   │   │   ├── PRT-001058.png
+│   │   │   ├── PRT-001061.png
+│   │   │   ├── PRT-001062.png
+│   │   │   ├── PRT-001063.png
+│   │   │   ├── PRT-001066.png
+│   │   │   ├── PRT-001067.png
+│   │   │   ├── PRT-001068.png
+│   │   │   ├── PRT-001070.png
+│   │   │   ├── PRT-001076.png
+│   │   │   ├── PRT-001081.png
+│   │   │   ├── PRT-001083.png
+│   │   │   ├── PRT-001092.png
+│   │   │   ├── PRT-001094.png
+│   │   │   ├── PRT-001095.png
+│   │   │   ├── PRT-001096.png
+│   │   │   ├── PRT-001099.png
+│   │   │   ├── PRT-001104.png
+│   │   │   ├── PRT-001113.png
+│   │   │   └── PRT-001115.png
+│   │   ├── thumbnails_ignored/
+│   │   │   └── Pin_Dowel_DIA3_L22_SS_ISO2338-m6_McM_91585A372.png
+│   │   ├── bom_data.json
+│   │   └── thumbnail_report.json
+│   ├── D01-LazaSystems_BOM_Estimate_2025-12-17-T16-55-03/
+│   │   ├── thumbnails/
+│   │   │   ├── ASM-000375.png
+│   │   │   ├── ASM-000542.png
+│   │   │   ├── ASM-000844.png
+│   │   │   ├── ASM-000961.png
+│   │   │   ├── PRT-000311.png
+│   │   │   ├── PRT-000314.png
+│   │   │   ├── PRT-000328.png
+│   │   │   ├── PRT-000331.png
+│   │   │   ├── PRT-000357.png
+│   │   │   ├── PRT-000361.png
+│   │   │   ├── PRT-000364.png
+│   │   │   ├── PRT-000383.png
+│   │   │   ├── PRT-000384.png
+│   │   │   ├── PRT-000385.png
+│   │   │   ├── PRT-000394.png
+│   │   │   ├── PRT-000420.png
+│   │   │   ├── PRT-000421.png
+│   │   │   ├── PRT-000424.png
+│   │   │   ├── PRT-000427.png
+│   │   │   ├── PRT-000433.png
+│   │   │   ├── PRT-000434.png
+│   │   │   ├── PRT-000437.png
+│   │   │   ├── PRT-000444.png
+│   │   │   ├── PRT-000449.png
+│   │   │   ├── PRT-000523.png
+│   │   │   ├── PRT-000569.png
+│   │   │   ├── PRT-000623.png
+│   │   │   ├── PRT-000639.png
+│   │   │   ├── PRT-000643.png
+│   │   │   ├── PRT-000647.png
+│   │   │   ├── PRT-000651.png
+│   │   │   ├── PRT-000660.png
+│   │   │   ├── PRT-000692.png
+│   │   │   ├── PRT-000698.png
+│   │   │   ├── PRT-000700.png
+│   │   │   ├── PRT-000760.png
+│   │   │   ├── PRT-000775.png
+│   │   │   ├── PRT-000786.png
+│   │   │   ├── PRT-000811.png
+│   │   │   ├── PRT-000824.png
+│   │   │   ├── PRT-000826.png
+│   │   │   ├── PRT-000827.png
+│   │   │   ├── PRT-000846.png
+│   │   │   ├── PRT-000851.png
+│   │   │   ├── PRT-000856.png
+│   │   │   ├── PRT-000864.png
+│   │   │   ├── PRT-000882.png
+│   │   │   ├── PRT-000888.png
+│   │   │   ├── PRT-000896.png
+│   │   │   ├── PRT-000917.png
+│   │   │   ├── PRT-000924.png
+│   │   │   ├── PRT-000938.png
+│   │   │   ├── PRT-000943.png
+│   │   │   ├── PRT-000948.png
+│   │   │   ├── PRT-000969.png
+│   │   │   ├── PRT-000973.png
+│   │   │   ├── PRT-000986.png
+│   │   │   ├── PRT-001001.png
+│   │   │   ├── PRT-001015.png
+│   │   │   ├── PRT-001019.png
+│   │   │   ├── PRT-001049.png
+│   │   │   ├── PRT-001057.png
+│   │   │   ├── PRT-001058.png
+│   │   │   ├── PRT-001061.png
+│   │   │   ├── PRT-001062.png
+│   │   │   ├── PRT-001063.png
+│   │   │   ├── PRT-001066.png
+│   │   │   ├── PRT-001067.png
+│   │   │   ├── PRT-001068.png
+│   │   │   ├── PRT-001070.png
+│   │   │   ├── PRT-001076.png
+│   │   │   ├── PRT-001081.png
+│   │   │   ├── PRT-001083.png
+│   │   │   ├── PRT-001092.png
+│   │   │   ├── PRT-001094.png
+│   │   │   ├── PRT-001095.png
+│   │   │   ├── PRT-001096.png
+│   │   │   ├── PRT-001099.png
+│   │   │   ├── PRT-001104.png
+│   │   │   ├── PRT-001113.png
+│   │   │   └── PRT-001115.png
+│   │   ├── thumbnails_ignored/
+│   │   │   └── Pin_Dowel_DIA3_L22_SS_ISO2338-m6_McM_91585A372.png
+│   │   ├── bom_data.csv
+│   │   ├── bom_data.json
+│   │   └── thumbnail_report.json
+│   ├── D01-LazaSystems_BOM_Estimate_2025-12-17-T16-56-30/
+│   │   ├── thumbnails/
+│   │   │   ├── ASM-000375.png
+│   │   │   ├── ASM-000542.png
+│   │   │   ├── ASM-000844.png
+│   │   │   ├── ASM-000961.png
+│   │   │   ├── PRT-000311.png
+│   │   │   ├── PRT-000314.png
+│   │   │   ├── PRT-000328.png
+│   │   │   ├── PRT-000331.png
+│   │   │   ├── PRT-000357.png
+│   │   │   ├── PRT-000361.png
+│   │   │   ├── PRT-000364.png
+│   │   │   ├── PRT-000383.png
+│   │   │   ├── PRT-000384.png
+│   │   │   ├── PRT-000385.png
+│   │   │   ├── PRT-000394.png
+│   │   │   ├── PRT-000420.png
+│   │   │   ├── PRT-000421.png
+│   │   │   ├── PRT-000424.png
+│   │   │   ├── PRT-000427.png
+│   │   │   ├── PRT-000433.png
+│   │   │   ├── PRT-000434.png
+│   │   │   ├── PRT-000437.png
+│   │   │   ├── PRT-000444.png
+│   │   │   ├── PRT-000449.png
+│   │   │   ├── PRT-000523.png
+│   │   │   ├── PRT-000569.png
+│   │   │   ├── PRT-000623.png
+│   │   │   ├── PRT-000639.png
+│   │   │   ├── PRT-000643.png
+│   │   │   ├── PRT-000647.png
+│   │   │   ├── PRT-000651.png
+│   │   │   ├── PRT-000660.png
+│   │   │   ├── PRT-000692.png
+│   │   │   ├── PRT-000698.png
+│   │   │   ├── PRT-000700.png
+│   │   │   ├── PRT-000760.png
+│   │   │   ├── PRT-000775.png
+│   │   │   ├── PRT-000786.png
+│   │   │   ├── PRT-000811.png
+│   │   │   ├── PRT-000824.png
+│   │   │   ├── PRT-000826.png
+│   │   │   ├── PRT-000827.png
+│   │   │   ├── PRT-000846.png
+│   │   │   ├── PRT-000851.png
+│   │   │   ├── PRT-000856.png
+│   │   │   ├── PRT-000864.png
+│   │   │   ├── PRT-000882.png
+│   │   │   ├── PRT-000888.png
+│   │   │   ├── PRT-000896.png
+│   │   │   ├── PRT-000917.png
+│   │   │   ├── PRT-000924.png
+│   │   │   ├── PRT-000938.png
+│   │   │   ├── PRT-000943.png
+│   │   │   ├── PRT-000948.png
+│   │   │   ├── PRT-000969.png
+│   │   │   ├── PRT-000973.png
+│   │   │   ├── PRT-000986.png
+│   │   │   ├── PRT-001001.png
+│   │   │   ├── PRT-001015.png
+│   │   │   ├── PRT-001019.png
+│   │   │   ├── PRT-001049.png
+│   │   │   ├── PRT-001057.png
+│   │   │   ├── PRT-001058.png
+│   │   │   ├── PRT-001061.png
+│   │   │   ├── PRT-001062.png
+│   │   │   ├── PRT-001063.png
+│   │   │   ├── PRT-001066.png
+│   │   │   ├── PRT-001067.png
+│   │   │   ├── PRT-001068.png
+│   │   │   ├── PRT-001070.png
+│   │   │   ├── PRT-001076.png
+│   │   │   ├── PRT-001081.png
+│   │   │   ├── PRT-001083.png
+│   │   │   ├── PRT-001092.png
+│   │   │   ├── PRT-001094.png
+│   │   │   ├── PRT-001095.png
+│   │   │   ├── PRT-001096.png
+│   │   │   ├── PRT-001099.png
+│   │   │   ├── PRT-001104.png
+│   │   │   ├── PRT-001113.png
+│   │   │   └── PRT-001115.png
+│   │   ├── thumbnails_ignored/
+│   │   │   └── Pin_Dowel_DIA3_L22_SS_ISO2338-m6_McM_91585A372.png
+│   │   ├── bom_data.csv
+│   │   ├── bom_data.json
+│   │   └── thumbnail_report.json
+│   ├── D01-LazaSystems_BOM_Estimate_2025-12-17-T16-58-06/
+│   │   ├── thumbnails/
+│   │   │   ├── ASM-000375.png
+│   │   │   ├── ASM-000542.png
+│   │   │   ├── ASM-000844.png
+│   │   │   ├── ASM-000961.png
+│   │   │   ├── PRT-000311.png
+│   │   │   ├── PRT-000314.png
+│   │   │   ├── PRT-000328.png
+│   │   │   ├── PRT-000331.png
+│   │   │   ├── PRT-000357.png
+│   │   │   ├── PRT-000361.png
+│   │   │   ├── PRT-000364.png
+│   │   │   ├── PRT-000383.png
+│   │   │   ├── PRT-000384.png
+│   │   │   ├── PRT-000385.png
+│   │   │   ├── PRT-000394.png
+│   │   │   ├── PRT-000420.png
+│   │   │   ├── PRT-000421.png
+│   │   │   ├── PRT-000424.png
+│   │   │   ├── PRT-000427.png
+│   │   │   ├── PRT-000433.png
+│   │   │   ├── PRT-000434.png
+│   │   │   ├── PRT-000437.png
+│   │   │   ├── PRT-000444.png
+│   │   │   ├── PRT-000449.png
+│   │   │   ├── PRT-000523.png
+│   │   │   ├── PRT-000569.png
+│   │   │   ├── PRT-000623.png
+│   │   │   ├── PRT-000639.png
+│   │   │   ├── PRT-000643.png
+│   │   │   ├── PRT-000647.png
+│   │   │   ├── PRT-000651.png
+│   │   │   ├── PRT-000660.png
+│   │   │   ├── PRT-000692.png
+│   │   │   ├── PRT-000698.png
+│   │   │   ├── PRT-000700.png
+│   │   │   ├── PRT-000760.png
+│   │   │   ├── PRT-000775.png
+│   │   │   ├── PRT-000786.png
+│   │   │   ├── PRT-000811.png
+│   │   │   ├── PRT-000824.png
+│   │   │   ├── PRT-000826.png
+│   │   │   ├── PRT-000827.png
+│   │   │   ├── PRT-000846.png
+│   │   │   ├── PRT-000851.png
+│   │   │   ├── PRT-000856.png
+│   │   │   ├── PRT-000864.png
+│   │   │   ├── PRT-000882.png
+│   │   │   ├── PRT-000888.png
+│   │   │   ├── PRT-000896.png
+│   │   │   ├── PRT-000917.png
+│   │   │   ├── PRT-000924.png
+│   │   │   ├── PRT-000938.png
+│   │   │   ├── PRT-000943.png
+│   │   │   ├── PRT-000948.png
+│   │   │   ├── PRT-000969.png
+│   │   │   ├── PRT-000973.png
+│   │   │   ├── PRT-000986.png
+│   │   │   ├── PRT-001001.png
+│   │   │   ├── PRT-001015.png
+│   │   │   ├── PRT-001019.png
+│   │   │   ├── PRT-001049.png
+│   │   │   ├── PRT-001057.png
+│   │   │   ├── PRT-001058.png
+│   │   │   ├── PRT-001061.png
+│   │   │   ├── PRT-001062.png
+│   │   │   ├── PRT-001063.png
+│   │   │   ├── PRT-001066.png
+│   │   │   ├── PRT-001067.png
+│   │   │   ├── PRT-001068.png
+│   │   │   ├── PRT-001070.png
+│   │   │   ├── PRT-001076.png
+│   │   │   ├── PRT-001081.png
+│   │   │   ├── PRT-001083.png
+│   │   │   ├── PRT-001092.png
+│   │   │   ├── PRT-001094.png
+│   │   │   ├── PRT-001095.png
+│   │   │   ├── PRT-001096.png
+│   │   │   ├── PRT-001099.png
+│   │   │   ├── PRT-001104.png
+│   │   │   ├── PRT-001113.png
+│   │   │   └── PRT-001115.png
+│   │   ├── thumbnails_ignored/
+│   │   │   └── Pin_Dowel_DIA3_L22_SS_ISO2338-m6_McM_91585A372.png
+│   │   ├── bom_data.csv
+│   │   ├── bom_data.json
+│   │   └── thumbnail_report.json
+│   ├── D01-LazaSystems_BOM_Estimate_2025-12-17-T17-03-36/
+│   │   ├── thumbnails/
+│   │   │   ├── ASM-000375.png
+│   │   │   ├── ASM-000542.png
+│   │   │   ├── ASM-000844.png
+│   │   │   ├── ASM-000961.png
+│   │   │   ├── PRT-000311.png
+│   │   │   ├── PRT-000314.png
+│   │   │   ├── PRT-000328.png
+│   │   │   ├── PRT-000331.png
+│   │   │   ├── PRT-000357.png
+│   │   │   ├── PRT-000361.png
+│   │   │   ├── PRT-000364.png
+│   │   │   ├── PRT-000383.png
+│   │   │   ├── PRT-000384.png
+│   │   │   ├── PRT-000385.png
+│   │   │   ├── PRT-000394.png
+│   │   │   ├── PRT-000420.png
+│   │   │   ├── PRT-000421.png
+│   │   │   ├── PRT-000424.png
+│   │   │   ├── PRT-000427.png
+│   │   │   ├── PRT-000433.png
+│   │   │   ├── PRT-000434.png
+│   │   │   ├── PRT-000437.png
+│   │   │   ├── PRT-000444.png
+│   │   │   ├── PRT-000449.png
+│   │   │   ├── PRT-000523.png
+│   │   │   ├── PRT-000569.png
+│   │   │   ├── PRT-000623.png
+│   │   │   ├── PRT-000639.png
+│   │   │   ├── PRT-000643.png
+│   │   │   ├── PRT-000647.png
+│   │   │   ├── PRT-000651.png
+│   │   │   ├── PRT-000660.png
+│   │   │   ├── PRT-000692.png
+│   │   │   ├── PRT-000698.png
+│   │   │   ├── PRT-000700.png
+│   │   │   ├── PRT-000760.png
+│   │   │   ├── PRT-000775.png
+│   │   │   ├── PRT-000786.png
+│   │   │   ├── PRT-000811.png
+│   │   │   ├── PRT-000824.png
+│   │   │   ├── PRT-000826.png
+│   │   │   ├── PRT-000827.png
+│   │   │   ├── PRT-000846.png
+│   │   │   ├── PRT-000851.png
+│   │   │   ├── PRT-000856.png
+│   │   │   ├── PRT-000864.png
+│   │   │   ├── PRT-000882.png
+│   │   │   ├── PRT-000888.png
+│   │   │   ├── PRT-000896.png
+│   │   │   ├── PRT-000917.png
+│   │   │   ├── PRT-000924.png
+│   │   │   ├── PRT-000938.png
+│   │   │   ├── PRT-000943.png
+│   │   │   ├── PRT-000948.png
+│   │   │   ├── PRT-000969.png
+│   │   │   ├── PRT-000973.png
+│   │   │   ├── PRT-000986.png
+│   │   │   ├── PRT-001001.png
+│   │   │   ├── PRT-001015.png
+│   │   │   ├── PRT-001019.png
+│   │   │   ├── PRT-001049.png
+│   │   │   ├── PRT-001057.png
+│   │   │   ├── PRT-001058.png
+│   │   │   ├── PRT-001061.png
+│   │   │   ├── PRT-001062.png
+│   │   │   ├── PRT-001063.png
+│   │   │   ├── PRT-001066.png
+│   │   │   ├── PRT-001067.png
+│   │   │   ├── PRT-001068.png
+│   │   │   ├── PRT-001070.png
+│   │   │   ├── PRT-001076.png
+│   │   │   ├── PRT-001081.png
+│   │   │   ├── PRT-001083.png
+│   │   │   ├── PRT-001092.png
+│   │   │   ├── PRT-001094.png
+│   │   │   ├── PRT-001095.png
+│   │   │   ├── PRT-001096.png
+│   │   │   ├── PRT-001099.png
+│   │   │   ├── PRT-001104.png
+│   │   │   ├── PRT-001113.png
+│   │   │   └── PRT-001115.png
+│   │   ├── thumbnails_ignored/
+│   │   │   └── Pin_Dowel_DIA3_L22_SS_ISO2338-m6_McM_91585A372.png
+│   │   ├── bom_data.csv
+│   │   ├── bom_data.json
+│   │   └── thumbnail_report.json
+│   ├── D01-LazaSystems_BOM_Estimate_2025-12-17-T17-06-26/
+│   │   ├── thumbnails/
+│   │   │   ├── ASM-000375.png
+│   │   │   ├── ASM-000542.png
+│   │   │   ├── ASM-000844.png
+│   │   │   ├── ASM-000961.png
+│   │   │   ├── PRT-000311.png
+│   │   │   ├── PRT-000314.png
+│   │   │   ├── PRT-000328.png
+│   │   │   ├── PRT-000331.png
+│   │   │   ├── PRT-000357.png
+│   │   │   ├── PRT-000361.png
+│   │   │   ├── PRT-000364.png
+│   │   │   ├── PRT-000383.png
+│   │   │   ├── PRT-000384.png
+│   │   │   ├── PRT-000385.png
+│   │   │   ├── PRT-000394.png
+│   │   │   ├── PRT-000420.png
+│   │   │   ├── PRT-000421.png
+│   │   │   ├── PRT-000424.png
+│   │   │   ├── PRT-000427.png
+│   │   │   ├── PRT-000433.png
+│   │   │   ├── PRT-000434.png
+│   │   │   ├── PRT-000437.png
+│   │   │   ├── PRT-000444.png
+│   │   │   ├── PRT-000449.png
+│   │   │   ├── PRT-000523.png
+│   │   │   ├── PRT-000569.png
+│   │   │   ├── PRT-000623.png
+│   │   │   ├── PRT-000639.png
+│   │   │   ├── PRT-000643.png
+│   │   │   ├── PRT-000647.png
+│   │   │   ├── PRT-000651.png
+│   │   │   ├── PRT-000660.png
+│   │   │   ├── PRT-000692.png
+│   │   │   ├── PRT-000698.png
+│   │   │   ├── PRT-000700.png
+│   │   │   ├── PRT-000760.png
+│   │   │   ├── PRT-000775.png
+│   │   │   ├── PRT-000786.png
+│   │   │   ├── PRT-000811.png
+│   │   │   ├── PRT-000824.png
+│   │   │   ├── PRT-000826.png
+│   │   │   ├── PRT-000827.png
+│   │   │   ├── PRT-000846.png
+│   │   │   ├── PRT-000851.png
+│   │   │   ├── PRT-000856.png
+│   │   │   ├── PRT-000864.png
+│   │   │   ├── PRT-000882.png
+│   │   │   ├── PRT-000888.png
+│   │   │   ├── PRT-000896.png
+│   │   │   ├── PRT-000917.png
+│   │   │   ├── PRT-000924.png
+│   │   │   ├── PRT-000938.png
+│   │   │   ├── PRT-000943.png
+│   │   │   ├── PRT-000948.png
+│   │   │   ├── PRT-000969.png
+│   │   │   ├── PRT-000973.png
+│   │   │   ├── PRT-000986.png
+│   │   │   ├── PRT-001001.png
+│   │   │   ├── PRT-001015.png
+│   │   │   ├── PRT-001019.png
+│   │   │   ├── PRT-001049.png
+│   │   │   ├── PRT-001057.png
+│   │   │   ├── PRT-001058.png
+│   │   │   ├── PRT-001061.png
+│   │   │   ├── PRT-001062.png
+│   │   │   ├── PRT-001063.png
+│   │   │   ├── PRT-001066.png
+│   │   │   ├── PRT-001067.png
+│   │   │   ├── PRT-001068.png
+│   │   │   ├── PRT-001070.png
+│   │   │   ├── PRT-001076.png
+│   │   │   ├── PRT-001081.png
+│   │   │   ├── PRT-001083.png
+│   │   │   ├── PRT-001092.png
+│   │   │   ├── PRT-001094.png
+│   │   │   ├── PRT-001095.png
+│   │   │   ├── PRT-001096.png
+│   │   │   ├── PRT-001099.png
+│   │   │   ├── PRT-001104.png
+│   │   │   ├── PRT-001113.png
+│   │   │   └── PRT-001115.png
+│   │   ├── thumbnails_ignored/
+│   │   │   └── Pin_Dowel_DIA3_L22_SS_ISO2338-m6_McM_91585A372.png
+│   │   ├── bom_data.csv
+│   │   ├── bom_data.json
+│   │   └── thumbnail_report.json
+│   ├── D01-LazaSystems_BOM_Estimate_2025-12-17-T17-10-03/
+│   │   ├── thumbnails/
+│   │   │   ├── ASM-000308.png
+│   │   │   ├── ASM-000309.png
+│   │   │   ├── ASM-000310.png
+│   │   │   ├── ASM-000319.png
+│   │   │   ├── ASM-000320.png
+│   │   │   ├── ASM-000369.png
+│   │   │   ├── ASM-000372.png
+│   │   │   ├── ASM-000375.png
+│   │   │   ├── ASM-000392.png
+│   │   │   ├── ASM-000524.png
+│   │   │   ├── ASM-000542.png
+│   │   │   ├── ASM-000565.png
+│   │   │   ├── ASM-000573.png
+│   │   │   ├── ASM-000585.png
+│   │   │   ├── ASM-000613.png
+│   │   │   ├── ASM-000655.png
+│   │   │   ├── ASM-000683.png
+│   │   │   ├── ASM-000832.png
+│   │   │   ├── ASM-000844.png
+│   │   │   ├── ASM-000961.png
+│   │   │   ├── ASM-001012.png
+│   │   │   ├── ASM-001078.png
+│   │   │   ├── ASM-001118.png
+│   │   │   ├── PRT-000312.png
+│   │   │   ├── PRT-000313.png
+│   │   │   ├── PRT-000315.png
+│   │   │   ├── PRT-000316.png
+│   │   │   ├── PRT-000317.png
+│   │   │   ├── PRT-000318.png
+│   │   │   ├── PRT-000321.png
+│   │   │   ├── PRT-000322.png
+│   │   │   ├── PRT-000323.png
+│   │   │   ├── PRT-000324.png
+│   │   │   ├── PRT-000325.png
+│   │   │   ├── PRT-000326.png
+│   │   │   ├── PRT-000328.png
+│   │   │   ├── PRT-000329.png
+│   │   │   ├── PRT-000330.png
+│   │   │   ├── PRT-000331.png
+│   │   │   ├── PRT-000332.png
+│   │   │   ├── PRT-000342.png
+│   │   │   ├── PRT-000357.png
+│   │   │   ├── PRT-000361.png
+│   │   │   ├── PRT-000363.png
+│   │   │   ├── PRT-000364.png
+│   │   │   ├── PRT-000370.png
+│   │   │   ├── PRT-000371.png
+│   │   │   ├── PRT-000379.png
+│   │   │   ├── PRT-000380.png
+│   │   │   ├── PRT-000381.png
+│   │   │   ├── PRT-000382.png
+│   │   │   ├── PRT-000383.png
+│   │   │   ├── PRT-000384.png
+│   │   │   ├── PRT-000385.png
+│   │   │   ├── PRT-000386.png
+│   │   │   ├── PRT-000394.png
+│   │   │   ├── PRT-000395.png
+│   │   │   ├── PRT-000396.png
+│   │   │   ├── PRT-000397.png
+│   │   │   ├── PRT-000409.png
+│   │   │   ├── PRT-000415.png
+│   │   │   ├── PRT-000416.png
+│   │   │   ├── PRT-000417.png
+│   │   │   ├── PRT-000418.png
+│   │   │   ├── PRT-000420.png
+│   │   │   ├── PRT-000421.png
+│   │   │   ├── PRT-000422.png
+│   │   │   ├── PRT-000423.png
+│   │   │   ├── PRT-000424.png
+│   │   │   ├── PRT-000425.png
+│   │   │   ├── PRT-000426.png
+│   │   │   ├── PRT-000427.png
+│   │   │   ├── PRT-000428.png
+│   │   │   ├── PRT-000429.png
+│   │   │   ├── PRT-000430.png
+│   │   │   ├── PRT-000431.png
+│   │   │   ├── PRT-000432.png
+│   │   │   ├── PRT-000433.png
+│   │   │   ├── PRT-000434.png
+│   │   │   ├── PRT-000437.png
+│   │   │   ├── PRT-000438.png
+│   │   │   ├── PRT-000440.png
+│   │   │   ├── PRT-000441.png
+│   │   │   ├── PRT-000442.png
+│   │   │   ├── PRT-000443.png
+│   │   │   ├── PRT-000444.png
+│   │   │   ├── PRT-000448.png
+│   │   │   ├── PRT-000449.png
+│   │   │   ├── PRT-000450.png
+│   │   │   ├── PRT-000522.png
+│   │   │   ├── PRT-000523.png
+│   │   │   ├── PRT-000569.png
+│   │   │   ├── PRT-000614.png
+│   │   │   ├── PRT-000615.png
+│   │   │   ├── PRT-000616.png
+│   │   │   ├── PRT-000617.png
+│   │   │   ├── PRT-000622.png
+│   │   │   ├── PRT-000623.png
+│   │   │   ├── PRT-000625.png
+│   │   │   ├── PRT-000630.png
+│   │   │   ├── PRT-000631.png
+│   │   │   ├── PRT-000635.png
+│   │   │   ├── PRT-000636.png
+│   │   │   ├── PRT-000637.png
+│   │   │   ├── PRT-000638.png
+│   │   │   ├── PRT-000639.png
+│   │   │   ├── PRT-000642.png
+│   │   │   ├── PRT-000643.png
+│   │   │   ├── PRT-000647.png
+│   │   │   ├── PRT-000648.png
+│   │   │   ├── PRT-000649.png
+│   │   │   ├── PRT-000650.png
+│   │   │   ├── PRT-000651.png
+│   │   │   ├── PRT-000652.png
+│   │   │   ├── PRT-000660.png
+│   │   │   ├── PRT-000661.png
+│   │   │   ├── PRT-000680.png
+│   │   │   ├── PRT-000692.png
+│   │   │   ├── PRT-000698.png
+│   │   │   ├── PRT-000700.png
+│   │   │   ├── PRT-000749.png
+│   │   │   ├── PRT-000758.png
+│   │   │   ├── PRT-000759.png
+│   │   │   ├── PRT-000760.png
+│   │   │   ├── PRT-000761.png
+│   │   │   ├── PRT-000763.png
+│   │   │   ├── PRT-000768.png
+│   │   │   ├── PRT-000773.png
+│   │   │   ├── PRT-000774.png
+│   │   │   ├── PRT-000775.png
+│   │   │   ├── PRT-000786.png
+│   │   │   ├── PRT-000808.png
+│   │   │   ├── PRT-000811.png
+│   │   │   ├── PRT-000822.png
+│   │   │   ├── PRT-000823.png
+│   │   │   ├── PRT-000824.png
+│   │   │   ├── PRT-000825.png
+│   │   │   ├── PRT-000826.png
+│   │   │   ├── PRT-000827.png
+│   │   │   ├── PRT-000828.png
+│   │   │   ├── PRT-000831.png
+│   │   │   ├── PRT-000833.png
+│   │   │   ├── PRT-000835.png
+│   │   │   ├── PRT-000837.png
+│   │   │   ├── PRT-000839.png
+│   │   │   ├── PRT-000840.png
+│   │   │   ├── PRT-000845.png
+│   │   │   ├── PRT-000846.png
+│   │   │   ├── PRT-000849.png
+│   │   │   ├── PRT-000851.png
+│   │   │   ├── PRT-000856.png
+│   │   │   ├── PRT-000864.png
+│   │   │   ├── PRT-000868.png
+│   │   │   ├── PRT-000870.png
+│   │   │   ├── PRT-000871.png
+│   │   │   ├── PRT-000876.png
+│   │   │   ├── PRT-000878.png
+│   │   │   ├── PRT-000879.png
+│   │   │   ├── PRT-000882.png
+│   │   │   ├── PRT-000888.png
+│   │   │   ├── PRT-000892.png
+│   │   │   ├── PRT-000893.png
+│   │   │   ├── PRT-000894.png
+│   │   │   ├── PRT-000895.png
+│   │   │   ├── PRT-000896.png
+│   │   │   ├── PRT-000898.png
+│   │   │   ├── PRT-000902.png
+│   │   │   ├── PRT-000903.png
+│   │   │   ├── PRT-000904.png
+│   │   │   ├── PRT-000917.png
+│   │   │   ├── PRT-000924.png
+│   │   │   ├── PRT-000925.png
+│   │   │   ├── PRT-000929.png
+│   │   │   ├── PRT-000931.png
+│   │   │   ├── PRT-000932.png
+│   │   │   ├── PRT-000938.png
+│   │   │   ├── PRT-000942.png
+│   │   │   ├── PRT-000943.png
+│   │   │   ├── PRT-000948.png
+│   │   │   ├── PRT-000957.png
+│   │   │   ├── PRT-000959.png
+│   │   │   ├── PRT-000966.png
+│   │   │   ├── PRT-000967.png
+│   │   │   ├── PRT-000969.png
+│   │   │   ├── PRT-000970.png
+│   │   │   ├── PRT-000973.png
+│   │   │   ├── PRT-000978.png
+│   │   │   ├── PRT-000979.png
+│   │   │   ├── PRT-000986.png
+│   │   │   ├── PRT-000988.png
+│   │   │   ├── PRT-000990.png
+│   │   │   ├── PRT-001001.png
+│   │   │   ├── PRT-001002.png
+│   │   │   ├── PRT-001007.png
+│   │   │   ├── PRT-001013.png
+│   │   │   ├── PRT-001014.png
+│   │   │   ├── PRT-001015.png
+│   │   │   ├── PRT-001016.png
+│   │   │   ├── PRT-001017.png
+│   │   │   ├── PRT-001018.png
+│   │   │   ├── PRT-001019.png
+│   │   │   ├── PRT-001049.png
+│   │   │   ├── PRT-001053.png
+│   │   │   ├── PRT-001055.png
+│   │   │   ├── PRT-001056.png
+│   │   │   ├── PRT-001057.png
+│   │   │   ├── PRT-001058.png
+│   │   │   ├── PRT-001061.png
+│   │   │   ├── PRT-001062.png
+│   │   │   ├── PRT-001063.png
+│   │   │   ├── PRT-001066.png
+│   │   │   ├── PRT-001067.png
+│   │   │   ├── PRT-001068.png
+│   │   │   ├── PRT-001069.png
+│   │   │   ├── PRT-001070.png
+│   │   │   ├── PRT-001072.png
+│   │   │   ├── PRT-001073.png
+│   │   │   ├── PRT-001076.png
+│   │   │   ├── PRT-001079.png
+│   │   │   ├── PRT-001080.png
+│   │   │   ├── PRT-001081.png
+│   │   │   ├── PRT-001082.png
+│   │   │   ├── PRT-001083.png
+│   │   │   ├── PRT-001092.png
+│   │   │   ├── PRT-001094.png
+│   │   │   ├── PRT-001095.png
+│   │   │   ├── PRT-001096.png
+│   │   │   ├── PRT-001099.png
+│   │   │   ├── PRT-001100.png
+│   │   │   ├── PRT-001103.png
+│   │   │   ├── PRT-001104.png
+│   │   │   ├── PRT-001105.png
+│   │   │   ├── PRT-001107.png
+│   │   │   ├── PRT-001108.png
+│   │   │   ├── PRT-001109.png
+│   │   │   ├── PRT-001111.png
+│   │   │   ├── PRT-001112.png
+│   │   │   ├── PRT-001113.png
+│   │   │   ├── PRT-001114.png
+│   │   │   ├── PRT-001115.png
+│   │   │   ├── PRT-001116.png
+│   │   │   └── PRT-001117.png
+│   │   ├── thumbnails_ignored/
+│   │   │   ├── Cable_Insertion-to-Wrist.png
+│   │   │   ├── Pin_Dowel_DIA3_L22_SS_ISO2338-m6_McM_91585A372.png
+│   │   │   ├── Pin_Dowel_DIA3_L24_SS_ISO2338-m6_McM_91585A402.png
+│   │   │   ├── Ref_DistalGuide_Nut.png
+│   │   │   ├── Ref_DistalGuide_Thumbscrew.png
+│   │   │   └── Screw_M6x1_HEX_L30_SS_McM_91287A139.png
+│   │   ├── bom_data.csv
+│   │   ├── bom_data.json
+│   │   └── thumbnail_report.json
+│   └── D01-LazaSystems_BOM_Estimate_2025-12-17-T17-14-10/
+│       ├── thumbnails/
+│       │   ├── ASM-000308.png
+│       │   ├── ASM-000309.png
+│       │   ├── ASM-000310.png
+│       │   ├── ASM-000319.png
+│       │   ├── ASM-000320.png
+│       │   ├── ASM-000369.png
+│       │   ├── ASM-000372.png
+│       │   ├── ASM-000375.png
+│       │   ├── ASM-000392.png
+│       │   ├── ASM-000524.png
+│       │   ├── ASM-000542.png
+│       │   ├── ASM-000565.png
+│       │   ├── ASM-000573.png
+│       │   ├── ASM-000585.png
+│       │   ├── ASM-000613.png
+│       │   ├── ASM-000655.png
+│       │   ├── ASM-000683.png
+│       │   ├── ASM-000832.png
+│       │   ├── ASM-000844.png
+│       │   ├── ASM-000961.png
+│       │   ├── ASM-001012.png
+│       │   ├── ASM-001078.png
+│       │   ├── ASM-001118.png
+│       │   ├── PRT-000311.png
+│       │   ├── PRT-000312.png
+│       │   ├── PRT-000313.png
+│       │   ├── PRT-000314.png
+│       │   ├── PRT-000315.png
+│       │   ├── PRT-000316.png
+│       │   ├── PRT-000317.png
+│       │   ├── PRT-000318.png
+│       │   ├── PRT-000321.png
+│       │   ├── PRT-000322.png
+│       │   ├── PRT-000323.png
+│       │   ├── PRT-000324.png
+│       │   ├── PRT-000325.png
+│       │   ├── PRT-000326.png
+│       │   ├── PRT-000328.png
+│       │   ├── PRT-000329.png
+│       │   ├── PRT-000330.png
+│       │   ├── PRT-000331.png
+│       │   ├── PRT-000332.png
+│       │   ├── PRT-000342.png
+│       │   ├── PRT-000357.png
+│       │   ├── PRT-000361.png
+│       │   ├── PRT-000363.png
+│       │   ├── PRT-000364.png
+│       │   ├── PRT-000370.png
+│       │   ├── PRT-000371.png
+│       │   ├── PRT-000379.png
+│       │   ├── PRT-000380.png
+│       │   ├── PRT-000381.png
+│       │   ├── PRT-000382.png
+│       │   ├── PRT-000383.png
+│       │   ├── PRT-000384.png
+│       │   ├── PRT-000385.png
+│       │   ├── PRT-000386.png
+│       │   ├── PRT-000394.png
+│       │   ├── PRT-000395.png
+│       │   ├── PRT-000396.png
+│       │   ├── PRT-000397.png
+│       │   ├── PRT-000409.png
+│       │   ├── PRT-000415.png
+│       │   ├── PRT-000416.png
+│       │   ├── PRT-000417.png
+│       │   ├── PRT-000418.png
+│       │   ├── PRT-000420.png
+│       │   ├── PRT-000421.png
+│       │   ├── PRT-000422.png
+│       │   ├── PRT-000423.png
+│       │   ├── PRT-000424.png
+│       │   ├── PRT-000425.png
+│       │   ├── PRT-000426.png
+│       │   ├── PRT-000427.png
+│       │   ├── PRT-000428.png
+│       │   ├── PRT-000429.png
+│       │   ├── PRT-000430.png
+│       │   ├── PRT-000431.png
+│       │   ├── PRT-000432.png
+│       │   ├── PRT-000433.png
+│       │   ├── PRT-000434.png
+│       │   ├── PRT-000437.png
+│       │   ├── PRT-000438.png
+│       │   ├── PRT-000440.png
+│       │   ├── PRT-000441.png
+│       │   ├── PRT-000442.png
+│       │   ├── PRT-000443.png
+│       │   ├── PRT-000444.png
+│       │   ├── PRT-000448.png
+│       │   ├── PRT-000449.png
+│       │   ├── PRT-000450.png
+│       │   ├── PRT-000522.png
+│       │   ├── PRT-000523.png
+│       │   ├── PRT-000569.png
+│       │   ├── PRT-000614.png
+│       │   ├── PRT-000615.png
+│       │   ├── PRT-000616.png
+│       │   ├── PRT-000617.png
+│       │   ├── PRT-000622.png
+│       │   ├── PRT-000623.png
+│       │   ├── PRT-000625.png
+│       │   ├── PRT-000630.png
+│       │   ├── PRT-000631.png
+│       │   ├── PRT-000635.png
+│       │   ├── PRT-000636.png
+│       │   ├── PRT-000637.png
+│       │   ├── PRT-000638.png
+│       │   ├── PRT-000639.png
+│       │   ├── PRT-000642.png
+│       │   ├── PRT-000643.png
+│       │   ├── PRT-000647.png
+│       │   ├── PRT-000648.png
+│       │   ├── PRT-000649.png
+│       │   ├── PRT-000650.png
+│       │   ├── PRT-000651.png
+│       │   ├── PRT-000652.png
+│       │   ├── PRT-000660.png
+│       │   ├── PRT-000661.png
+│       │   ├── PRT-000680.png
+│       │   ├── PRT-000692.png
+│       │   ├── PRT-000698.png
+│       │   ├── PRT-000700.png
+│       │   ├── PRT-000749.png
+│       │   ├── PRT-000758.png
+│       │   ├── PRT-000759.png
+│       │   ├── PRT-000760.png
+│       │   ├── PRT-000761.png
+│       │   ├── PRT-000763.png
+│       │   ├── PRT-000768.png
+│       │   ├── PRT-000773.png
+│       │   ├── PRT-000774.png
+│       │   ├── PRT-000775.png
+│       │   ├── PRT-000786.png
+│       │   ├── PRT-000808.png
+│       │   ├── PRT-000822.png
+│       │   ├── PRT-000823.png
+│       │   ├── PRT-000824.png
+│       │   ├── PRT-000825.png
+│       │   ├── PRT-000826.png
+│       │   ├── PRT-000827.png
+│       │   ├── PRT-000828.png
+│       │   ├── PRT-000831.png
+│       │   ├── PRT-000833.png
+│       │   ├── PRT-000835.png
+│       │   ├── PRT-000837.png
+│       │   ├── PRT-000839.png
+│       │   ├── PRT-000840.png
+│       │   ├── PRT-000845.png
+│       │   ├── PRT-000846.png
+│       │   ├── PRT-000849.png
+│       │   ├── PRT-000851.png
+│       │   ├── PRT-000856.png
+│       │   ├── PRT-000868.png
+│       │   ├── PRT-000870.png
+│       │   ├── PRT-000871.png
+│       │   ├── PRT-000876.png
+│       │   ├── PRT-000878.png
+│       │   ├── PRT-000879.png
+│       │   ├── PRT-000888.png
+│       │   ├── PRT-000892.png
+│       │   ├── PRT-000893.png
+│       │   ├── PRT-000894.png
+│       │   ├── PRT-000895.png
+│       │   ├── PRT-000896.png
+│       │   ├── PRT-000898.png
+│       │   ├── PRT-000902.png
+│       │   ├── PRT-000903.png
+│       │   ├── PRT-000904.png
+│       │   ├── PRT-000925.png
+│       │   ├── PRT-000929.png
+│       │   ├── PRT-000931.png
+│       │   ├── PRT-000932.png
+│       │   ├── PRT-000942.png
+│       │   ├── PRT-000943.png
+│       │   ├── PRT-000957.png
+│       │   ├── PRT-000959.png
+│       │   ├── PRT-000966.png
+│       │   ├── PRT-000967.png
+│       │   ├── PRT-000969.png
+│       │   ├── PRT-000970.png
+│       │   ├── PRT-000973.png
+│       │   ├── PRT-000978.png
+│       │   ├── PRT-000979.png
+│       │   ├── PRT-000986.png
+│       │   ├── PRT-000988.png
+│       │   ├── PRT-000990.png
+│       │   ├── PRT-001001.png
+│       │   ├── PRT-001002.png
+│       │   ├── PRT-001007.png
+│       │   ├── PRT-001013.png
+│       │   ├── PRT-001014.png
+│       │   ├── PRT-001015.png
+│       │   ├── PRT-001016.png
+│       │   ├── PRT-001017.png
+│       │   ├── PRT-001018.png
+│       │   ├── PRT-001019.png
+│       │   ├── PRT-001053.png
+│       │   ├── PRT-001055.png
+│       │   ├── PRT-001056.png
+│       │   ├── PRT-001062.png
+│       │   ├── PRT-001066.png
+│       │   ├── PRT-001067.png
+│       │   ├── PRT-001069.png
+│       │   ├── PRT-001072.png
+│       │   ├── PRT-001073.png
+│       │   ├── PRT-001079.png
+│       │   ├── PRT-001080.png
+│       │   ├── PRT-001082.png
+│       │   ├── PRT-001083.png
+│       │   ├── PRT-001092.png
+│       │   ├── PRT-001095.png
+│       │   ├── PRT-001096.png
+│       │   ├── PRT-001099.png
+│       │   ├── PRT-001100.png
+│       │   ├── PRT-001103.png
+│       │   ├── PRT-001104.png
+│       │   ├── PRT-001105.png
+│       │   ├── PRT-001107.png
+│       │   ├── PRT-001108.png
+│       │   ├── PRT-001109.png
+│       │   ├── PRT-001111.png
+│       │   ├── PRT-001112.png
+│       │   ├── PRT-001113.png
+│       │   ├── PRT-001114.png
+│       │   ├── PRT-001115.png
+│       │   ├── PRT-001116.png
+│       │   └── PRT-001117.png
+│       ├── thumbnails_ignored/
+│       │   ├── Cable_Insertion-to-Wrist.png
+│       │   ├── Pin_Dowel_DIA3_L22_SS_ISO2338-m6_McM_91585A372.png
+│       │   ├── Pin_Dowel_DIA3_L24_SS_ISO2338-m6_McM_91585A402.png
+│       │   ├── Ref_DistalGuide_Nut.png
+│       │   ├── Ref_DistalGuide_Thumbscrew.png
+│       │   └── Screw_M6x1_HEX_L30_SS_McM_91287A139.png
+│       ├── bom_data.csv
+│       ├── bom_data.json
+│       └── thumbnail_report.json
 ├── LICENSE
 ├── nodemon.json
 ├── package-lock.json
 ├── package.json
 ├── README.md
+├── test.csv
 ├── tsconfig.json
 └── vite.config.js
 ```
 
 ## Stats
 
-Files: 60 | Lines: 14,175 | Routes: 44 | TODOs: 6
+Files: 60 | Lines: 14,633 | Routes: 45 | TODOs: 6
 
 ## Routes
 
@@ -184,6 +2771,7 @@ Files: 60 | Lines: 14,175 | Routes: 44 | TODOs: 6
 - POST /export/prepare-assemblies
 - GET /export/aggregate-bom-stream
 - GET /export/aggregate-bom
+- GET /thumbnail-metadata
 - GET /thumbnail-proxy
 - GET /usage/stats
 
@@ -828,13 +3416,13 @@ Functions:
 
 #### public/js/utils/fullAssemblyExporter.js
 
-Full Assembly Exporter Exports a complete assembly package including: - Flattened BOM as JSON - Flattened BOM as CSV - Thumbnails for each BOM item - All packaged in a ZIP file
+Full Assembly Exporter Exports a complete assembly package including: - Flattened BOM as JSON - Flattened BOM as CSV - Thumbnails for each BOM item (organized by part number prefix)
 
 Functions:
 - `sanitizeForFilename(str, maxLength) -> string`
 - `buildThumbnailFilename(rowData) -> string`
-- `parseBomRow(row, headerMap, index) -> Object`
 - `buildThumbnailUrl(info, size) -> string|null`
+- `parseBomRow(row, headerMap, legacyHeaderMap, index) -> Object`
 - `async fullAssemblyExtract(options)`
 
 Imports: jszip

@@ -103,6 +103,31 @@ export class ApiClient {
     return res.json();
   }
 
+  /**
+   * Fetch thumbnail metadata to discover available sizes.
+   * Used as fallback when direct thumbnail URL from BOM is unavailable.
+   * 
+   * @param {string} documentId - Document ID
+   * @param {string} workspaceId - Workspace ID
+   * @param {string} elementId - Element ID
+   * @param {string} [partId] - Optional part ID for part-specific thumbnail
+   * @returns {Promise<Object>} Thumbnail metadata with sizes array
+   */
+  async getThumbnailMetadata(documentId, workspaceId, elementId, partId = null) {
+    const params = new URLSearchParams({
+      documentId,
+      workspaceId,
+      elementId,
+    });
+    if (partId) {
+      params.set('partId', partId);
+    }
+    
+    const res = await fetch(`/api/thumbnail-metadata?${params.toString()}`);
+    if (!res.ok) throw new Error(`Get thumbnail metadata failed (${res.status})`);
+    return res.json();
+  }
+
   async getParentInfo(documentId) {
     const res = await fetch(`/api/documents/${documentId}/parent`);
     if (!res.ok) throw new Error(`Get parent info failed (${res.status})`);

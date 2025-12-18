@@ -1614,4 +1614,29 @@ export class OnShapeApiClient {
     });
     return Buffer.from(response.data);
   }
+
+  /**
+   * Fetch thumbnail metadata to discover available sizes.
+   * Used as fallback when direct thumbnail URL from BOM is unavailable.
+   * 
+   * @param documentId - Document ID
+   * @param workspaceId - Workspace ID
+   * @param elementId - Element ID
+   * @param partId - Optional part ID for part-specific thumbnails
+   * @returns Thumbnail metadata with sizes array
+   */
+  async getThumbnailMetadata(
+    documentId: string,
+    workspaceId: string,
+    elementId: string,
+    partId?: string
+  ): Promise<{ sizes: Array<{ size: string; href: string }> }> {
+    let url = `/thumbnails/d/${documentId}/w/${workspaceId}/e/${elementId}`;
+    if (partId) {
+      url += `/p/${partId}`;
+    }
+    
+    const response = await this.axiosInstance.get(url);
+    return response.data || { sizes: [] };
+  }
 }

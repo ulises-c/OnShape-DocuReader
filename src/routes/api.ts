@@ -873,6 +873,55 @@ router.get(
   }
 );
 
+/**
+ * GET /api/thumbnail-metadata
+ * 
+ * Fetch thumbnail metadata to discover available sizes.
+ * Used as fallback when direct thumbnail URL from BOM response is unavailable.
+ * 
+ * Query params:
+ *   - documentId: Document ID (required)
+ *   - workspaceId: Workspace ID (required)
+ *   - elementId: Element ID (required)
+ *   - partId: Part ID (optional, for part-specific thumbnails)
+ */
+router.get(
+  "/thumbnail-metadata",
+  async (req: Request, res: Response): Promise<Response> => {
+    try {
+      const { documentId, workspaceId, elementId, partId } = req.query;
+      
+      if (!documentId || !workspaceId || !elementId) {
+        return res.status(400).json({ 
+          error: "Missing required parameters: documentId, workspaceId, elementId" 
+        });
+      }
+      
+      const client = new OnShapeApiClient(
+        req.session.accessToken!,
+        req.session.userId,
+        usageTracker
+      );
+      
+      const metadata = await client.getThumbnailMetadata(
+        documentId as string,
+        workspaceId as string,
+        elementId as string,
+        partId as string | undefined
+      );
+      
+      return res.json(metadata);
+    } catch (error: any) {
+      console.error("Get thumbnail metadata error:", error);
+      const status = error.response?.status || 500;
+      return res.status(status >= 400 && status < 600 ? status : 500).json({ 
+        error: "Failed to fetch thumbnail metadata",
+        details: error.message
+      });
+    }
+  }
+);
+
 router.get(
   "/thumbnail-proxy",
   async (req: Request, res: Response): Promise<Response> => {
