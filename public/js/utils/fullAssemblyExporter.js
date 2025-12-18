@@ -495,7 +495,7 @@ class ThumbnailReport {
     });
   }
   
-  addFailure(partNumber, itemSource, error, attemptedUrls = []) {
+  addFailure(partNumber, itemSource, error, errorStatus = null, attemptedUrls = []) {
     this.items.push({ 
       partNumber, 
       folder: null, 
@@ -510,7 +510,8 @@ class ThumbnailReport {
         elementId: itemSource.elementId,
         partId: itemSource.partId
       } : null,
-      error, 
+      error,
+      errorStatus,
       attemptedUrls 
     });
   }
@@ -529,8 +530,21 @@ class ThumbnailReport {
   
   generate() {
     const succeeded = this.items.filter(i => i.success).length;
-    const failed = this.items.filter(i => !i.success && !i.skipped).length;
+    const failedItems = this.items.filter(i => !i.success && !i.skipped);
     const skipped = this.items.filter(i => i.skipped).length;
+
+    const failedBreakdown = {
+      total_failed: failedItems.length,
+      fail_by_403: 0,
+      fail_by_404: 0,
+      fail_by_other: 0,
+    };
+
+    for (const err of this.errors) {
+      if (err?.errorStatus === 403) failedBreakdown.fail_by_403++;
+      else if (err?.errorStatus === 404) failedBreakdown.fail_by_404++;
+      else failedBreakdown.fail_by_other++;
+    }
     
     // Group by folder
     const byFolder = {};
@@ -556,7 +570,7 @@ class ThumbnailReport {
       summary: {
         total: this.items.length,
         succeeded,
-        failed,
+        failed: failedBreakdown,
         skipped,
         successRate: this.items.length > 0 
           ? `${((succeeded / this.items.length) * 100).toFixed(1)}%`
@@ -595,6 +609,7 @@ async function fetchThumbnailBlob(
 
   const urlsToTry = [primaryUrl, fallbackUrl].filter(Boolean);
   const attemptedUrls = [];
+  let lastStatus = null;
 
   for (let urlIndex = 0; urlIndex < urlsToTry.length; urlIndex++) {
     const thumbnailUrl = urlsToTry[urlIndex];
@@ -616,14 +631,17 @@ async function fetchThumbnailBlob(
             (blob.type.startsWith("image/") ||
               blob.type === "application/octet-stream")
           ) {
-            return { blob, usedUrl: thumbnailUrl, attemptedUrls };
+            return { blob, usedUrl: thumbnailUrl, attemptedUrls, errorStatus: null };
           }
           // Small response or wrong type - probably an error page
           console.warn(
             `[FullExtract] Invalid image response (size=${blob.size}, type=${blob.type})`
           );
+          lastStatus = response.status || lastStatus;
           break; // Try next URL
         }
+
+        lastStatus = response.status || lastStatus;
 
         // Handle rate limiting (429) or server errors (5xx) with exponential backoff
         if (response.status === 429 || response.status >= 500) {
@@ -681,7 +699,7 @@ async function fetchThumbnailBlob(
     }
   }
 
-  return { blob: null, usedUrl: null, attemptedUrls };
+  return { blob: null, usedUrl: null, attemptedUrls, errorStatus: lastStatus };
 }
 
 /**
@@ -748,7 +766,7 @@ async function fetchThumbnailsWithLimit(
           continue;
         }
 
-        const { blob, usedUrl, attemptedUrls } = await fetchThumbnailBlob(
+        const { blob, usedUrl, attemptedUrls, errorStatus } = await fetchThumbnailBlob(
           resolvedUrl,
           source !== 'constructed' ? constructedUrl : null // Don't try constructed twice
         );
@@ -772,6 +790,7 @@ async function fetchThumbnailsWithLimit(
             parsed.partNumber,
             parsed.thumbnailInfo,
             "All thumbnail URLs failed",
+            errorStatus || null,
             attemptedUrls || []
           );
         }
