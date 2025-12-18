@@ -13,6 +13,43 @@ export class ElementActions {
   constructor(controller, documentService) {
     this.controller = controller;
     this.documentService = documentService;
+
+    // Prevent duplicate actions when views re-render and event listeners get rebound.
+    // Keyed by action name, values are Sets of in-flight identifiers (e.g. element.id).
+    this._inFlight = new Map();
+    this._lastClickAtMs = new Map();
+  }
+
+  _getInFlightSet(action) {
+    let set = this._inFlight.get(action);
+    if (!set) {
+      set = new Set();
+      this._inFlight.set(action, set);
+    }
+    return set;
+  }
+
+  _isDuplicateClick(action, key, windowMs = 750) {
+    const now = Date.now();
+    const mapKey = `${action}:${key}`;
+    const last = this._lastClickAtMs.get(mapKey) || 0;
+    this._lastClickAtMs.set(mapKey, now);
+    return now - last < windowMs;
+  }
+
+  async _runSingleFlight(action, key, fn) {
+    const inFlight = this._getInFlightSet(action);
+    if (inFlight.has(key)) {
+      return { ran: false, reason: "in-flight" };
+    }
+
+    inFlight.add(key);
+    try {
+      await fn();
+      return { ran: true };
+    } finally {
+      inFlight.delete(key);
+    }
   }
 
   async handleCopyElementJson(element, controller) {
@@ -86,39 +123,75 @@ export class ElementActions {
       return false;
     }
 
-    try {
-      // Show progress modal
-      showModal(element.name || element.id);
+    const key = `${documentId}:${workspaceId}:${element.id}`;
 
-      // Execute extraction with progress updates
-      await fullAssemblyExtract({
-        element,
-        documentId,
-        workspaceId,
-        documentService: service,
-        onProgress: (progress) => {
-          updateProgress(progress);
-          
-          // Log to console for backend tracking
-          if (progress.phase === ExportPhase.COMPLETE) {
-            console.log('[FullExtract] Export completed:', {
-              assembly: progress.assemblyName,
-              bomRows: progress.bomRows,
-              thumbnails: progress.thumbnailsDownloaded,
-              zipSize: progress.zipSizeBytes,
-              duration: progress.elapsedMs
-            });
+    // Extra protection against double dispatch in the same tick or rapid duplicate events.
+    if (this._isDuplicateClick("fullExtract", key, 1000)) {
+      return false;
+    }
+
+    // Disable the clicked button immediately if present.
+    // This is best-effort, event delegation means the specific button might not be available here.
+    const buttonSelector = `[data-action="full-extract"][data-element-id="${element.id}"]`;
+    const btn = document.querySelector(buttonSelector);
+    const prevDisabled = btn ? btn.disabled : null;
+    if (btn) {
+      btn.disabled = true;
+      btn.setAttribute("aria-busy", "true");
+    }
+
+    try {
+      const result = await this._runSingleFlight("fullExtract", key, async () => {
+        // Show progress modal
+        showModal(element.name || element.id);
+
+        // Execute extraction with progress updates
+        await fullAssemblyExtract({
+          element,
+          documentId,
+          workspaceId,
+          documentService: service,
+          onProgress: (progress) => {
+            updateProgress(progress);
+
+            // Log to console for backend tracking
+            if (progress.phase === ExportPhase.COMPLETE) {
+              console.log('[FullExtract] Export completed:', {
+                assembly: progress.assemblyName,
+                bomRows: progress.bomRows,
+                thumbnails: progress.thumbnailsDownloaded,
+                zipSize: progress.zipSizeBytes,
+                duration: progress.elapsedMs
+              });
+            }
           }
-        }
+        });
+
+        showToast('Full extraction complete!');
       });
 
-      showToast('Full extraction complete!');
-      return true;
+      if (!result.ran) {
+        // Another handler is already running due to duplicated listeners.
+        // Keep UX quiet to avoid spam, the modal already shows progress.
+        return false;
+      }
 
+      return true;
     } catch (err) {
       console.error('[FullExtract] Error:', err);
       showToast(`Full extraction failed: ${err.message}`);
       return false;
+    } finally {
+      // Always allow closing the modal and re-enable UI.
+      try {
+        hideModal();
+      } catch {
+        // no-op
+      }
+      if (btn) {
+        btn.disabled = prevDisabled === null ? false : prevDisabled;
+        btn.removeAttribute("aria-busy");
+      }
     }
   }
 }
