@@ -199,8 +199,13 @@ class OnShapeAPIClient:
         
         return response.json()
     
-    def fetch_image(self, url: str) -> Optional[bytes]:
-        """Fetch an image from OnShape API."""
+    def fetch_image(self, url: str) -> tuple[Optional[bytes], Optional[int]]:
+        """
+        Fetch an image from OnShape API.
+        
+        Returns:
+            tuple: (image_bytes, None) on success, (None, status_code) on failure
+        """
         response = requests.get(
             url,
             headers=self.config.headers_image,
@@ -209,11 +214,16 @@ class OnShapeAPIClient:
         )
         
         if response.status_code == 200:
-            return response.content
-        return None
+            return response.content, None
+        return None, response.status_code
     
-    def fetch_thumbnail_metadata(self, base_url: str) -> Optional[dict]:
-        """Fetch thumbnail metadata to discover available sizes."""
+    def fetch_thumbnail_metadata(self, base_url: str) -> tuple[Optional[dict], Optional[int]]:
+        """
+        Fetch thumbnail metadata to discover available sizes.
+        
+        Returns:
+            tuple: (metadata_dict, None) on success, (None, status_code) on failure
+        """
         response = requests.get(
             base_url,
             headers=self.config.headers_json,
@@ -222,8 +232,8 @@ class OnShapeAPIClient:
         )
         
         if response.status_code == 200:
-            return response.json()
-        return None
+            return response.json(), None
+        return None, response.status_code
     
     def _log_api_error(self, response: requests.Response):
         """Log detailed API error information."""
@@ -284,15 +294,24 @@ class ThumbnailDownloader:
         safe_filename = self._sanitize_filename(part_number)
         base_url = self._extract_base_url(thumbnail_url)
         
+        # Track last failure status for error reporting
+        last_status_code = None
+        
         # Step 1: Try default size
-        if self._try_download_size(base_url, self.config.default_thumbnail_size, 
-                                    safe_filename, save_folder, result):
+        print(f"  Attempting default size: {self.config.default_thumbnail_size}")
+        success, status_code = self._try_download_size(
+            base_url, self.config.default_thumbnail_size, 
+            safe_filename, save_folder, result
+        )
+        if success:
             return result
+        last_status_code = status_code
         
         # Step 2: Fetch metadata for available sizes
-        metadata = self.api_client.fetch_thumbnail_metadata(base_url)
+        print(f"  Default size failed (status: {status_code}). Fetching available thumbnail sizes...")
+        metadata, metadata_status = self.api_client.fetch_thumbnail_metadata(base_url)
         if not metadata:
-            result.error_code = "METADATA_FETCH_FAILED"
+            result.error_code = f"METADATA_FETCH_FAILED_{metadata_status}"
             return result
         
         available_sizes = metadata.get("sizes", [])
@@ -300,25 +319,44 @@ class ThumbnailDownloader:
             result.error_code = "NO_SIZES_IN_METADATA"
             return result
         
+        available_size_strings = [s.get("size") for s in available_sizes if s.get("size")]
+        print(f"  Available sizes: {available_size_strings}")
+        
         # Step 3: Try fallback sizes in priority order
         for size in self.config.fallback_thumbnail_sizes:
             size_info = self._find_size_info(available_sizes, size)
-            if size_info and self._try_download_href(
+            if not size_info:
+                print(f"    Size {size} not available")
+                continue
+            
+            print(f"  Attempting fallback size: {size}")
+            success, status_code = self._try_download_href(
                 size_info.get("href"), size, safe_filename, save_folder, result
-            ):
+            )
+            if success:
                 return result
+            if status_code:
+                last_status_code = status_code
+                print(f"    Failed to download size {size} (status: {status_code})")
         
         # Step 4: Try any remaining sizes
+        print(f"  No priority sizes available. Trying any other available sizes...")
         tried_sizes = {self.config.default_thumbnail_size} | set(self.config.fallback_thumbnail_sizes)
         for size_info in available_sizes:
             size = size_info.get("size")
             if size and size not in tried_sizes:
-                if self._try_download_href(
+                print(f"  Attempting size: {size}")
+                success, status_code = self._try_download_href(
                     size_info.get("href"), size, safe_filename, save_folder, result
-                ):
+                )
+                if success:
                     return result
+                if status_code:
+                    last_status_code = status_code
+                    print(f"    Failed to download size {size} (status: {status_code})")
         
-        result.error_code = "NO_DOWNLOADABLE_SIZES"
+        print(f"  Could not download any available size for '{part_number}'")
+        result.error_code = f"NO_DOWNLOADABLE_SIZES_{last_status_code}" if last_status_code else "NO_DOWNLOADABLE_SIZES"
         return result
     
     def _get_save_folder(self, part_number: str, output_folder: str) -> str:
@@ -355,8 +393,13 @@ class ThumbnailDownloader:
         filename: str,
         save_folder: str,
         result: ThumbnailResult
-    ) -> bool:
-        """Try to download a specific size thumbnail."""
+    ) -> tuple[bool, Optional[int]]:
+        """
+        Try to download a specific size thumbnail.
+        
+        Returns:
+            tuple: (success, status_code_on_failure)
+        """
         url = f"{base_url}/s/{size}"
         return self._try_download_href(url, size, filename, save_folder, result)
     
@@ -367,12 +410,17 @@ class ThumbnailDownloader:
         filename: str,
         save_folder: str,
         result: ThumbnailResult
-    ) -> bool:
-        """Try to download from a specific href."""
-        if not href:
-            return False
+    ) -> tuple[bool, Optional[int]]:
+        """
+        Try to download from a specific href.
         
-        image_data = self.api_client.fetch_image(href)
+        Returns:
+            tuple: (success, status_code_on_failure)
+        """
+        if not href:
+            return False, None
+        
+        image_data, status_code = self.api_client.fetch_image(href)
         if image_data:
             image_path = os.path.join(save_folder, f"{filename}.png")
             with open(image_path, 'wb') as f:
@@ -383,9 +431,9 @@ class ThumbnailDownloader:
             result.thumbnail_filename = f"{filename}.png"
             result.thumbnail_url = href
             print(f"  Saved: {image_path} (size: {size})")
-            return True
+            return True, None
         
-        return False
+        return False, status_code
 
 
 # =============================================================================
