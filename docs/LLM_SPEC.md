@@ -94,6 +94,26 @@ Key files:
 | `public/js/views/actions/document-actions.js` | Uses modal for Copy Raw JSON and Get Document flows |
 | `public/js/views/actions/element-actions.js` | Uses modal for BOM JSON/CSV downloads and Full Extract post-summary |
 
+## Elements Panel Tabs (Document Detail)
+
+### Overview
+The Document Detail "Elements" panel supports tabs to filter elements by type for faster navigation.
+
+### Tabs (order)
+- Assembly
+- Bill of Materials
+- Part Studio
+- Other
+
+### Behavior
+- Tabs are rendered inside `DocumentDetailView` and filter the list produced by `renderElementsList()`.
+- "Bill of Materials" tab lists BOM-capable elements, currently this matches assemblies because BOM and Full Extract actions apply to assemblies.
+- Filtering does not change element actions behavior, actions remain delegated from the elements container.
+
+### Key File
+- `public/js/views/document-detail-view.js`
+
+
 ## Thumbnail Extraction System
 
 ### Overview

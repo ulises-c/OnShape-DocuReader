@@ -12,10 +12,10 @@
     "clean": "rimraf dist",
     "prebuild": "npm run clean && npm run spec",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "spec": "python project_tools/generate_spec.py . -o docs/AUTO_SPEC.md --ignore project_tools examples notes docs",
-    "spec:preview": "python project_tools/generate_spec.py . -o docs/AUTO_SPEC.md --stdout --ignore project_tools examples notes docs | head -150",
-    "spec:minimal": "python project_tools/generate_spec.py . -o docs/AUTO_SPEC.md --verbosity minimal --ignore project_tools examples notes docs",
-    "spec:full": "python project_tools/generate_spec.py . -o docs/AUTO_SPEC.md --verbosity full --ignore project_tools examples notes docs"
+    "spec": "python project_tools/generate_spec.py . -o docs/AUTO_SPEC.md --ignore project_tools examples notes docs thumbnail_extraction",
+    "spec:preview": "python project_tools/generate_spec.py . -o docs/AUTO_SPEC.md --stdout --ignore project_tools examples notes docs thumbnail_extraction | head -150",
+    "spec:minimal": "python project_tools/generate_spec.py . -o docs/AUTO_SPEC.md --verbosity minimal --ignore project_tools examples notes docs thumbnail_extraction",
+    "spec:full": "python project_tools/generate_spec.py . -o docs/AUTO_SPEC.md --verbosity full --ignore project_tools examples notes docs thumbnail_extraction"
   },
   "repository": {
     "type": "git",
