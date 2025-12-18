@@ -941,9 +941,24 @@ router.get(
       res.setHeader("Content-Type", "image/png");
       res.setHeader("Cache-Control", "public, max-age=86400");
       return res.send(imageBuffer);
-    } catch (error) {
-      console.error("Thumbnail proxy error:", error);
-      return res.status(500).json({ error: "Failed to fetch thumbnail" });
+    } catch (error: any) {
+      // Preserve upstream HTTP status when proxying thumbnails so callers can distinguish
+      // expected failures (403/404) from transient/server failures.
+      const status = error?.response?.status || 500;
+      console.error("Thumbnail proxy error:", {
+        status,
+        message: error?.message,
+        url: error?.config?.url,
+        data: error?.response?.data,
+      });
+
+      return res.status(status >= 400 && status < 600 ? status : 500).json({
+        error: "Failed to fetch thumbnail",
+        status: status >= 400 && status < 600 ? status : 500,
+        details: error?.response?.data
+          ? JSON.stringify(error.response.data).slice(0, 1000)
+          : error?.message,
+      });
     }
   }
 );
