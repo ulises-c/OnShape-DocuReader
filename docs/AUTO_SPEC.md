@@ -1,6 +1,6 @@
 # onshape-docureader
 
-Generated: 2025-12-17 18:01
+Generated: 2025-12-18 15:02
 
 Using OnShape API to gather information about documents
 
@@ -86,6 +86,7 @@ onshape-docureader/
 │   │   │   │   ├── document-info-renderer.js
 │   │   │   │   ├── element-list-renderer.js
 │   │   │   │   └── pagination-renderer.js
+│   │   │   ├── action-preview-modal.js
 │   │   │   ├── airtable-upload-view.js
 │   │   │   ├── base-view.js
 │   │   │   ├── document-detail-view.js
@@ -2725,7 +2726,7 @@ onshape-docureader/
 
 ## Stats
 
-Files: 60 | Lines: 14,633 | Routes: 45 | TODOs: 6
+Files: 61 | Lines: 15,192 | Routes: 45 | TODOs: 7
 
 ## Routes
 
@@ -2778,6 +2779,7 @@ Files: 60 | Lines: 14,633 | Routes: 45 | TODOs: 6
 ## TODOs
 
 - [bomToCSV.js] TODO: Check for edge cases, e.g. commas, quotes in values
+- [element-actions.js] NOTE: The UI uses `.full-extract-btn` (see element-list-renderer.js). Keep selector in
 - [airtable-upload-view.js] TODO: Implement actual cancellation if using streaming upload
 - [document-detail-view.js] NOTE: We fetch elements via the version endpoint
 - [pagination-renderer.js] NOTE: OnShape's /documents endpoint doesn't include folder names directly
@@ -3130,6 +3132,18 @@ Imports: better-sqlite3
 
 ### Views
 
+#### public/js/views/action-preview-modal.js
+
+Action Preview Modal A reusable modal for showing progress and previewing content for copy/download actions. This is used to provide UX feedback so the app does not appear unresponsive.
+
+Functions:
+- `showProgress({ title, statusText })`
+- `showPreview({
+  title, statusText, contentText, ...)`
+- `showError({ title, statusText, errorMessage })`
+- `hide()`
+- `isModalVisible()`
+
 #### public/js/views/actions/document-actions.js
 
 Action handlers for document-level operations
@@ -3150,6 +3164,9 @@ Action handlers for element-level operations
 **class ElementActions**
   constructor(controller, documentService)
   Methods:
+    - _getInFlightSet(action)
+    - _isDuplicateClick(action, key, windowMs = 750)
+    - async _runSingleFlight(action, key, fn)
     - async handleCopyElementJson(element, controller)
     - async handleFetchBomJson(element, documentId, workspaceId, service)
     - async handleDownloadBomCsv(element, documentId, workspaceId, service)
