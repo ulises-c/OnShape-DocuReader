@@ -25,6 +25,9 @@ export class DocumentDetailView extends BaseView {
       controller,
       controller.documentService
     );
+
+    // Elements view tabs state (Document Detail right-side panel)
+    this._elementsTab = "assembly";
   }
 
   render(docData, elements) {
@@ -33,7 +36,7 @@ export class DocumentDetailView extends BaseView {
     this._loadedHistory = null;
     this._selectedHistoryItem = null; // Track currently selected version/branch
     this._currentWorkspaceId = docData.defaultWorkspace?.id || null; // Track active workspace for element operations
-    this._currentContextType = 'w'; // Default to workspace context
+    this._currentContextType = "w"; // Default to workspace context
     this._currentContextId = docData.defaultWorkspace?.id || null; // Track current context ID (workspace or version)
 
     const infoContainer = document.getElementById("documentInfo");
@@ -42,7 +45,8 @@ export class DocumentDetailView extends BaseView {
       const thumbnailHtml = renderThumbnailSection(docData);
       const historyHtml = this._renderHistorySelector(docData);
       const infoHtml = renderDocumentInfo(docData);
-      infoContainer.innerHTML = topBarHtml + thumbnailHtml + historyHtml + infoHtml;
+      infoContainer.innerHTML =
+        topBarHtml + thumbnailHtml + historyHtml + infoHtml;
       this._setupThumbnail(docData);
       this._bindHistorySelector(docData);
     }
@@ -53,7 +57,12 @@ export class DocumentDetailView extends BaseView {
       if (elements?.length) {
         elements.forEach((el) => this._elementsMap.set(String(el.id), el));
       }
-      elementsContainer.innerHTML = renderElementsList(elements);
+
+      // Render Elements tabs + filtered list
+      elementsContainer.innerHTML = this._renderElementsPanel(elements);
+
+      // Bind tab UI
+      this._bindElementsTabs(elementsContainer, elements);
     }
 
     this._bindDocumentActions(docData);
@@ -63,6 +72,133 @@ export class DocumentDetailView extends BaseView {
 
   _renderTopBar(docData) {
     return ``;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Elements Tabs (Document Detail)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  _renderElementsPanel(elements) {
+    const tabsHtml = this._renderElementsTabs();
+    const filtered = this._filterElementsByTab(elements, this._elementsTab);
+
+    return `
+      <div class="tabs" data-elements-tabs>
+        ${tabsHtml}
+      </div>
+      <div data-elements-tab-panel>
+        ${renderElementsList(filtered)}
+      </div>
+    `;
+  }
+
+  _renderElementsTabs() {
+    const tabs = [
+      { id: "assembly", label: "Assembly" },
+      { id: "billofmaterials", label: "Bill of Materials" },
+      { id: "partstudio", label: "Part Studio" },
+      { id: "blob", label: "Other" },
+    ];
+
+    return tabs
+      .map((t) => {
+        const active = t.id === this._elementsTab ? "active" : "";
+        return `<button class="tab-btn ${active}" data-elements-tab="${
+          t.id
+        }">${escapeHtml(t.label)}</button>`;
+      })
+      .join("");
+  }
+
+  _bindElementsTabs(elementsContainer, elements) {
+    const tabsRoot = elementsContainer.querySelector("[data-elements-tabs]");
+    if (!tabsRoot) return;
+
+    // Event delegation for tab switching
+    tabsRoot.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-elements-tab]");
+      if (!btn) return;
+
+      const nextTab = btn.getAttribute("data-elements-tab");
+      if (!nextTab || nextTab === this._elementsTab) return;
+
+      this._elementsTab = nextTab;
+
+      // Update tab button active states
+      const allBtns = Array.from(
+        tabsRoot.querySelectorAll("[data-elements-tab]")
+      );
+      allBtns.forEach((b) => {
+        if (b.getAttribute("data-elements-tab") === this._elementsTab) {
+          b.classList.add("active");
+        } else {
+          b.classList.remove("active");
+        }
+      });
+
+      // Re-render the list only, keep the outer element container listeners intact
+      const panel = elementsContainer.querySelector(
+        "[data-elements-tab-panel]"
+      );
+      if (!panel) return;
+
+      const filtered = this._filterElementsByTab(elements, this._elementsTab);
+      panel.innerHTML = renderElementsList(filtered);
+
+      // Ensure element map is in sync for click handlers
+      this._elementsMap.clear();
+      if (filtered?.length) {
+        filtered.forEach((el) => this._elementsMap.set(String(el.id), el));
+      }
+    });
+  }
+
+  _filterElementsByTab(elements, tabId) {
+    const list = Array.isArray(elements) ? elements : [];
+
+    if (tabId === "assembly") {
+      return list.filter((el) => this._isAssemblyElement(el));
+    }
+
+    if (tabId === "billofmaterials") {
+      return list.filter((el) => this._isBillOfMaterialsElement(el));
+    }
+
+    if (tabId === "partstudio") {
+      return list.filter((el) => this._isPartStudioElement(el));
+    }
+
+    // Other
+    // NOTE: Currently does 2 checks, if it is a BLOB or not any of the main types, which is redundant.
+    // It should be sufficient to have a list that pops when it's added to a main type, and this just displays the rest
+    return list.filter(
+      (el) =>
+        this._isBlobElement(el) ||
+        (!this._isAssemblyElement(el) &&
+          !this._isBillOfMaterialsElement(el) &&
+          !this._isPartStudioElement(el))
+    );
+  }
+
+  _isAssemblyElement(el) {
+    const t = String(el?.elementType || el?.type || "").toUpperCase();
+    return t === "ASSEMBLY";
+  }
+
+  _isBillOfMaterialsElement(el) {
+    const t = String(el?.elementType || el?.type || "").toUpperCase();
+    return t === "BILLOFMATERIALS";
+  }
+
+  _isPartStudioElement(el) {
+    const t = String(el?.elementType || el?.type || "").toUpperCase();
+    return t === "PARTSTUDIO";
+  }
+
+  // Check for Blob/Other element types
+  _isBlobElement(el) {
+    const t = String(el?.elementType || el?.type || "").toUpperCase();
+    return t === "BLOB";
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -88,7 +224,9 @@ export class DocumentDetailView extends BaseView {
   _bindHistorySelector(docData) {
     const loadBtn = document.getElementById(`load-history-${docData.id}`);
     if (loadBtn) {
-      loadBtn.addEventListener("click", () => this._handleLoadHistory(docData.id));
+      loadBtn.addEventListener("click", () =>
+        this._handleLoadHistory(docData.id)
+      );
     }
   }
 
@@ -103,14 +241,18 @@ export class DocumentDetailView extends BaseView {
       loadBtn.disabled = true;
       loadBtn.textContent = "Loading...";
     }
-    contentEl.innerHTML = '<p class="history-loading">Fetching versions and branches...</p>';
+    contentEl.innerHTML =
+      '<p class="history-loading">Fetching versions and branches...</p>';
 
     try {
-      const history = await this.controller.documentService.getCombinedHistory(documentId);
+      const history = await this.controller.documentService.getCombinedHistory(
+        documentId
+      );
       this._loadedHistory = history;
 
       if (!history?.items || history.items.length === 0) {
-        contentEl.innerHTML = '<p class="history-empty">No versions or branches found for this document.</p>';
+        contentEl.innerHTML =
+          '<p class="history-empty">No versions or branches found for this document.</p>';
         if (loadBtn) {
           loadBtn.textContent = "Reload History";
           loadBtn.disabled = false;
@@ -128,7 +270,9 @@ export class DocumentDetailView extends BaseView {
       }
     } catch (error) {
       console.error("Error loading history:", error);
-      contentEl.innerHTML = `<p class="history-error">Failed to load history: ${escapeHtml(error.message)}</p>`;
+      contentEl.innerHTML = `<p class="history-error">Failed to load history: ${escapeHtml(
+        error.message
+      )}</p>`;
       if (loadBtn) {
         loadBtn.textContent = "Retry";
         loadBtn.disabled = false;
@@ -138,17 +282,28 @@ export class DocumentDetailView extends BaseView {
 
   _renderHistoryDropdown(history, documentId) {
     // Build options with type badges (version vs branch)
-    const optionsHtml = history.items.map((item, idx) => {
-      const name = escapeHtml(item.name || 'Unnamed');
-      const dateStr = item.modifiedAt || item.createdAt;
-      const date = dateStr ? new Date(dateStr).toLocaleDateString() : "";
-      const time = dateStr ? new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "";
-      const typeLabel = item.type === 'branch' ? '🌿' : '📌';
-      const mainBadge = item.isMainWorkspace ? ' (Main)' : '';
-      const modifier = item.modifier?.name || item.creator?.name || '';
-      
-      return `<option value="${idx}" data-item-id="${escapeHtml(item.id)}" data-item-type="${item.type}">${typeLabel} ${name}${mainBadge} - ${modifier} ${date} ${time}</option>`;
-    }).join("");
+    const optionsHtml = history.items
+      .map((item, idx) => {
+        const name = escapeHtml(item.name || "Unnamed");
+        const dateStr = item.modifiedAt || item.createdAt;
+        const date = dateStr ? new Date(dateStr).toLocaleDateString() : "";
+        const time = dateStr
+          ? new Date(dateStr).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "";
+        const typeLabel = item.type === "branch" ? "🌿" : "📌";
+        const mainBadge = item.isMainWorkspace ? " (Main)" : "";
+        const modifier = item.modifier?.name || item.creator?.name || "";
+
+        return `<option value="${idx}" data-item-id="${escapeHtml(
+          item.id
+        )}" data-item-type="${
+          item.type
+        }">${typeLabel} ${name}${mainBadge} - ${modifier} ${date} ${time}</option>`;
+      })
+      .join("");
 
     return `
       <div class="history-dropdown-container">
@@ -173,20 +328,22 @@ export class DocumentDetailView extends BaseView {
           const item = this._loadedHistory.items[idx];
           this._selectedHistoryItem = item;
           this._displayHistoryDetails(documentId, item);
-          
-          console.log(`[DocumentDetailView] History selection changed: type=${item.type}, id=${item.id}, name=${item.name}`);
-          
+
+          console.log(
+            `[DocumentDetailView] History selection changed: type=${item.type}, id=${item.id}, name=${item.name}`
+          );
+
           // Update context and reload elements based on type
-          if (item.type === 'branch') {
+          if (item.type === "branch") {
             // Branch (workspace) selected - update workspace context
             this._currentWorkspaceId = item.id;
-            this._currentContextType = 'w';
+            this._currentContextType = "w";
             this._currentContextId = item.id;
-            await this._reloadElementsForWorkspace(documentId, item.id, 'w');
+            await this._reloadElementsForWorkspace(documentId, item.id, "w");
           } else {
             // Version selected - update version context
             // Keep the workspace ID for BOM operations (versions are read-only snapshots)
-            this._currentContextType = 'v';
+            this._currentContextType = "v";
             this._currentContextId = item.id;
             await this._reloadElementsForVersion(documentId, item.id);
           }
@@ -200,28 +357,42 @@ export class DocumentDetailView extends BaseView {
     if (!detailsEl) return;
 
     const name = escapeHtml(item.name || "Unnamed");
-    const description = item.description ? escapeHtml(item.description) : "<em>No description</em>";
-    const createdAt = item.createdAt ? new Date(item.createdAt).toLocaleString() : "Unknown";
-    const modifiedAt = item.modifiedAt ? new Date(item.modifiedAt).toLocaleString() : createdAt;
-    const creatorName = item.creator?.name ? escapeHtml(item.creator.name) : "Unknown";
-    const modifierName = item.modifier?.name ? escapeHtml(item.modifier.name) : creatorName;
+    const description = item.description
+      ? escapeHtml(item.description)
+      : "<em>No description</em>";
+    const createdAt = item.createdAt
+      ? new Date(item.createdAt).toLocaleString()
+      : "Unknown";
+    const modifiedAt = item.modifiedAt
+      ? new Date(item.modifiedAt).toLocaleString()
+      : createdAt;
+    const creatorName = item.creator?.name
+      ? escapeHtml(item.creator.name)
+      : "Unknown";
+    const modifierName = item.modifier?.name
+      ? escapeHtml(item.modifier.name)
+      : creatorName;
     const itemId = escapeHtml(item.id || "");
-    const typeLabel = item.type === 'branch' ? 'Branch (Workspace)' : 'Version';
-    const typeBadgeClass = item.type === 'branch' ? 'history-type-branch' : 'history-type-version';
-    const mainBadge = item.isMainWorkspace ? '<span class="history-main-badge">Main</span>' : "";
-    const microversionRow = item.microversion 
+    const typeLabel = item.type === "branch" ? "Branch (Workspace)" : "Version";
+    const typeBadgeClass =
+      item.type === "branch" ? "history-type-branch" : "history-type-version";
+    const mainBadge = item.isMainWorkspace
+      ? '<span class="history-main-badge">Main</span>'
+      : "";
+    const microversionRow = item.microversion
       ? `<div class="history-detail-row">
           <span class="history-label">Microversion:</span>
           <span class="history-value">${escapeHtml(item.microversion)}</span>
-        </div>` 
-      : '';
-    
+        </div>`
+      : "";
+
     // Show context note for workspace selection
-    const contextNote = item.type === 'branch' 
-      ? `<div class="history-context-note history-context-active">
+    const contextNote =
+      item.type === "branch"
+        ? `<div class="history-context-note history-context-active">
           ✅ Elements and thumbnail now show content from this workspace. Element actions will use this context.
         </div>`
-      : `<div class="history-context-note history-context-version">
+        : `<div class="history-context-note history-context-version">
           ℹ️ Version selected. Thumbnail updated. Element actions require workspace context; using default workspace for operations.
         </div>`;
 
@@ -245,7 +416,9 @@ export class DocumentDetailView extends BaseView {
           <span class="history-value">${createdAt} by ${creatorName}</span>
         </div>
         <div class="history-detail-row">
-          <span class="history-label">${item.type === 'branch' ? 'Workspace' : 'Version'} ID:</span>
+          <span class="history-label">${
+            item.type === "branch" ? "Workspace" : "Version"
+          } ID:</span>
           <span class="history-value history-id">${itemId}</span>
         </div>
         ${microversionRow}
@@ -260,7 +433,11 @@ export class DocumentDetailView extends BaseView {
    * @param {string} workspaceId - Workspace ID
    * @param {string} contextType - Context type ('w' for workspace)
    */
-  async _reloadElementsForWorkspace(documentId, workspaceId, contextType = 'w') {
+  async _reloadElementsForWorkspace(
+    documentId,
+    workspaceId,
+    contextType = "w"
+  ) {
     const elementsContainer = document.getElementById("documentElements");
     if (!elementsContainer) return;
 
@@ -268,30 +445,36 @@ export class DocumentDetailView extends BaseView {
     elementsContainer.innerHTML = `<div class="elements-loading">Loading elements for selected workspace...</div>`;
 
     try {
-      const elements = await this.controller.documentService.getElements(documentId, workspaceId);
-      
+      const elements = await this.controller.documentService.getElements(
+        documentId,
+        workspaceId
+      );
+
       // Update elements map
       this._elementsMap.clear();
       if (elements?.length) {
         elements.forEach((el) => this._elementsMap.set(String(el.id), el));
       }
-      
-      // Re-render elements list
-      elementsContainer.innerHTML = renderElementsList(elements);
-      
+
+      // Re-render elements list (with tabs)
+      elementsContainer.innerHTML = this._renderElementsPanel(elements);
+      this._bindElementsTabs(elementsContainer, elements);
+
       // Re-bind element actions with new workspace context
       // Store context type and ID for element actions to use correct endpoints
-      this._currentContextType = 'w';
+      this._currentContextType = "w";
       this._currentContextId = workspaceId;
       this._bindElementActions(elementsContainer, this._currentDocData);
-      
+
       // Reload thumbnail for the new workspace context
       this._reloadThumbnailForContext(documentId, workspaceId, contextType);
-      
+
       showToast(`Loaded ${elements?.length || 0} elements from workspace`);
     } catch (error) {
       console.error("Error loading elements for workspace:", error);
-      elementsContainer.innerHTML = `<div class="elements-error">Failed to load elements: ${escapeHtml(error.message)}</div>`;
+      elementsContainer.innerHTML = `<div class="elements-error">Failed to load elements: ${escapeHtml(
+        error.message
+      )}</div>`;
     }
   }
 
@@ -311,45 +494,55 @@ export class DocumentDetailView extends BaseView {
     try {
       // Use version context for API call - need to use 'v' type endpoint
       // Note: We fetch elements via the version endpoint
-      const response = await fetch(`/api/documents/${documentId}/versions/${versionId}/elements`);
-      
+      const response = await fetch(
+        `/api/documents/${documentId}/versions/${versionId}/elements`
+      );
+
       let elements = [];
       if (response.ok) {
         elements = await response.json();
       } else if (response.status === 404) {
         // Version elements endpoint may not exist; fall back to showing a message
-        console.warn(`[DocumentDetailView] Version elements endpoint not available, using default workspace`);
+        console.warn(
+          `[DocumentDetailView] Version elements endpoint not available, using default workspace`
+        );
         // Fall back to default workspace elements but note the version context
         const doc = this._currentDocData;
         if (doc?.defaultWorkspace?.id) {
-          elements = await this.controller.documentService.getElements(documentId, doc.defaultWorkspace.id);
+          elements = await this.controller.documentService.getElements(
+            documentId,
+            doc.defaultWorkspace.id
+          );
         }
       } else {
         throw new Error(`Failed to load elements (${response.status})`);
       }
-      
+
       // Update elements map
       this._elementsMap.clear();
       if (elements?.length) {
         elements.forEach((el) => this._elementsMap.set(String(el.id), el));
       }
-      
-      // Re-render elements list
-      elementsContainer.innerHTML = renderElementsList(elements);
-      
+
+      // Re-render elements list (with tabs)
+      elementsContainer.innerHTML = this._renderElementsPanel(elements);
+      this._bindElementsTabs(elementsContainer, elements);
+
       // Re-bind element actions
       // For versions, we store the version ID and context type so element actions can use version-specific endpoints
-      this._currentContextType = 'v';
+      this._currentContextType = "v";
       this._currentContextId = versionId;
       this._bindElementActions(elementsContainer, this._currentDocData);
-      
+
       // Reload thumbnail for the version context
-      this._reloadThumbnailForContext(documentId, versionId, 'v');
-      
+      this._reloadThumbnailForContext(documentId, versionId, "v");
+
       showToast(`Loaded ${elements?.length || 0} elements from version`);
     } catch (error) {
       console.error("Error loading elements for version:", error);
-      elementsContainer.innerHTML = `<div class="elements-error">Failed to load elements: ${escapeHtml(error.message)}</div>`;
+      elementsContainer.innerHTML = `<div class="elements-error">Failed to load elements: ${escapeHtml(
+        error.message
+      )}</div>`;
     }
   }
 
@@ -361,46 +554,63 @@ export class DocumentDetailView extends BaseView {
    */
   _reloadThumbnailForContext(documentId, contextId, contextType) {
     // The thumbnail image element ID matches the pattern in document-info-renderer.js
-    const thumbnailImg = document.getElementById(`document-thumbnail-img-${documentId}`);
+    const thumbnailImg = document.getElementById(
+      `document-thumbnail-img-${documentId}`
+    );
     if (!thumbnailImg) {
-      console.log(`[DocumentDetailView] No thumbnail element found for document ${documentId} (looking for document-thumbnail-img-${documentId})`);
+      console.log(
+        `[DocumentDetailView] No thumbnail element found for document ${documentId} (looking for document-thumbnail-img-${documentId})`
+      );
       return;
     }
 
     // Build the OnShape thumbnail URL with the new context
     // OnShape thumbnail URL pattern: /api/thumbnails/d/{did}/{wvm}/{wvmid}/s/{size}
-    const size = '300x300'; // Default size, matches preferred size in _setupThumbnail
+    const size = "300x300"; // Default size, matches preferred size in _setupThumbnail
     const thumbnailUrl = `https://cad.onshape.com/api/thumbnails/d/${documentId}/${contextType}/${contextId}/s/${size}`;
-    
+
     // Add cache-busting parameter to force reload
     const cacheBuster = Date.now();
-    const proxyUrl = `/api/thumbnail-proxy?url=${encodeURIComponent(thumbnailUrl)}&_cb=${cacheBuster}`;
-    
-    console.log(`[DocumentDetailView] Reloading thumbnail for ${contextType === 'w' ? 'workspace' : 'version'}: ${contextId}`);
+    const proxyUrl = `/api/thumbnail-proxy?url=${encodeURIComponent(
+      thumbnailUrl
+    )}&_cb=${cacheBuster}`;
+
+    console.log(
+      `[DocumentDetailView] Reloading thumbnail for ${
+        contextType === "w" ? "workspace" : "version"
+      }: ${contextId}`
+    );
     console.log(`[DocumentDetailView] Thumbnail URL: ${thumbnailUrl}`);
     console.log(`[DocumentDetailView] Proxy URL: ${proxyUrl}`);
-    
+
     // Show loading state
-    thumbnailImg.style.opacity = '0.5';
-    
+    thumbnailImg.style.opacity = "0.5";
+
     // Directly update the src to trigger reload (simpler approach that works better with proxy)
     thumbnailImg.onload = () => {
-      thumbnailImg.style.opacity = '1';
-      thumbnailImg.style.display = 'block'; // Ensure visible after load
-      console.log(`[DocumentDetailView] Thumbnail loaded successfully for ${contextType}/${contextId}`);
-      
+      thumbnailImg.style.opacity = "1";
+      thumbnailImg.style.display = "block"; // Ensure visible after load
+      console.log(
+        `[DocumentDetailView] Thumbnail loaded successfully for ${contextType}/${contextId}`
+      );
+
       // Hide placeholder if present
-      const placeholder = document.getElementById(`thumbnail-placeholder-${documentId}`);
+      const placeholder = document.getElementById(
+        `thumbnail-placeholder-${documentId}`
+      );
       if (placeholder) {
-        placeholder.style.display = 'none';
+        placeholder.style.display = "none";
       }
     };
     thumbnailImg.onerror = (err) => {
-      console.warn(`[DocumentDetailView] Failed to load thumbnail for ${contextType}/${contextId}:`, err);
-      thumbnailImg.style.opacity = '1';
+      console.warn(
+        `[DocumentDetailView] Failed to load thumbnail for ${contextType}/${contextId}:`,
+        err
+      );
+      thumbnailImg.style.opacity = "1";
       // Keep the existing thumbnail on error
     };
-    
+
     // Update src directly - the cache buster ensures fresh fetch
     thumbnailImg.src = proxyUrl;
   }
@@ -509,8 +719,8 @@ export class DocumentDetailView extends BaseView {
 
     // Use current context (workspace or version) - updated when branch/version is selected
     const contextId = this._currentContextId || this._currentWorkspaceId;
-    const contextType = this._currentContextType || 'w';
-    
+    const contextType = this._currentContextType || "w";
+
     if (!contextId) {
       showToast("No workspace or version context available");
       return;
@@ -519,15 +729,20 @@ export class DocumentDetailView extends BaseView {
     // For versions, BOM API requires workspace context - use the selected version's workspace if available
     // or fall back to default workspace for version snapshots
     let workspaceIdForBom = contextId;
-    if (contextType === 'v') {
+    if (contextType === "v") {
       // Versions don't have direct BOM access; we need to use the workspace context
       // For now, use the default workspace - the BOM will reflect the current state
-      workspaceIdForBom = this._currentWorkspaceId || this._currentDocData?.defaultWorkspace?.id;
+      workspaceIdForBom =
+        this._currentWorkspaceId || this._currentDocData?.defaultWorkspace?.id;
       if (!workspaceIdForBom) {
-        showToast("BOM requires workspace context; no workspace available for this version");
+        showToast(
+          "BOM requires workspace context; no workspace available for this version"
+        );
         return;
       }
-      showToast("Note: BOM fetched from workspace context (versions are snapshots)");
+      showToast(
+        "Note: BOM fetched from workspace context (versions are snapshots)"
+      );
     }
 
     const doc = this.controller.state.getState().currentDocument;
