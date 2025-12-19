@@ -94,6 +94,24 @@ Key files:
 | `public/js/views/actions/document-actions.js` | Uses modal for Copy Raw JSON and Get Document flows |
 | `public/js/views/actions/element-actions.js` | Uses modal for BOM JSON/CSV downloads and Full Extract post-summary |
 
+## Responsive UI (Document Detail)
+
+### Overview
+
+The Document Detail view is responsive and avoids clipped content on smaller window widths.
+
+### Behavior
+
+- Uses CSS Grid with 2 columns on wider screens.
+- Collapses to 1 column at 1024px and below.
+- Grid children use `min-width: 0` to prevent overflow clipping from long content.
+- Element action buttons wrap to new lines instead of forcing horizontal overflow.
+
+### Key File
+
+- `public/css/views/document-detail.css`
+
+
 ## Elements Panel Tabs (Document Detail)
 
 ### Overview

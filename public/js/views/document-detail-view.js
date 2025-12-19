@@ -82,6 +82,7 @@ export class DocumentDetailView extends BaseView {
     const tabsHtml = this._renderElementsTabs();
     const filtered = this._filterElementsByTab(elements, this._elementsTab);
 
+    // Note: avoid any inline styles here so layout remains controlled by CSS and responds to breakpoints.
     return `
       <div class="tabs" data-elements-tabs>
         ${tabsHtml}

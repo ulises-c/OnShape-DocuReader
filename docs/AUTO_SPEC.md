@@ -1,6 +1,6 @@
 # onshape-docureader
 
-Generated: 2025-12-18 15:57
+Generated: 2025-12-18 16:05
 
 Using OnShape API to gather information about documents
 
@@ -140,7 +140,7 @@ onshape-docureader/
 
 ## Stats
 
-Files: 61 | Lines: 15,407 | Routes: 45 | TODOs: 8
+Files: 61 | Lines: 15,408 | Routes: 45 | TODOs: 9
 
 ## Routes
 
@@ -195,6 +195,7 @@ Files: 61 | Lines: 15,407 | Routes: 45 | TODOs: 8
 - [bomToCSV.js] TODO: Check for edge cases, e.g. commas, quotes in values
 - [element-actions.js] NOTE: The UI uses `.full-extract-btn` (see element-list-renderer.js). Keep selector in
 - [airtable-upload-view.js] TODO: Implement actual cancellation if using streaming upload
+- [document-detail-view.js] NOTE: avoid any inline styles here so layout remains controlled by CSS and responds to
 - [document-detail-view.js] NOTE: Currently does 2 checks, if it is a BLOB or not any of the main types, which is 
 - [document-detail-view.js] NOTE: We fetch elements via the version endpoint
 - [pagination-renderer.js] NOTE: OnShape's /documents endpoint doesn't include folder names directly
