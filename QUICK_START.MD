@@ -25,7 +25,7 @@ Visit **http://localhost:3000** and connect your OnShape account.
 ## Troubleshooting
 
 - **Port conflict?** Change `PORT` in `.env`
-- **OAuth errors?** Verify redirect URI matches your OnShape app config
-- **Session issues?** Clear `sessions/` directory
+- **OAuth errors?** Verify `.env` credentials and permissions are properly set
+- **Session issues?** Clear `.sessions.json` file
 
 See project docs for detailed configuration and deployment options.
