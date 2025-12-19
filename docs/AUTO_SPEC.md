@@ -1,6 +1,6 @@
 # onshape-docureader
 
-Generated: 2025-12-19 12:19
+Generated: 2025-12-19 12:39
 
 Using OnShape API to gather information about documents
 
@@ -134,13 +134,14 @@ onshape-docureader/
 ├── package-lock.json
 ├── package.json
 ├── README.md
+├── test.csv
 ├── tsconfig.json
 └── vite.config.js
 ```
 
 ## Stats
 
-Files: 61 | Lines: 15,403 | Routes: 45 | TODOs: 9
+Files: 61 | Lines: 15,425 | Routes: 45 | TODOs: 9
 
 ## Routes
 
@@ -787,8 +788,8 @@ Insert zero-width space BEFORE natural word separators to allow line breaks This
     - showError(msg)
     - hideError()
     - render(items, breadcrumbs, workspaceName = null)
+    - _sortWorkspaceItems(items)
     - _updateWorkspaceName(name)
-    - _renderBreadcrumbs(path)
 
 ### Utils
 
