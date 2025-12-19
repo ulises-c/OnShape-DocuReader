@@ -84,6 +84,41 @@
 .element-actions {
   flex-wrap: wrap;
   justify-content: flex-end;
+  min-width: 0;
+}
+
+/* Element list row layout can be constrained by nested flex children.
+   Provide safe defaults so the info block can shrink and the actions can wrap
+   instead of forcing horizontal overflow and clipping. */
+.element-container {
+  min-width: 0;
+  gap: var(--spacing-md);
+}
+
+.element-container .element-item {
+  min-width: 0;
+}
+
+.element-container .element-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+/* When the view is very narrow, allow action buttons to wrap cleanly and align left
+   so they stay visible without clipping or forcing horizontal scrolling. */
+@media (max-width: 560px) {
+  .element-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .element-container .element-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
 }
 
 /* Unified History Selector Section (Versions + Branches) */

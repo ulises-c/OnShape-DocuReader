@@ -14,10 +14,10 @@ export function renderElementsList(elements) {
 
 export function renderElementItem(element) {
   return `
-    <div class="element-container" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; padding:1rem; border:1px solid #ddd; border-radius:8px; background:#f8f9fa;">
+    <div class="element-container" style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:1rem; padding:1rem; border:1px solid #ddd; border-radius:8px; background:#f8f9fa; gap: 0.75rem; min-width: 0;">
       <div class="element-item" data-element-id="${escapeHtml(
         element.id
-      )}" style="flex-grow:1; cursor:pointer;">
+      )}" style="flex: 1 1 auto; min-width: 0; cursor:pointer;">
         <div class="element-name">${escapeHtml(element.name)}</div>
         <div class="element-type">Type: ${escapeHtml(
           element.type || 'Unknown'
@@ -61,7 +61,7 @@ export function renderElementActions(element) {
       : '';
 
   return `
-    <div class="element-actions" style="margin-left:1rem; flex-shrink:0; display:flex; gap:6px; align-items:center;">
+    <div class="element-actions" style="margin-left:1rem; flex: 0 1 auto; min-width: 0; display:flex; flex-wrap: wrap; gap:6px; align-items:center; justify-content:flex-end;">
       ${copyBtn}
       ${bomButtons}
     </div>
