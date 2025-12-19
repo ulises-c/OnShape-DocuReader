@@ -8,14 +8,14 @@
     "build": "tsc && vite build",
     "start": "node dist/index.js",
     "dev": "concurrently \"nodemon src/index.ts\" \"vite\" \"npm run open-browser\"",
-    "open-browser": "sh -c 'sleep 3 && wslview http://localhost:5173'",
+    "open-browser": "wait-on http://localhost:5173 && open-cli http://localhost:5173",
     "clean": "rimraf dist",
     "prebuild": "npm run clean && npm run spec",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "spec": "python project_tools/generate_spec.py . -o docs/AUTO_SPEC.md --ignore project_tools examples notes docs thumbnail_extraction",
-    "spec:preview": "python project_tools/generate_spec.py . -o docs/AUTO_SPEC.md --stdout --ignore project_tools examples notes docs thumbnail_extraction | head -150",
-    "spec:minimal": "python project_tools/generate_spec.py . -o docs/AUTO_SPEC.md --verbosity minimal --ignore project_tools examples notes docs thumbnail_extraction",
-    "spec:full": "python project_tools/generate_spec.py . -o docs/AUTO_SPEC.md --verbosity full --ignore project_tools examples notes docs thumbnail_extraction"
+    "spec": "python3 project_tools/generate_spec.py . -o docs/AUTO_SPEC.md --ignore project_tools examples notes docs thumbnail_extraction",
+    "spec:preview": "python3 project_tools/generate_spec.py . -o docs/AUTO_SPEC.md --stdout --ignore project_tools examples notes docs thumbnail_extraction | head -150",
+    "spec:minimal": "python3 project_tools/generate_spec.py . -o docs/AUTO_SPEC.md --verbosity minimal --ignore project_tools examples notes docs thumbnail_extraction",
+    "spec:full": "python3 project_tools/generate_spec.py . -o docs/AUTO_SPEC.md --verbosity full --ignore project_tools examples notes docs thumbnail_extraction"
   },
   "repository": {
     "type": "git",
@@ -54,9 +54,11 @@
     "@types/uuid": "^10.0.0",
     "concurrently": "^9.2.1",
     "nodemon": "^3.1.10",
+    "open-cli": "^8.0.0",
     "rimraf": "^6.0.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.2",
-    "vite": "^7.1.9"
+    "vite": "^7.1.9",
+    "wait-on": "^9.0.3"
   }
 }

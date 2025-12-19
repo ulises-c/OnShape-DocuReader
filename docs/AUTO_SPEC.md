@@ -1,6 +1,6 @@
 # onshape-docureader
 
-Generated: 2025-12-18 17:24
+Generated: 2025-12-19 12:19
 
 Using OnShape API to gather information about documents
 
@@ -9,11 +9,11 @@ Using OnShape API to gather information about documents
 - `build`: tsc && vite build
 - `start`: node dist/index.js
 - `dev`: concurrently "nodemon src/index.ts" "vite" "npm run open-bro...
-- `open-browser`: sh -c 'sleep 3 && wslview http://localhost:5173'
+- `open-browser`: wait-on http://localhost:5173 && open-cli http://localhost:5...
 - `clean`: rimraf dist
 - `prebuild`: npm run clean && npm run spec
 - `test`: echo "Error: no test specified" && exit 1
-- `spec`: python project_tools/generate_spec.py . -o docs/AUTO_SPEC.md...
+- `spec`: python3 project_tools/generate_spec.py . -o docs/AUTO_SPEC.m...
 
 ## Structure
 
@@ -128,12 +128,12 @@ onshape-docureader/
 │   │   ├── session.d.ts
 │   │   └── usage.d.ts
 │   └── index.ts
+├── INSTALL.MD
 ├── LICENSE
 ├── nodemon.json
 ├── package-lock.json
 ├── package.json
 ├── README.md
-├── test.csv
 ├── tsconfig.json
 └── vite.config.js
 ```
