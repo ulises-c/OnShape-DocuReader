@@ -1,6 +1,6 @@
 # onshape-docureader
 
-Generated: 2025-12-19 12:39
+Generated: 2025-12-19 12:56
 
 Using OnShape API to gather information about documents
 
@@ -134,7 +134,6 @@ onshape-docureader/
 ├── package-lock.json
 ├── package.json
 ├── README.md
-├── test.csv
 ├── tsconfig.json
 └── vite.config.js
 ```
