@@ -328,6 +328,23 @@ interface SessionData {
 }
 ```
 
+## Workspace View (Folder Browser)
+
+### Ordering
+
+The Workspace view displays folder and document tiles sorted in ascending order (0-9, A-Z) by item name. Sorting is applied client-side at render time using locale-aware comparison with numeric ordering, so numeric-prefixed folders (e.g. 400, 800) appear in correct numerical order.
+
+Additionally:
+- Folders are kept before documents (folder-first ordering), then names are sorted within each group.
+
+### Tile Name Wrapping
+
+Workspace tile names are clamped to 3 lines (was 2) to improve readability for longer folder/document names, while still preserving compact grid density.
+
+Key files:
+- `public/js/views/workspace-view.js` (inserts break opportunities with zero-width spaces before separators)
+- `public/css/views/documents.css` (applies 3-line clamp on `.item-name`)
+
 ## Frontend Patterns
 
 ### State Management

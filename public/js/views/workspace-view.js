@@ -126,6 +126,26 @@ export class WorkspaceView extends BaseView {
     this._updateWorkspaceName(workspaceName);
   }
 
+  _sortWorkspaceItems(items) {
+    if (!Array.isArray(items)) return [];
+    
+    // Sort folders and documents in ascending order (0-9, A-Z) using locale-aware numeric compare.
+    // Keep folders before documents to preserve expected navigation UX, then sort by name.
+    return [...items].sort((a, b) => {
+      const aIsFolder = a?.jsonType === 'folder' || a?.resourceType === 'folder';
+      const bIsFolder = b?.jsonType === 'folder' || b?.resourceType === 'folder';
+      
+      if (aIsFolder !== bIsFolder) {
+        return aIsFolder ? -1 : 1;
+      }
+      
+      const aName = String(a?.name || '');
+      const bName = String(b?.name || '');
+      
+      return aName.localeCompare(bName, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }
+
   _updateWorkspaceName(name) {
     const workspaceNameEl = document.getElementById('workspaceName');
     if (workspaceNameEl) {
@@ -175,12 +195,14 @@ export class WorkspaceView extends BaseView {
       return;
     }
 
+    const sortedItems = this._sortWorkspaceItems(items);
+
     // Get current export selection state
     const exportSelection = this.controller.state?.getState?.()?.exportSelection || {};
     const selectedDocIds = new Set(exportSelection.documentIds || []);
     const selectedFolderIds = new Set(exportSelection.folderIds || []);
     
-    const html = items.map((item) => {
+    const html = sortedItems.map((item) => {
       // Determine icon and type
       // jsonType can be 'folder' or 'document-summary' or other Onshape types
       const isFolder = item.jsonType === 'folder' || item.resourceType === 'folder';
