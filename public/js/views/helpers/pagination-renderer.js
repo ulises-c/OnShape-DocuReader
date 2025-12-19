@@ -159,12 +159,7 @@ function buildLocationPath(doc) {
   // Note: OnShape's /documents endpoint doesn't include folder names directly
   // Full path would require additional API calls per document
   if (doc.parentId) {
-    // Show truncated folder ID as a hint that document is in a folder
-    const shortId =
-      doc.parentId.length > 12
-        ? doc.parentId.substring(0, 12) + "..."
-        : doc.parentId;
-    return `${shortId}`;
+    return doc.parentId;
   }
 
   return "Root";

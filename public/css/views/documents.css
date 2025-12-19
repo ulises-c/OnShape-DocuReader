@@ -101,8 +101,8 @@
 .documents-grid {
   display: block;
   width: 100%;
-  min-width: 100%;
-  overflow-x: auto;
+  min-width: 0;
+  overflow-x: visible;
   margin: 0;
   padding: 0;
 }
@@ -218,13 +218,19 @@
   z-index: 5;
 }
 
-/* Sticky Header & Scroll Fixes */
+/* Sticky Header & Scroll Fixes
+   IMPORTANT:
+   Sticky table headers can cause browser table layout edge cases where the last column
+   stops consuming remaining width, leaving unused space to the right and forcing truncation.
+   The main view table is short and does not need sticky headers, so we disable stickiness here
+   to keep column sizing correct and allow Location to fully expand and wrap.
+*/
 .doc-details-table th {
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  position: static;
+  top: auto;
+  z-index: auto;
   background: var(--color-bg-gray);
-  box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
 }
 
 /* Workspace Container adaptation */

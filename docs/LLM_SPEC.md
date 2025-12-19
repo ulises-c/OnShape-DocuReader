@@ -104,7 +104,7 @@ The Document Detail view is responsive and avoids clipped content on smaller win
 
 ### Overview
 
-The "Recently Updated Documents" table uses a fixed layout for predictable column sizing. The layout supports:
+The "Recently Updated Documents" table is rendered without scrollbars in the main view. The layout supports:
 
 - 4 columns: Name, Date Modified, Modified By, Location
 - 5 columns: (Select checkbox), Name, Date Modified, Modified By, Location
@@ -114,19 +114,25 @@ The "Recently Updated Documents" table uses a fixed layout for predictable colum
 Implemented in `public/css/components/tables.css`:
 
 - 5-column layout is activated only when the table has the `has-select-column` class.
-- In both layouts, the last column (Location) uses `width: auto` so it consumes remaining space.
+- The main 4-column table uses deterministic sizing under `table-layout: fixed`:
+  - Name, Date Modified, Modified By are fixed percentages.
+  - Location uses `width: auto` so it consumes the remaining width.
 
 ### Table and Container Sizing (Important)
 
-To eliminate persistent right-side “gap” artifacts caused by scrollbar gutter reservation and overlay scrollbar behavior, the main view no longer places the recent-documents table inside a vertically scrollable container.
+The main view renders the recent-documents table without scrollbars. To prevent “unused right-side space” artifacts and to ensure the last column (Location) uses all available inline width:
 
-`public/css/views/documents.css` sets `.documents-section { overflow: visible; }` so the table fully renders vertically, and the browser does not reserve a scrollbar gutter that would reduce effective inline width.
+- `public/css/views/documents.css` keeps `.documents-section { overflow: visible; }` so no vertical scrollbar gutter is reserved.
+- `public/css/views/documents.css` sets `.documents-grid { min-width: 0; }` so wrapper sizing never constrains the table.
+- `public/css/components/tables.css` uses `.doc-details-table { width: 100%; table-layout: fixed; }` so the browser does not collapse the Location column and does not leave unused width.
+- `public/css/views/documents.css` disables sticky headers for `.doc-details-table th`:
+  - Sticky table headers can trigger browser table layout edge cases where the last column stops consuming remaining width, leaving unused space and causing Location truncation.
+  - The main view table is short and does not need sticky headers, so this is intentionally disabled to keep width distribution correct.
+- `public/css/components/tables.css` applies defensive rules to the Location cell:
+  - Location is forced to `white-space: normal` and `text-overflow: clip`, and the `td` has `max-width: none` and `min-width: 0`.
+  - `overflow-wrap:anywhere` and `word-break: break-word` ensure long folder IDs or path tokens wrap instead of truncating with ellipsis.
 
-The table still uses:
-
-- `.doc-details-table { width: max-content; min-width: 100%; }`
-
-This makes the table expand to at least the container width, and also grow beyond it when content needs more space.
+This guarantees the Location column uses remaining width and shows full strings, while other columns stay single-line for cleaner spacing.
 
 ### Key Files
 

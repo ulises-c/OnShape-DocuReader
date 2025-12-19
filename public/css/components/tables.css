@@ -1,16 +1,16 @@
 /* Document Details Table */
 .doc-details-table {
-  width: max-content;
+  width: 100%;
+  max-width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   background: white;
   box-shadow: var(--shadow-md);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  margin: 0 auto var(--spacing-xl) auto;
+  margin: 0 0 var(--spacing-xl) 0;
   font-size: clamp(0.85rem, 0.9vw, 1.1rem);
-  table-layout: fixed; /* Fixed layout for predictable column widths */
-  min-width: 100%; /* Ensure table fills container width */
+  table-layout: fixed; /* Deterministic column sizing, prevents Location from collapsing and leaving unused right-side space */
 }
 
 .doc-details-table th,
@@ -54,17 +54,46 @@
   word-break: normal;
   overflow-wrap: anywhere;
   hyphens: none;
+  white-space: nowrap; /* Plenty of horizontal room, avoid wrapping for nicer spacing */
 }
 
 /* Location column styling */
 .doc-location {
   color: var(--color-text-light);
   font-size: 0.9em;
-  /* Allow breaks at path separators */
-  word-break: normal;
-  overflow-wrap: break-word;
-  hyphens: none;
+  /* Never truncate this column. Always allow wrapping so we can utilize available width. */
   white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+
+  /* Prefer breaks at separators (we insert ZWSP in JS) but allow fallback wrapping when needed. */
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  hyphens: none;
+
+  /* Ensure the cell can shrink and reflow inside a table layout (prevents ellipsis-like behavior). */
+  min-width: 0;
+}
+
+/* UPDATE 9/10 hardening:
+   Force the Location table cell itself to wrap and never ellipsize.
+   Some browser table layout edge cases (notably sticky headers) can cause
+   constraints to apply at the td level even when the inner content wraps. */
+.doc-details-table td.doc-location,
+.doc-details-table th.doc-location {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  max-width: none;
+}
+
+/* Defensive: ensure no nested rule can force ellipsis for Location content */
+.doc-location,
+.doc-location * {
+  max-width: none;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 /* Column Width Distribution
@@ -91,16 +120,18 @@
 .doc-details-table.has-select-column th:nth-child(4),
 .doc-details-table.has-select-column td:nth-child(4) { width: 12%; } /* Modified By */
 
-/* Let Location consume the remainder in the fixed table layout. */
+/* Let Location consume the remainder. */
 .doc-details-table.has-select-column th:nth-child(5),
 .doc-details-table.has-select-column td:nth-child(5) { width: auto; } /* Location */
 
-/* 4-column variant fallback (no checkbox column)
-   Use explicit widths that sum to 100% and let the last column consume remaining width.
-   This prevents a "gap" to the right when the browser resolves fixed table widths.
+/* 4-column variant (no checkbox column)
+   Use deterministic widths under fixed table layout:
+   - Columns 1-3 are fixed percentages
+   - Location consumes the remainder using width:auto
+   This prevents the Location column from collapsing and removes the perceived right-side gap.
 */
 .doc-details-table:not(.has-select-column) th:nth-child(1),
-.doc-details-table:not(.has-select-column) td:nth-child(1) { width: 35%; } /* Name - generous space for document names */
+.doc-details-table:not(.has-select-column) td:nth-child(1) { width: 35%; } /* Name */
 
 .doc-details-table:not(.has-select-column) th:nth-child(2),
 .doc-details-table:not(.has-select-column) td:nth-child(2) { width: 15%; } /* Date Modified */
@@ -108,13 +139,25 @@
 .doc-details-table:not(.has-select-column) th:nth-child(3),
 .doc-details-table:not(.has-select-column) td:nth-child(3) { width: 12%; } /* Modified By */
 
+/* Let Location consume remaining width (last-column remainder behavior for fixed layout). */
 .doc-details-table:not(.has-select-column) th:nth-child(4),
 .doc-details-table:not(.has-select-column) td:nth-child(4) { width: auto; } /* Location */
+
+/* Strongest guarantee: Location must show full string, wrap when needed, never ellipsize. */
+.doc-details-table:not(.has-select-column) td:nth-child(4) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  text-overflow: clip;
+  overflow: visible;
+  min-width: 0;
+  max-width: none;
+}
 
 
 /* Date modified column styling */
 .doc-date-modified {
-  white-space: nowrap;
+  white-space: nowrap; /* Keep date on one line for cleaner spacing */
 }
 
 @media (max-width: 48rem) {
