@@ -19,7 +19,7 @@ cp examples/.env.example .env
 npm run build # Compile TypeScript and bundle frontend
 npm run dev # Development server with auto-reload
 
-# 4. Visit http://localhost:3000 and connect your OnShape account.
+# 4. Visit http://localhost:5173 and connect your OnShape account.
 # Automatically launches as part of `npm run dev`
 ```
 
