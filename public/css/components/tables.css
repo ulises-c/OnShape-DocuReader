@@ -1,6 +1,6 @@
 /* Document Details Table */
 .doc-details-table {
-  width: 100%;
+  width: max-content;
   border-collapse: separate;
   border-spacing: 0;
   background: white;
@@ -67,19 +67,49 @@
   white-space: normal;
 }
 
-/* Column Width Distribution - 4 columns: Name, Date Modified, Modified By, Location */
-/* Fixed percentages that add up to 100% for table-layout: fixed */
-.doc-details-table th:nth-child(1),
-.doc-details-table td:nth-child(1) { width: 35%; } /* Name - generous space for document names */
+/* Column Width Distribution
+   The document list table can be rendered in two shapes:
+   1. 4 columns: Name, Date Modified, Modified By, Location
+   2. 5 columns: (Select checkbox), Name, Date Modified, Modified By, Location
+   These fixed widths prevent the "Location" column from leaving unused space to the right when a
+   leading selection column is present.
+*/
 
-.doc-details-table th:nth-child(2),
-.doc-details-table td:nth-child(2) { width: 15%; } /* Date Modified */
+/* 5-column variant (preferred): checkbox + 4 data columns
+   IMPORTANT: Apply only when the table truly has a selection column.
+   This avoids leaving unused width when rendered as a 4-column table.
+*/
+.doc-details-table.has-select-column th:nth-child(1),
+.doc-details-table.has-select-column td:nth-child(1) { width: 44px; } /* Select checkbox */
 
-.doc-details-table th:nth-child(3),
-.doc-details-table td:nth-child(3) { width: 12%; } /* Modified By */
+.doc-details-table.has-select-column th:nth-child(2),
+.doc-details-table.has-select-column td:nth-child(2) { width: 33%; } /* Name */
 
-.doc-details-table th:nth-child(4),
-.doc-details-table td:nth-child(4) { width: 38%; } /* Location - generous space for full paths */
+.doc-details-table.has-select-column th:nth-child(3),
+.doc-details-table.has-select-column td:nth-child(3) { width: 14%; } /* Date Modified */
+
+.doc-details-table.has-select-column th:nth-child(4),
+.doc-details-table.has-select-column td:nth-child(4) { width: 12%; } /* Modified By */
+
+/* Let Location consume the remainder in the fixed table layout. */
+.doc-details-table.has-select-column th:nth-child(5),
+.doc-details-table.has-select-column td:nth-child(5) { width: auto; } /* Location */
+
+/* 4-column variant fallback (no checkbox column)
+   Use explicit widths that sum to 100% and let the last column consume remaining width.
+   This prevents a "gap" to the right when the browser resolves fixed table widths.
+*/
+.doc-details-table:not(.has-select-column) th:nth-child(1),
+.doc-details-table:not(.has-select-column) td:nth-child(1) { width: 35%; } /* Name - generous space for document names */
+
+.doc-details-table:not(.has-select-column) th:nth-child(2),
+.doc-details-table:not(.has-select-column) td:nth-child(2) { width: 15%; } /* Date Modified */
+
+.doc-details-table:not(.has-select-column) th:nth-child(3),
+.doc-details-table:not(.has-select-column) td:nth-child(3) { width: 12%; } /* Modified By */
+
+.doc-details-table:not(.has-select-column) th:nth-child(4),
+.doc-details-table:not(.has-select-column) td:nth-child(4) { width: auto; } /* Location */
 
 
 /* Date modified column styling */

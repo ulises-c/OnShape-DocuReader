@@ -100,6 +100,39 @@ Key files:
 
 The Document Detail view is responsive and avoids clipped content on smaller window widths.
 
+## Document List Table Layout (Main View)
+
+### Overview
+
+The "Recently Updated Documents" table uses a fixed layout for predictable column sizing. The layout supports:
+
+- 4 columns: Name, Date Modified, Modified By, Location
+- 5 columns: (Select checkbox), Name, Date Modified, Modified By, Location
+
+### Column Width Rules
+
+Implemented in `public/css/components/tables.css`:
+
+- 5-column layout is activated only when the table has the `has-select-column` class.
+- In both layouts, the last column (Location) uses `width: auto` so it consumes remaining space.
+
+### Table and Container Sizing (Important)
+
+To eliminate persistent right-side “gap” artifacts caused by scrollbar gutter reservation and overlay scrollbar behavior, the main view no longer places the recent-documents table inside a vertically scrollable container.
+
+`public/css/views/documents.css` sets `.documents-section { overflow: visible; }` so the table fully renders vertically, and the browser does not reserve a scrollbar gutter that would reduce effective inline width.
+
+The table still uses:
+
+- `.doc-details-table { width: max-content; min-width: 100%; }`
+
+This makes the table expand to at least the container width, and also grow beyond it when content needs more space.
+
+### Key Files
+
+- `public/css/components/tables.css`
+- `public/css/views/documents.css`
+
 ### Behavior
 
 - Uses CSS Grid with 2 columns on wider screens.
