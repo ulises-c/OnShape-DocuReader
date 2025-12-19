@@ -1,4 +1,4 @@
-# Quick Start
+# Quick Start Guide
 
 ## Prerequisites
 
@@ -16,11 +16,20 @@ cp examples/.env.example .env
 # Example file provides links and required permissions during configuration
 
 # 3. Build and start
-npm run build
-npm run dev
+npm run build # Compile TypeScript and bundle frontend
+npm run dev # Development server with auto-reload
+
+# 4. Visit http://localhost:3000 and connect your OnShape account.
+# Automatically launches as part of `npm run dev`
 ```
 
-Visit **http://localhost:3000** and connect your OnShape account.
+## What to Expect
+
+After `npm run dev`, you should see:
+
+- Server running on http://localhost:3000
+- OnShape OAuth configured
+- Session storage initialized
 
 ## Troubleshooting
 
