@@ -1,19 +1,31 @@
-# How to install and run locally
+# Quick Start
 
-## Make sure `.env` is properly configured
+## Prerequisites
+
+- Node.js 18+ and npm
+
+## Install & Run
 
 ```sh
-# Copy the example environment file
+# 1. Install dependencies
+npm install
+
+# 2. Configure environment
 cp examples/.env.example .env
-
-# Edit .env with your OnShape & Airtable credentials
+# Edit .env with your OnShape credentials
 # Example file provides links and required permissions during configuration
+
+# 3. Build and start
+npm run build
+npm run dev
 ```
 
-## Build and Run
+Visit **http://localhost:3000** and connect your OnShape account.
 
-```sh
-npm i          # Installs node packages
-npm run build  # Builds the project
-npm run dev    # Runs the project
-```
+## Troubleshooting
+
+- **Port conflict?** Change `PORT` in `.env`
+- **OAuth errors?** Verify redirect URI matches your OnShape app config
+- **Session issues?** Clear `sessions/` directory
+
+See project docs for detailed configuration and deployment options.
