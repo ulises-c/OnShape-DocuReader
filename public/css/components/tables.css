@@ -16,7 +16,7 @@
 .doc-details-table th,
 .doc-details-table td {
   padding: 0.8vh 1vw;
-  text-align: left;
+  text-align: center;
   border-bottom: 1px solid #f0f0f0;
   white-space: normal;
   word-break: normal;
@@ -62,9 +62,9 @@
   color: var(--color-text-light);
   font-size: 0.9em;
   /* Never truncate this column. Always allow wrapping so we can utilize available width. */
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   /* Prefer breaks at separators (we insert ZWSP in JS) but allow fallback wrapping when needed. */
   word-break: break-word;
@@ -75,8 +75,7 @@
   min-width: 0;
 }
 
-/* UPDATE 9/10 hardening:
-   Force the Location table cell itself to wrap and never ellipsize.
+/* Force the Location table cell itself to wrap and never ellipsize.
    Some browser table layout edge cases (notably sticky headers) can cause
    constraints to apply at the td level even when the inner content wraps. */
 .doc-details-table td.doc-location,

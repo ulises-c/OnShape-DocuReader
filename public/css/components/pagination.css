@@ -25,6 +25,7 @@
 .page-size-label {
   display: flex;
   align-items: center;
+  white-space: nowrap;
   gap: 0.5rem;
   font-size: 0.9rem;
 }

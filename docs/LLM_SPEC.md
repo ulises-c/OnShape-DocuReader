@@ -118,6 +118,12 @@ Implemented in `public/css/components/tables.css`:
   - Name, Date Modified, Modified By are fixed percentages.
   - Location uses `width: auto` so it consumes the remaining width.
 
+### Alignment
+
+- The main view table uses centered alignment for both headers and body cells via:
+  - `public/css/components/tables.css`: `.doc-details-table th, .doc-details-table td { text-align: center; }`
+- Spacing (padding) is unchanged, this is an alignment-only visual update.
+
 ### Table and Container Sizing (Important)
 
 The main view renders the recent-documents table without scrollbars. To prevent “unused right-side space” artifacts and to ensure the last column (Location) uses all available inline width:
